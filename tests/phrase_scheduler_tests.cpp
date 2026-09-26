@@ -62,5 +62,49 @@ int main() {
     for (std::size_t i = 0; i < 8u; ++i)
         CHECK(grooveLeft[i] == 0.0f);
 
+    {
+        // Transport discontinuity: a long voice started at step 0 must not
+        // bleed into an unrelated inactive step after a host seek.
+        SourcePool seekPool;
+        constexpr std::uint32_t seekFrames = 16u;
+        CHECK(seekPool.setOneShot(0, 2u, seekFrames, 48000.0, false));
+
+        const float longSample[seekFrames] {
+            1.0f, 0.25f, 0.25f, 0.25f,
+            0.25f, 0.25f, 0.25f, 0.25f,
+            0.25f, 0.25f, 0.25f, 0.25f,
+            0.25f, 0.25f, 0.25f, 0.25f
+        };
+
+        std::array<AudioBufferView, kMaxSources> seekBuffers {};
+        seekBuffers[0] = {longSample, nullptr, seekFrames, false};
+
+        Pattern seekPattern {};
+        seekPattern[0].active = true;
+        seekPattern[0].fragment = 0;
+        seekPattern[0].velocity = 1.0f;
+        seekPattern[0].pan = 0.0f;
+
+        PhraseScheduler seekScheduler;
+        seekScheduler.setPattern(seekPattern);
+        seekScheduler.prepare(48000.0, 120.0);
+
+        float seekL[2] {};
+        float seekR[2] {};
+        CHECK(seekScheduler.processBlock(
+            seekPool, seekBuffers, 0.0, true, seekL, seekR, 2u));
+        CHECK(std::fabs(seekL[0] - centerGain) < 1.0e-5f);
+
+        float jumpedL[1] {};
+        float jumpedR[1] {};
+        const bool jumpedProduced = seekScheduler.processBlock(
+            seekPool, seekBuffers, 30000.0, true,
+            jumpedL, jumpedR, 1u);
+
+        CHECK(!jumpedProduced);
+        CHECK(std::fabs(jumpedL[0]) < 1.0e-8f);
+        CHECK(std::fabs(jumpedR[0]) < 1.0e-8f);
+    }
+
     return 0;
 }

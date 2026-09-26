@@ -5,9 +5,8 @@
 
 namespace phraseator {
 
-void PhraseScheduler::reset() noexcept {
+void PhraseScheduler::resetPlaybackState() noexcept {
     player_.reset();
-    clock_.reset();
     lastTriggeredAbsoluteStep_ = 0u;
     pendingAbsoluteStep_ = 0u;
     pendingStepTimeSamples_ = 0.0;
@@ -16,6 +15,13 @@ void PhraseScheduler::reset() noexcept {
     ratchetsRemaining_ = 0u;
     hasTriggeredStep_ = false;
     hasPendingStep_ = false;
+}
+
+void PhraseScheduler::reset() noexcept {
+    resetPlaybackState();
+    clock_.reset();
+    timelineValid_ = false;
+    expectedNextProjectTimeSamples_ = 0.0;
 }
 
 void PhraseScheduler::prepare(double sampleRate, double tempoBpm) noexcept {
@@ -127,15 +133,21 @@ bool PhraseScheduler::processBlock(
     std::fill(outRight, outRight + numSamples, 0.0f);
 
     if (!playing) {
-        player_.reset();
-        hasTriggeredStep_ = false;
-        hasPendingStep_ = false;
-        ratchetsRemaining_ = 0u;
+        resetPlaybackState();
+        timelineValid_ = false;
+        expectedNextProjectTimeSamples_ = 0.0;
         return false;
     }
 
     bool producedAudio = false;
     const double blockStart = std::max(0.0, projectTimeSamples);
+
+    // A host seek, loop wrap, or non-contiguous process position must not
+    // carry voices/ratchets from the previous timeline position.
+    if (timelineValid_ &&
+        std::fabs(blockStart - expectedNextProjectTimeSamples_) > 0.5) {
+        resetPlaybackState();
+    }
     const auto startAbsoluteStep = clock_.absoluteStepAt(blockStart);
 
     if ((!hasTriggeredStep_ || startAbsoluteStep != lastTriggeredAbsoluteStep_) &&
@@ -174,6 +186,10 @@ bool PhraseScheduler::processBlock(
         outRight[i] = frame.right;
         producedAudio = producedAudio || frame.left != 0.0f || frame.right != 0.0f;
     }
+
+    expectedNextProjectTimeSamples_ =
+        blockStart + static_cast<double>(numSamples);
+    timelineValid_ = true;
 
     return producedAudio;
 }

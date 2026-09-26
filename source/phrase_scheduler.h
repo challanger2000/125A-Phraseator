@@ -27,6 +27,8 @@ public:
                       std::size_t numSamples) noexcept;
 
 private:
+    void resetPlaybackState() noexcept;
+
     void triggerStep(std::size_t stepIndex,
                      const SourcePool& pool,
                      const std::array<AudioBufferView, kMaxSources>& buffers) noexcept;
@@ -58,6 +60,8 @@ private:
     std::uint8_t ratchetsRemaining_ {0u};
     bool hasTriggeredStep_ {false};
     bool hasPendingStep_ {false};
+    bool timelineValid_ {false};
+    double expectedNextProjectTimeSamples_ {0.0};
 };
 
 } // namespace phraseator
