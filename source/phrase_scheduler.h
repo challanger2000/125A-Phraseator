@@ -32,13 +32,20 @@ private:
                      const std::array<AudioBufferView, kMaxSources>& buffers) noexcept;
 
     void triggerAbsoluteStep(std::uint64_t absoluteStep,
+                             double currentTimeSamples,
                              const SourcePool& pool,
                              const std::array<AudioBufferView, kMaxSources>& buffers) noexcept;
+
+    void scheduleRatchets(std::uint64_t absoluteStep,
+                          double currentTimeSamples) noexcept;
 
     Pattern pattern_ {};
     StepClock clock_ {};
     FragmentPlayer player_ {};
     std::uint64_t lastTriggeredAbsoluteStep_ {0u};
+    double nextRatchetTimeSamples_ {0.0};
+    double ratchetIntervalSamples_ {0.0};
+    std::uint8_t ratchetsRemaining_ {0u};
     bool hasTriggeredStep_ {false};
 };
 
