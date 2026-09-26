@@ -58,6 +58,10 @@ tresult PLUGIN_API Controller::initialize(FUnknown* context) {
                             ParameterInfo::kCanAutomate, pid(ParameterId::FilterAmount));
     parameters.addParameter(STR16("Lock Pattern"), nullptr, 1, 0.0,
                             ParameterInfo::kCanAutomate, pid(ParameterId::LockPattern));
+    parameters.addParameter(STR16("Generate"), nullptr, 1, 0.0,
+                            ParameterInfo::kCanAutomate, pid(ParameterId::GenerateTrigger));
+    parameters.addParameter(STR16("Variate"), nullptr, 1, 0.0,
+                            ParameterInfo::kCanAutomate, pid(ParameterId::VariateTrigger));
 
     return kResultOk;
 }
