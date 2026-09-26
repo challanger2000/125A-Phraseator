@@ -326,17 +326,56 @@ void Processor::generatePattern() noexcept {
     state_.pattern = engine_.generate(currentGenerationSettings());
     applyPitchToKey(state_.pattern);
     scheduler_.setPattern(state_.pattern);
+    patternViewDirty_ = true;
 }
 
 void Processor::varyPattern() noexcept {
     state_.pattern = engine_.vary(state_.pattern, currentGenerationSettings());
     applyPitchToKey(state_.pattern);
     scheduler_.setPattern(state_.pattern);
+    patternViewDirty_ = true;
 }
 
 void Processor::syncEngineFromState() noexcept {
     engine_.setSeed(state_.randomSeed);
     scheduler_.setPattern(state_.pattern);
+    patternViewDirty_ = true;
+}
+
+void Processor::emitPatternViewParameters(ProcessData& data,
+                                          int32 sampleOffset) noexcept {
+    if (!patternViewDirty_ || !data.outputParameterChanges)
+        return;
+
+    const int32 safeOffset = data.numSamples > 0
+        ? std::clamp<int32>(sampleOffset, 0, data.numSamples - 1)
+        : 0;
+
+    bool complete = true;
+
+    for (int32 i = 0; i < kPatternViewCount; ++i) {
+        int32 queueIndex = 0;
+        auto* queue = data.outputParameterChanges->addParameterData(
+            static_cast<ParamID>(kPatternViewBase + i), queueIndex);
+
+        if (!queue) {
+            complete = false;
+            continue;
+        }
+
+        const auto& step = state_.pattern[static_cast<std::size_t>(i)];
+        const ParamValue value = step.active
+            ? static_cast<ParamValue>(step.fragment + 1u) /
+                  static_cast<ParamValue>(kPatternViewStepCount)
+            : 0.0;
+
+        int32 pointIndex = 0;
+        if (queue->addPoint(safeOffset, value, pointIndex) != kResultTrue)
+            complete = false;
+    }
+
+    if (complete)
+        patternViewDirty_ = false;
 }
 
 tresult PLUGIN_API Processor::process(ProcessData& data) {
@@ -344,6 +383,7 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
         // Parameter-only flush calls still need to leave the component in the
         // final host-provided state even though there is no audio to segment.
         readParameterChanges(data.inputParameterChanges);
+        emitPatternViewParameters(data, 0);
         return kResultOk;
     }
 
@@ -516,6 +556,7 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
     }
 
     data.outputs[0].silenceFlags = producedAudio ? 0 : 0x3;
+    emitPatternViewParameters(data, data.numSamples - 1);
     fallbackProjectTimeSamples_ = projectTime + static_cast<double>(data.numSamples);
 
     return kResultOk;

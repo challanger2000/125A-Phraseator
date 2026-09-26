@@ -59,22 +59,22 @@
 
     <view class="CViewContainer" origin="320,84" size="700,100" transparent="false" background-color="Panel2"/>
     <view class="CTextLabel" origin="338,98" size="160,18" title="PATTERN · 16 STEPS" transparent="true" font-color="Muted" font="Section"/>
-    <view class="CViewContainer" origin="338,128" size="32,34" transparent="false" background-color="Panel"/>
-    <view class="CViewContainer" origin="378,128" size="32,34" transparent="false" background-color="Background"/>
-    <view class="CViewContainer" origin="418,128" size="32,34" transparent="false" background-color="Background"/>
-    <view class="CViewContainer" origin="458,128" size="32,34" transparent="false" background-color="Background"/>
-    <view class="CViewContainer" origin="498,128" size="32,34" transparent="false" background-color="Panel"/>
-    <view class="CViewContainer" origin="538,128" size="32,34" transparent="false" background-color="Background"/>
-    <view class="CViewContainer" origin="578,128" size="32,34" transparent="false" background-color="Background"/>
-    <view class="CViewContainer" origin="618,128" size="32,34" transparent="false" background-color="Background"/>
-    <view class="CViewContainer" origin="658,128" size="32,34" transparent="false" background-color="Panel"/>
-    <view class="CViewContainer" origin="698,128" size="32,34" transparent="false" background-color="Background"/>
-    <view class="CViewContainer" origin="738,128" size="32,34" transparent="false" background-color="Background"/>
-    <view class="CViewContainer" origin="778,128" size="32,34" transparent="false" background-color="Background"/>
-    <view class="CViewContainer" origin="818,128" size="32,34" transparent="false" background-color="Panel"/>
-    <view class="CViewContainer" origin="858,128" size="32,34" transparent="false" background-color="Background"/>
-    <view class="CViewContainer" origin="898,128" size="32,34" transparent="false" background-color="Background"/>
-    <view class="CViewContainer" origin="938,128" size="32,34" transparent="false" background-color="Background"/>
+    <view class="CView" custom-view-name="PhraseStep" control-tag="1400" origin="338,128" size="32,34"/>
+    <view class="CView" custom-view-name="PhraseStep" control-tag="1401" origin="378,128" size="32,34"/>
+    <view class="CView" custom-view-name="PhraseStep" control-tag="1402" origin="418,128" size="32,34"/>
+    <view class="CView" custom-view-name="PhraseStep" control-tag="1403" origin="458,128" size="32,34"/>
+    <view class="CView" custom-view-name="PhraseStep" control-tag="1404" origin="498,128" size="32,34"/>
+    <view class="CView" custom-view-name="PhraseStep" control-tag="1405" origin="538,128" size="32,34"/>
+    <view class="CView" custom-view-name="PhraseStep" control-tag="1406" origin="578,128" size="32,34"/>
+    <view class="CView" custom-view-name="PhraseStep" control-tag="1407" origin="618,128" size="32,34"/>
+    <view class="CView" custom-view-name="PhraseStep" control-tag="1408" origin="658,128" size="32,34"/>
+    <view class="CView" custom-view-name="PhraseStep" control-tag="1409" origin="698,128" size="32,34"/>
+    <view class="CView" custom-view-name="PhraseStep" control-tag="1410" origin="738,128" size="32,34"/>
+    <view class="CView" custom-view-name="PhraseStep" control-tag="1411" origin="778,128" size="32,34"/>
+    <view class="CView" custom-view-name="PhraseStep" control-tag="1412" origin="818,128" size="32,34"/>
+    <view class="CView" custom-view-name="PhraseStep" control-tag="1413" origin="858,128" size="32,34"/>
+    <view class="CView" custom-view-name="PhraseStep" control-tag="1414" origin="898,128" size="32,34"/>
+    <view class="CView" custom-view-name="PhraseStep" control-tag="1415" origin="938,128" size="32,34"/>
 
     <view class="CViewContainer" origin="320,198" size="700,92" transparent="false" background-color="Panel"/>
     <view class="CView" custom-view-name="PhraseGenerate" control-tag="1300" origin="346,216" size="250,54"/>

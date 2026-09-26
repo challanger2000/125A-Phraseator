@@ -17,7 +17,8 @@ Processor:
 Controller:
 - exposes stable parameter IDs;
 - restores visible parameter values from component state;
-- currently has no editor.
+- owns the VSTGUI editor and file-selection workflow;
+- receives the current 16-step pattern through hidden read-only output parameters, avoiding realtime UI messages from the processor.
 
 ## Product category
 
@@ -42,11 +43,19 @@ The current realtime core supports:
 
 The processor currently advertises 32-bit sample processing only. 64-bit audio processing will not be claimed until the realtime playback path actually supports it.
 
-## Current limitation
+## Current editor / sample-loading baseline
 
-The VST3 shell is an infrastructure milestone, not yet a usable sampler build.
+The VST3 layer now includes:
+- a functional VSTGUI editor;
+- explicit ONE / LOOP WAV loading for the first visible eight source slots;
+- asynchronous non-realtime sample decoding and bank publication;
+- 16-step pattern visualization driven by hidden read-only processor output parameters;
+- Generate / Variate / Lock controls;
+- musical macro controls;
+- key / scale controls;
+- Delay / Filter finishing controls.
 
-The file-loader / decoded audio ownership layer is not connected yet, so the processor has no user-loaded audio to play.
+The technical source bank remains 16 slots. The first editor baseline exposes slots 1-8; bank/page access for slots 9-16 is a later UI task.
 
 ## SDK baseline
 
@@ -60,7 +69,7 @@ This matches the current baseline already used by the active 125A Final reposito
 
 State format begins with:
 - magic: PHR1
-- version: 1
+- version: 2
 
 The component state includes generation macros, key/scale state, pattern lock state and the current 16-step pattern.
 

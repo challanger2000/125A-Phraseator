@@ -100,6 +100,13 @@ tresult PLUGIN_API Controller::initialize(FUnknown* context) {
     parameters.addParameter(STR16("Variate"), nullptr, 1, 0.0,
                             ParameterInfo::kCanAutomate, pid(ParameterId::VariateTrigger));
 
+    for (int32 i = 0; i < kPatternViewCount; ++i) {
+        parameters.addParameter(
+            STR16("Pattern Step"), nullptr, kPatternViewStepCount, 0.0,
+            ParameterInfo::kIsHidden,
+            static_cast<ParamID>(kPatternViewBase + i));
+    }
+
     return kResultOk;
 }
 
@@ -229,6 +236,38 @@ tresult PLUGIN_API Controller::setComponentState(IBStream* state) {
         static_cast<double>(std::clamp<int32>(scaleMode, 0, 2)) / 2.0);
     setParamNormalized(pid(ParameterId::PitchToKey), pitchToKey != 0 ? 1.0 : 0.0);
     setParamNormalized(pid(ParameterId::LockPattern), lockPattern != 0 ? 1.0 : 0.0);
+
+    for (int32 i = 0; i < kPatternViewCount; ++i) {
+        int32 active = 0;
+        int32 fragment = 0;
+        int32 repeats = 1;
+        double velocity = 0.0;
+        double pitch = 0.0;
+        double pan = 0.0;
+        double gate = 0.0;
+        double timing = 0.0;
+
+        if (!stream.readInt32(active) ||
+            !stream.readInt32(fragment) ||
+            !stream.readDouble(velocity) ||
+            !stream.readDouble(pitch) ||
+            !stream.readDouble(pan) ||
+            !stream.readDouble(gate) ||
+            !stream.readInt32(repeats) ||
+            !stream.readDouble(timing)) {
+            return kResultFalse;
+        }
+
+        const auto safeFragment = std::clamp<int32>(
+            fragment, 0, kPatternViewStepCount - 1);
+        const ParamValue viewValue = active != 0
+            ? static_cast<ParamValue>(safeFragment + 1) /
+                  static_cast<ParamValue>(kPatternViewStepCount)
+            : 0.0;
+
+        setParamNormalized(
+            static_cast<ParamID>(kPatternViewBase + i), viewValue);
+    }
 
     return kResultOk;
 }

@@ -1,4 +1,5 @@
 #include "PhraseatorViews.h"
+#include "PhraseatorIDs.h"
 #include "branding_master.h"
 
 #include "vstgui/lib/cdrawcontext.h"
@@ -10,6 +11,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
+#include <cstdio>
 #include <string_view>
 #include <vector>
 
@@ -89,6 +91,50 @@ void LogoView::draw(VSTGUI::CDrawContext* context) {
     setDirty(false);
 }
 
+
+StepIndicator::StepIndicator(const VSTGUI::CRect& size,
+                             VSTGUI::IControlListener* listener,
+                             std::int32_t tag)
+: VSTGUI::CControl(size, listener, tag) {
+    setMouseEnabled(false);
+    setTransparency(true);
+}
+
+void StepIndicator::draw(VSTGUI::CDrawContext* context) {
+    const auto r = getViewSize();
+    const double normalized =
+        std::clamp(static_cast<double>(getValueNormalized()), 0.0, 1.0);
+    const bool active = normalized > 0.0;
+
+    const auto stepIndex = std::clamp<std::int32_t>(
+        getTag() - static_cast<std::int32_t>(kPatternViewBase), 0, 15);
+    const bool strongBeat = (stepIndex % 4) == 0;
+
+    context->setDrawMode(VSTGUI::kAntiAliasing);
+    context->setFillColor(
+        active ? VSTGUI::CColor{50, 105, 156, 255}
+               : (strongBeat ? VSTGUI::CColor{24, 31, 40, 255}
+                             : VSTGUI::CColor{13, 18, 24, 255}));
+    context->setFrameColor(
+        active ? VSTGUI::CColor{111, 181, 239, 255}
+               : VSTGUI::CColor{52, 65, 79, 255});
+    context->setLineWidth(active ? 1.6 : 1.0);
+    context->drawRect(r, VSTGUI::kDrawFilledAndStroked);
+
+    if (active) {
+        const int fragment = std::clamp(
+            static_cast<int>(std::lround(normalized * kPatternViewStepCount)) - 1,
+            0, kPatternViewStepCount - 1);
+        char text[8] {};
+        std::snprintf(text, sizeof(text), "%d", fragment + 1);
+        context->setFont(VSTGUI::kNormalFontSmall);
+        context->setFontColor({240, 245, 250, 255});
+        context->drawString(text, r, VSTGUI::kCenterText);
+    }
+
+    setDirty(false);
+}
+
 MacroKnob::MacroKnob(const VSTGUI::CRect& size,
                      VSTGUI::IControlListener* listener,
                      std::int32_t tag)
@@ -158,6 +204,11 @@ VSTGUI::CView* createCustomView(VSTGUI::UTF8StringPtr name,
 
     Steinberg::int32 tag=-1;
     attributes.getIntegerAttribute("control-tag",tag);
+
+    if(std::strcmp(name,"PhraseStep")==0 &&
+       tag >= static_cast<Steinberg::int32>(kPatternViewBase) &&
+       tag < static_cast<Steinberg::int32>(kPatternViewBase + kPatternViewCount))
+        return new StepIndicator(rect,editor,tag);
 
     if(std::strcmp(name,"PhraseKnob")==0 && tag>=0)
         return new MacroKnob(rect,editor,tag);

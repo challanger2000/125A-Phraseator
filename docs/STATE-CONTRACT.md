@@ -10,6 +10,7 @@ The V0.1 parameter ID ranges are reserved as follows:
 - 1100-1199: key / scale / pitch options
 - 1200-1299: internal finishing FX
 - 1300-1399: actions / pattern locking
+- 1400-1415: hidden read-only pattern-view mirrors (UI only; not authoritative project state)
 
 Once a public build exists, IDs and meanings must not be silently reused or reinterpreted.
 

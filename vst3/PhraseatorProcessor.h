@@ -54,6 +54,8 @@ private:
     void varyPattern() noexcept;
     void applyPitchToKey(Pattern& pattern) noexcept;
     void queueRecallLoads() noexcept;
+    void emitPatternViewParameters(Steinberg::Vst::ProcessData& data,
+                                   Steinberg::int32 sampleOffset) noexcept;
 
     struct SourceRecallEntry {
         bool occupied {false};
@@ -80,6 +82,7 @@ private:
     bool processing_ {false};
     double generateTrigger_ {0.0};
     double variateTrigger_ {0.0};
+    bool patternViewDirty_ {true};
 };
 
 } // namespace phraseator::vst3
