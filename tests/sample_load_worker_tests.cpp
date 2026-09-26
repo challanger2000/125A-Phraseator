@@ -84,7 +84,7 @@ int main() {
     oneShot.path = path;
     oneShot.mode = SampleLoadMode::OneShot;
 
-    const auto oneShotId = worker.requestLoad(oneShot);
+    const auto oneShotId = worker.requestLoad(oneShot, true);
     CHECK(oneShotId != 0u);
 
     SampleLoadWorkerResult result;
@@ -116,7 +116,7 @@ int main() {
     batch.push_back(replace0);
     batch.push_back(loop1);
 
-    const auto batchId = worker.requestBatch(std::move(batch));
+    const auto batchId = worker.requestBatch(std::move(batch), true);
     CHECK(batchId != 0u);
     CHECK(worker.waitForResult(batchId, result, std::chrono::seconds(2)));
     CHECK(result.ok());
