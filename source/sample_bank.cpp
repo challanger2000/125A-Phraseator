@@ -121,12 +121,20 @@ void SampleBankExchange::cancelWrite(int index) noexcept {
 }
 
 bool SampleBankExchange::consumePending() noexcept {
-    const int pending = pendingIndex_.exchange(-1, std::memory_order_acq_rel);
+    const int pending = pendingIndex_.load(std::memory_order_acquire);
     if (pending < 0)
         return false;
 
+    // Publish the new active bank before making the writer gate available.
+    // This prevents a non-realtime writer from observing pending==-1 while
+    // activeIndex still refers to the previous bank.
     activeIndex_.store(pending, std::memory_order_release);
-    return true;
+
+    int expected = pending;
+    return pendingIndex_.compare_exchange_strong(
+        expected, -1,
+        std::memory_order_acq_rel,
+        std::memory_order_acquire);
 }
 
 } // namespace phraseator
