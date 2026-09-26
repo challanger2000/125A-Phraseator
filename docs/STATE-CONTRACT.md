@@ -37,7 +37,12 @@ Adds fixed per-slot source metadata and UTF-8 source paths:
 - detected root note;
 - external source path.
 
+### Version 3
+
+Adds a per-source compatibility flag indicating whether loop reload should prefer transient slicing before falling back to its stored equal-division grid.
+
 Version 1 remains readable. It simply restores with no remembered sample paths.
+Version 2 remains readable and defaults the transient-preference flag to false, preserving the original equal-slice behavior.
 
 Decoded audio itself is never serialized into project state.
 
@@ -47,9 +52,9 @@ Opening a project must not generate a fresh pattern.
 
 The stored pattern and random seed remain authoritative.
 
-For State v2, existing source files are queued as one non-realtime batch after state restoration. Missing files are skipped without substituting another sample; their remembered path remains in the saved state.
+For State v2/v3, existing source files are queued as one non-realtime batch after state restoration. Missing files are skipped without substituting another sample; their remembered path remains in the saved state.
 
-For newly loaded material, source recall metadata is committed only after decode/slicing/bank publication succeeds. When automatic pitch analysis resolves a stable tonal root, that resolved tonal flag and root note are persisted too, so later project reload does not depend on re-running a potentially changed detector.
+For newly loaded material, source recall metadata is committed only after decode/slicing/bank publication succeeds. New LOOP loads prefer transient slicing and deterministically fall back to the stored equal-division count when no reliable boundaries are found. When automatic pitch analysis resolves a stable tonal root, that resolved tonal flag and root note are persisted too, so later project reload does not depend on re-running a potentially changed detector.
 
 ## Realtime boundary
 

@@ -49,6 +49,8 @@ The VST3 layer now includes:
 - a functional VSTGUI editor;
 - explicit ONE / LOOP WAV loading for the first visible eight source slots;
 - asynchronous non-realtime sample decoding and bank publication;
+- transient-preferred LOOP slicing with equal-grid fallback;
+- conservative offline pitch detection with persisted resolved root metadata;
 - 16-step pattern visualization driven by hidden processor output parameters;
 - source-bay EMPTY / ONE / LOOP status driven by the actually active realtime sample bank, so failed loads are not shown as successful;
 - Generate / Variate / Lock controls;
@@ -70,7 +72,7 @@ This matches the current baseline already used by the active 125A Final reposito
 
 State format begins with:
 - magic: PHR1
-- version: 2
+- version: 3
 
 The component state includes generation macros, key/scale state, pattern lock state and the current 16-step pattern.
 

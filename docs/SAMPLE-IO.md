@@ -44,10 +44,12 @@ OwnedAudioSource allocation/resizing is never intended to happen in the audio ca
 
 Decoded sources are staged in the inactive SampleBank and atomically published to the audio thread only after validation.
 
+## Implemented loading path
+
+The VST3 editor can select WAV files for visible source slots. Paths are sent to the processor, decoded asynchronously, and published through the non-realtime sample-bank exchange.
+
+Loop loads prefer transient-based slicing when reliable onsets are found. If onset analysis is inconclusive, Phraseator falls back to the requested equal grid so the load remains musically usable.
+
 ## Not yet implemented
 
-- file chooser / browser;
-- disk-path persistence;
-- controller-to-processor sample loading command;
-- AIFF or compressed audio;
-- automatic transient analysis.
+- AIFF or compressed audio.
