@@ -25,6 +25,7 @@ int main() {
 
     pattern[1] = pattern[0];
     pattern[1].repeats = 1;
+    pattern[1].timingOffset = 0.20f;
 
     PhraseScheduler scheduler;
     scheduler.setPattern(pattern);
@@ -44,19 +45,20 @@ int main() {
     CHECK(std::fabs(left[3000] - centerGain) < 1.0e-5f);
     CHECK(std::fabs(right[3000] - centerGain) < 1.0e-5f);
 
-    // Regression: a new host block beginning exactly on the next 16th boundary
-    // must trigger that step even though playback never stopped.
-    float boundaryLeft[8] {};
-    float boundaryRight[8] {};
+    // Step 1 is delayed by 20% of one 16th = 1200 samples.
+    std::vector<float> grooveLeft(1201u);
+    std::vector<float> grooveRight(1201u);
     scheduler.processBlock(pool, buffers, 6000.0, true,
-                           boundaryLeft, boundaryRight, 8u);
-    CHECK(std::fabs(boundaryLeft[0] - centerGain) < 1.0e-5f);
-    CHECK(std::fabs(boundaryRight[0] - centerGain) < 1.0e-5f);
+                           grooveLeft.data(), grooveRight.data(), grooveLeft.size());
 
-    scheduler.processBlock(pool, buffers, 7000.0, false,
-                           boundaryLeft, boundaryRight, 8u);
-    for (float x : boundaryLeft)
-        CHECK(x == 0.0f);
+    CHECK(std::fabs(grooveLeft[0]) < 1.0e-8f);
+    CHECK(std::fabs(grooveLeft[1199]) < 1.0e-8f);
+    CHECK(std::fabs(grooveLeft[1200] - centerGain) < 1.0e-5f);
+
+    scheduler.processBlock(pool, buffers, 8000.0, false,
+                           grooveLeft.data(), grooveRight.data(), 8u);
+    for (std::size_t i = 0; i < 8u; ++i)
+        CHECK(grooveLeft[i] == 0.0f);
 
     return 0;
 }

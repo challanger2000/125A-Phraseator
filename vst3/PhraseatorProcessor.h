@@ -45,6 +45,7 @@ private:
     GenerationSettings currentGenerationSettings() const noexcept;
     void generatePattern() noexcept;
     void varyPattern() noexcept;
+    void applyPitchToKey(Pattern& pattern) noexcept;
 
     ProjectState state_ {};
     PhraseEngine engine_ {state_.randomSeed};

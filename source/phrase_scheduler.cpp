@@ -8,10 +8,13 @@ void PhraseScheduler::reset() noexcept {
     player_.reset();
     clock_.reset();
     lastTriggeredAbsoluteStep_ = 0u;
+    pendingAbsoluteStep_ = 0u;
+    pendingStepTimeSamples_ = 0.0;
     nextRatchetTimeSamples_ = 0.0;
     ratchetIntervalSamples_ = 0.0;
     ratchetsRemaining_ = 0u;
     hasTriggeredStep_ = false;
+    hasPendingStep_ = false;
 }
 
 void PhraseScheduler::prepare(double sampleRate, double tempoBpm) noexcept {
@@ -38,8 +41,18 @@ void PhraseScheduler::triggerStep(
     player_.trigger(pool, buffers, ref, step.velocity, step.pan, step.pitchSemitones);
 }
 
+double PhraseScheduler::stepTriggerTime(std::uint64_t absoluteStep) const noexcept {
+    const auto stepIndex = static_cast<std::size_t>(absoluteStep % kStepCount);
+    const auto& step = pattern_[stepIndex];
+
+    const double gridStart = static_cast<double>(absoluteStep) * clock_.samplesPerStep();
+    const double offset = std::clamp(static_cast<double>(step.timingOffset), 0.0, 0.49);
+    return gridStart + offset * clock_.samplesPerStep();
+}
+
 void PhraseScheduler::scheduleRatchets(
     std::uint64_t absoluteStep,
+    double actualStepTriggerTimeSamples,
     double currentTimeSamples) noexcept {
 
     const auto stepIndex = static_cast<std::size_t>(absoluteStep % kStepCount);
@@ -54,12 +67,9 @@ void PhraseScheduler::scheduleRatchets(
     }
 
     ratchetIntervalSamples_ = clock_.samplesPerStep() / static_cast<double>(repeats);
-    const double stepStart = static_cast<double>(absoluteStep) * clock_.samplesPerStep();
-    nextRatchetTimeSamples_ = stepStart + ratchetIntervalSamples_;
+    nextRatchetTimeSamples_ = actualStepTriggerTimeSamples + ratchetIntervalSamples_;
     ratchetsRemaining_ = static_cast<std::uint8_t>(repeats - 1u);
 
-    // Skip ratchets that occurred before a seek/block start. A boundary exactly
-    // equal to currentTimeSamples still belongs to the current block and is kept.
     while (ratchetsRemaining_ > 0u &&
            nextRatchetTimeSamples_ < currentTimeSamples) {
         nextRatchetTimeSamples_ += ratchetIntervalSamples_;
@@ -69,14 +79,33 @@ void PhraseScheduler::scheduleRatchets(
 
 void PhraseScheduler::triggerAbsoluteStep(
     std::uint64_t absoluteStep,
-    double currentTimeSamples,
+    double triggerTimeSamples,
     const SourcePool& pool,
     const std::array<AudioBufferView, kMaxSources>& buffers) noexcept {
 
     triggerStep(static_cast<std::size_t>(absoluteStep % kStepCount), pool, buffers);
     lastTriggeredAbsoluteStep_ = absoluteStep;
     hasTriggeredStep_ = true;
-    scheduleRatchets(absoluteStep, currentTimeSamples);
+    hasPendingStep_ = false;
+    scheduleRatchets(absoluteStep, triggerTimeSamples, triggerTimeSamples);
+}
+
+void PhraseScheduler::scheduleAbsoluteStep(
+    std::uint64_t absoluteStep,
+    double blockTimeSamples,
+    const SourcePool& pool,
+    const std::array<AudioBufferView, kMaxSources>& buffers) noexcept {
+
+    const double triggerTime = stepTriggerTime(absoluteStep);
+
+    if (triggerTime <= blockTimeSamples) {
+        triggerAbsoluteStep(absoluteStep, blockTimeSamples, pool, buffers);
+        return;
+    }
+
+    pendingAbsoluteStep_ = absoluteStep;
+    pendingStepTimeSamples_ = triggerTime;
+    hasPendingStep_ = true;
 }
 
 void PhraseScheduler::processBlock(
@@ -97,6 +126,7 @@ void PhraseScheduler::processBlock(
     if (!playing) {
         player_.reset();
         hasTriggeredStep_ = false;
+        hasPendingStep_ = false;
         ratchetsRemaining_ = 0u;
         return;
     }
@@ -104,12 +134,9 @@ void PhraseScheduler::processBlock(
     const double blockStart = std::max(0.0, projectTimeSamples);
     const auto startAbsoluteStep = clock_.absoluteStepAt(blockStart);
 
-    if (!hasTriggeredStep_ || startAbsoluteStep != lastTriggeredAbsoluteStep_) {
-        triggerAbsoluteStep(startAbsoluteStep, blockStart, pool, buffers);
-    } else {
-        // Recalculate ratchet positions from the musical grid each block so a
-        // host tempo change does not leave stale absolute sample positions.
-        scheduleRatchets(startAbsoluteStep, blockStart);
+    if ((!hasTriggeredStep_ || startAbsoluteStep != lastTriggeredAbsoluteStep_) &&
+        (!hasPendingStep_ || pendingAbsoluteStep_ != startAbsoluteStep)) {
+        scheduleAbsoluteStep(startAbsoluteStep, blockStart, pool, buffers);
     }
 
     double nextBoundary = clock_.nextStepBoundary(blockStart);
@@ -118,8 +145,13 @@ void PhraseScheduler::processBlock(
     for (std::size_t i = 0; i < numSamples; ++i) {
         const double absoluteSample = blockStart + static_cast<double>(i);
 
+        if (hasPendingStep_ && absoluteSample >= pendingStepTimeSamples_) {
+            triggerAbsoluteStep(
+                pendingAbsoluteStep_, pendingStepTimeSamples_, pool, buffers);
+        }
+
         while (absoluteSample >= nextBoundary) {
-            triggerAbsoluteStep(nextAbsoluteStep, absoluteSample, pool, buffers);
+            scheduleAbsoluteStep(nextAbsoluteStep, absoluteSample, pool, buffers);
             ++nextAbsoluteStep;
             nextBoundary += clock_.samplesPerStep();
         }

@@ -59,4 +59,21 @@ float PitchMapper::semitoneOffset(float detectedRootMidi,
     return static_cast<float>(targetMidi) - detectedRootMidi;
 }
 
+float PitchMapper::quantizedOffset(float detectedRootMidi,
+                                   float requestedOffsetSemitones,
+                                   int rootPitchClass,
+                                   ScaleMode scale) noexcept {
+    if (!std::isfinite(detectedRootMidi) || detectedRootMidi < 0.0f ||
+        !std::isfinite(requestedOffsetSemitones)) {
+        return requestedOffsetSemitones;
+    }
+
+    const int requestedMidi = std::clamp(
+        static_cast<int>(std::lround(detectedRootMidi + requestedOffsetSemitones)),
+        0, 127);
+
+    const int target = quantizeMidi(requestedMidi, rootPitchClass, scale);
+    return semitoneOffset(detectedRootMidi, target);
+}
+
 } // namespace phraseator

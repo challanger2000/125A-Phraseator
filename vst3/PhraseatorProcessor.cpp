@@ -2,6 +2,7 @@
 
 #include "PhraseatorIDs.h"
 #include "../source/parameters.h"
+#include "../source/pitch_mapper.h"
 
 #include "base/source/fstreamer.h"
 #include "pluginterfaces/vst/ivstparameterchanges.h"
@@ -193,13 +194,43 @@ GenerationSettings Processor::currentGenerationSettings() const noexcept {
     return settings;
 }
 
+void Processor::applyPitchToKey(Pattern& pattern) noexcept {
+    if (!state_.pitchToKey)
+        return;
+
+    const auto& pool = sampleBanks_.activeBank().sourcePool();
+    const auto scale = static_cast<ScaleMode>(std::clamp(state_.scaleMode, 0, 2));
+
+    for (auto& step : pattern) {
+        if (!step.active || pool.fragmentCount() == 0)
+            continue;
+
+        FragmentRef ref {};
+        const auto flatIndex = static_cast<std::size_t>(step.fragment) % pool.fragmentCount();
+        if (!pool.fragmentAt(flatIndex, ref))
+            continue;
+
+        const auto* source = pool.source(ref.sourceIndex);
+        if (!source || !source->tonal || source->detectedRootMidi < 0.0f)
+            continue;
+
+        step.pitchSemitones = PitchMapper::quantizedOffset(
+            source->detectedRootMidi,
+            step.pitchSemitones,
+            state_.keyRoot,
+            scale);
+    }
+}
+
 void Processor::generatePattern() noexcept {
     state_.pattern = engine_.generate(currentGenerationSettings());
+    applyPitchToKey(state_.pattern);
     scheduler_.setPattern(state_.pattern);
 }
 
 void Processor::varyPattern() noexcept {
     state_.pattern = engine_.vary(state_.pattern, currentGenerationSettings());
+    applyPitchToKey(state_.pattern);
     scheduler_.setPattern(state_.pattern);
 }
 
@@ -254,7 +285,7 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
         return kResultFalse;
     }
 
-    data.outputs[0].silenceFlags = 0x3;
+    data.outputs[0].silenceFlags = 0;
     fallbackProjectTimeSamples_ = projectTime + static_cast<double>(data.numSamples);
 
     return kResultOk;

@@ -19,6 +19,11 @@ public:
 
     static float semitoneOffset(float detectedRootMidi,
                                 int targetMidi) noexcept;
+
+    static float quantizedOffset(float detectedRootMidi,
+                                 float requestedOffsetSemitones,
+                                 int rootPitchClass,
+                                 ScaleMode scale) noexcept;
 };
 
 } // namespace phraseator
