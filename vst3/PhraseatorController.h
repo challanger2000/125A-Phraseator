@@ -13,7 +13,7 @@ public:
     Steinberg::tresult PLUGIN_API initialize(Steinberg::FUnknown* context) override;
     Steinberg::tresult PLUGIN_API setComponentState(Steinberg::IBStream* state) override;
 
-    Steinberg::tresult sendLoadSample(const Steinberg::TChar* path,
+    Steinberg::tresult sendLoadSample(const Steinberg::Vst::TChar* path,
                                       Steinberg::int32 sourceIndex,
                                       Steinberg::uint32 sourceId,
                                       bool asLoop,
