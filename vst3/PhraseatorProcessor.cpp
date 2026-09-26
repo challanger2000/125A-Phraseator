@@ -111,28 +111,38 @@ tresult PLUGIN_API Processor::notify(IMessage* message) {
     request.tonal = tonal != 0;
     request.detectedRootMidi = static_cast<float>(detectedRootMidi);
 
-    const auto requestId = sampleLoader_->requestLoad(request);
+    SourceRecallEntry recallCandidate;
+    recallCandidate.occupied = true;
+    recallCandidate.sourceId = static_cast<std::uint32_t>(sourceId);
+    recallCandidate.mode = request.mode;
+    recallCandidate.divisions = static_cast<std::uint16_t>(
+        request.mode == SampleLoadMode::OneShot ? 1u : request.equalDivisions);
+    recallCandidate.tonal = request.tonal;
+    recallCandidate.detectedRootMidi = request.detectedRootMidi;
+    recallCandidate.utf8Path = utf8Path;
+
+    const auto targetIndex = static_cast<std::size_t>(sourceIndex);
+    const auto requestId = sampleLoader_->requestLoad(
+        request,
+        false,
+        [this, targetIndex, recallCandidate](
+            const SampleLoadWorkerResult& result) {
+            if (!result.ok())
+                return;
+
+            std::lock_guard<std::mutex> lock(sourceRecallMutex_);
+            sourceRecall_[targetIndex] = recallCandidate;
+
+            auto& meta = state_.sources[targetIndex];
+            meta.occupied = true;
+            meta.sourceId = recallCandidate.sourceId;
+            meta.sliceCount = recallCandidate.divisions;
+            meta.tonal = recallCandidate.tonal;
+            meta.detectedRootMidi = recallCandidate.detectedRootMidi;
+        });
+
     if (requestId == 0u)
         return kResultFalse;
-
-    {
-        std::lock_guard<std::mutex> lock(sourceRecallMutex_);
-        auto& recall = sourceRecall_[static_cast<std::size_t>(sourceIndex)];
-        recall.occupied = true;
-        recall.sourceId = static_cast<std::uint32_t>(sourceId);
-        recall.mode = request.mode;
-        recall.divisions = static_cast<std::uint16_t>(request.mode == SampleLoadMode::OneShot ? 1u : request.equalDivisions);
-        recall.tonal = request.tonal;
-        recall.detectedRootMidi = request.detectedRootMidi;
-        recall.utf8Path = utf8Path;
-
-        auto& meta = state_.sources[static_cast<std::size_t>(sourceIndex)];
-        meta.occupied = true;
-        meta.sourceId = recall.sourceId;
-        meta.sliceCount = recall.divisions;
-        meta.tonal = recall.tonal;
-        meta.detectedRootMidi = recall.detectedRootMidi;
-    }
 
     return kResultTrue;
 }

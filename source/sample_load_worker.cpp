@@ -45,14 +45,17 @@ bool SampleLoadWorker::validRequest(const SampleLoadRequest& request) noexcept {
 }
 
 std::uint64_t SampleLoadWorker::requestLoad(SampleLoadRequest request,
-                                            bool retainResult) {
+                                            bool retainResult,
+                                            CompletionCallback completion) {
     std::vector<SampleLoadRequest> requests;
     requests.push_back(std::move(request));
-    return requestBatch(std::move(requests), retainResult);
+    return requestBatch(
+        std::move(requests), retainResult, std::move(completion));
 }
 
 std::uint64_t SampleLoadWorker::requestBatch(std::vector<SampleLoadRequest> requests,
-                                             bool retainResult) {
+                                             bool retainResult,
+                                             CompletionCallback completion) {
     if (requests.empty())
         return 0u;
 
@@ -67,6 +70,7 @@ std::uint64_t SampleLoadWorker::requestBatch(std::vector<SampleLoadRequest> requ
     item.id = requestId;
     item.requests = std::move(requests);
     item.retainResult = retainResult;
+    item.completion = std::move(completion);
 
     {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -227,6 +231,15 @@ void SampleLoadWorker::run() {
         }
 
         const auto result = execute(item);
+
+        if (item.completion) {
+            try {
+                item.completion(result);
+            } catch (...) {
+                // Completion callbacks are non-realtime notifications.
+                // A callback failure must never terminate the loader thread.
+            }
+        }
 
         if (item.retainResult) {
             {

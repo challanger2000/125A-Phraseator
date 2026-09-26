@@ -1,6 +1,7 @@
 #include "sample_load_worker.h"
 #include "test_common.h"
 
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <filesystem>
@@ -84,12 +85,23 @@ int main() {
     oneShot.path = path;
     oneShot.mode = SampleLoadMode::OneShot;
 
-    const auto oneShotId = worker.requestLoad(oneShot, true);
+    std::atomic<bool> completionCalled {false};
+    std::atomic<bool> completionOk {false};
+
+    const auto oneShotId = worker.requestLoad(
+        oneShot,
+        true,
+        [&](const SampleLoadWorkerResult& completed) {
+            completionOk.store(completed.ok(), std::memory_order_release);
+            completionCalled.store(true, std::memory_order_release);
+        });
     CHECK(oneShotId != 0u);
 
     SampleLoadWorkerResult result;
     CHECK(worker.waitForResult(oneShotId, result, std::chrono::seconds(2)));
     CHECK(result.ok());
+    CHECK(completionCalled.load(std::memory_order_acquire));
+    CHECK(completionOk.load(std::memory_order_acquire));
 
     CHECK(exchange.consumePending());
     const auto* source0 = exchange.activeBank().sourcePool().source(0u);

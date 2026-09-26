@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <deque>
 #include <filesystem>
+#include <functional>
 #include <mutex>
 #include <thread>
 #include <vector>
@@ -50,6 +51,9 @@ struct SampleLoadWorkerResult {
 
 class SampleLoadWorker {
 public:
+    using CompletionCallback =
+        std::function<void(const SampleLoadWorkerResult&)>;
+
     explicit SampleLoadWorker(SampleBankExchange& exchange);
     ~SampleLoadWorker();
 
@@ -57,9 +61,11 @@ public:
     SampleLoadWorker& operator=(const SampleLoadWorker&) = delete;
 
     std::uint64_t requestLoad(SampleLoadRequest request,
-                              bool retainResult = false);
+                              bool retainResult = false,
+                              CompletionCallback completion = {});
     std::uint64_t requestBatch(std::vector<SampleLoadRequest> requests,
-                               bool retainResult = false);
+                               bool retainResult = false,
+                               CompletionCallback completion = {});
 
     bool waitForResult(std::uint64_t requestId,
                        SampleLoadWorkerResult& result,
@@ -70,6 +76,7 @@ private:
         std::uint64_t id {0};
         std::vector<SampleLoadRequest> requests;
         bool retainResult {false};
+        CompletionCallback completion;
     };
 
     void run();
