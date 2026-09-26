@@ -111,11 +111,25 @@ StereoFrame FragmentPlayer::processSample(const SourcePool& pool,
             ? sampleLinear(buffer.right, buffer.frames, voice.position)
             : l;
 
-        // Constant-power-ish pan law with center at -3 dB.
-        const float pan01 = (voice.pan + 1.0f) * 0.5f;
-        const float angle = pan01 * 1.57079632679f;
-        const float gL = std::cos(angle) * voice.gain;
-        const float gR = std::sin(angle) * voice.gain;
+        float gL = voice.gain;
+        float gR = voice.gain;
+
+        if (buffer.stereo) {
+            // Stereo sources use a balance law with unity gain at center.
+            // This avoids the unintended -3 dB-per-channel drop that a
+            // mono constant-power panner would impose on stereo material.
+            if (voice.pan > 0.0f) {
+                gL *= std::cos(voice.pan * 1.57079632679f);
+            } else if (voice.pan < 0.0f) {
+                gR *= std::cos((-voice.pan) * 1.57079632679f);
+            }
+        } else {
+            // Mono sources use constant-power panning.
+            const float pan01 = (voice.pan + 1.0f) * 0.5f;
+            const float angle = pan01 * 1.57079632679f;
+            gL = std::cos(angle) * voice.gain;
+            gR = std::sin(angle) * voice.gain;
+        }
 
         out.left += l * gL;
         out.right += r * gR;

@@ -65,5 +65,38 @@ int main() {
         CHECK(std::fabs(s1.left - 0.75f) < 1.0e-5f);
     }
 
+    {
+        SourcePool stereoPool;
+        CHECK(stereoPool.setOneShot(0, 3u, 2u, 48000.0, true));
+
+        const float leftStereo[2] {1.0f, 0.0f};
+        const float rightStereo[2] {0.5f, 0.0f};
+
+        std::array<AudioBufferView, kMaxSources> stereoBuffers {};
+        stereoBuffers[0] = {leftStereo, rightStereo, 2u, true};
+
+        FragmentPlayer stereoPlayer;
+        stereoPlayer.prepare(48000.0);
+
+        CHECK(stereoPlayer.trigger(
+            stereoPool, stereoBuffers, ref, 1.0f, 0.0f, 0.0f));
+
+        const auto centered = stereoPlayer.processSample(
+            stereoPool, stereoBuffers);
+
+        CHECK(std::fabs(centered.left - 1.0f) < 1.0e-5f);
+        CHECK(std::fabs(centered.right - 0.5f) < 1.0e-5f);
+
+        stereoPlayer.reset();
+        CHECK(stereoPlayer.trigger(
+            stereoPool, stereoBuffers, ref, 1.0f, 1.0f, 0.0f));
+
+        const auto hardRight = stereoPlayer.processSample(
+            stereoPool, stereoBuffers);
+
+        CHECK(std::fabs(hardRight.left) < 1.0e-5f);
+        CHECK(std::fabs(hardRight.right - 0.5f) < 1.0e-5f);
+    }
+
     return 0;
 }
