@@ -20,6 +20,18 @@ Unsupported or malformed data is rejected explicitly.
 
 Non-finite float samples are sanitized to zero during decoding.
 
+## File loading
+
+SampleFileLoader performs the complete disk read outside the realtime path and only returns a decoded OwnedAudioSource after the WAV data validates successfully.
+
+Failure states distinguish:
+- file open failure;
+- invalid/unrepresentable file size;
+- read failure;
+- WAV decode failure.
+
+No partial decoded source is published after a failure.
+
 ## Ownership
 
 Decoded audio is stored in OwnedAudioSource.
@@ -28,11 +40,14 @@ It owns its sample memory with std::vector and can expose a lightweight AudioBuf
 
 OwnedAudioSource allocation/resizing is never intended to happen in the audio callback.
 
+## Realtime handoff
+
+Decoded sources are staged in the inactive SampleBank and atomically published to the audio thread only after validation.
+
 ## Not yet implemented
 
 - file chooser / browser;
 - disk-path persistence;
-- processor/controller transfer;
-- safe bank swap into the realtime processor;
+- controller-to-processor sample loading command;
 - AIFF or compressed audio;
 - automatic transient analysis.
