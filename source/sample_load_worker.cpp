@@ -44,13 +44,15 @@ bool SampleLoadWorker::validRequest(const SampleLoadRequest& request) noexcept {
     return true;
 }
 
-std::uint64_t SampleLoadWorker::requestLoad(SampleLoadRequest request) {
+std::uint64_t SampleLoadWorker::requestLoad(SampleLoadRequest request,
+                                            bool retainResult) {
     std::vector<SampleLoadRequest> requests;
     requests.push_back(std::move(request));
-    return requestBatch(std::move(requests));
+    return requestBatch(std::move(requests), retainResult);
 }
 
-std::uint64_t SampleLoadWorker::requestBatch(std::vector<SampleLoadRequest> requests) {
+std::uint64_t SampleLoadWorker::requestBatch(std::vector<SampleLoadRequest> requests,
+                                             bool retainResult) {
     if (requests.empty())
         return 0u;
 
@@ -64,6 +66,7 @@ std::uint64_t SampleLoadWorker::requestBatch(std::vector<SampleLoadRequest> requ
     WorkItem item;
     item.id = requestId;
     item.requests = std::move(requests);
+    item.retainResult = retainResult;
 
     {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -225,11 +228,13 @@ void SampleLoadWorker::run() {
 
         const auto result = execute(item);
 
-        {
-            std::lock_guard<std::mutex> lock(mutex_);
-            results_.push_back(result);
+        if (item.retainResult) {
+            {
+                std::lock_guard<std::mutex> lock(mutex_);
+                results_.push_back(result);
+            }
+            cv_.notify_all();
         }
-        cv_.notify_all();
     }
 }
 
