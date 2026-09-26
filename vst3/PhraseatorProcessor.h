@@ -42,6 +42,9 @@ private:
     bool readProjectState(Steinberg::IBStream* stream) noexcept;
     bool writeProjectState(Steinberg::IBStream* stream) const noexcept;
     void syncEngineFromState() noexcept;
+    GenerationSettings currentGenerationSettings() const noexcept;
+    void generatePattern() noexcept;
+    void varyPattern() noexcept;
 
     ProjectState state_ {};
     PhraseEngine engine_ {state_.randomSeed};
@@ -53,6 +56,8 @@ private:
     double fallbackProjectTimeSamples_ {0.0};
     bool active_ {false};
     bool processing_ {false};
+    double generateTrigger_ {0.0};
+    double variateTrigger_ {0.0};
 };
 
 } // namespace phraseator::vst3
