@@ -64,6 +64,7 @@ private:
         std::uint32_t sourceId {0};
         SampleLoadMode mode {SampleLoadMode::OneShot};
         std::uint16_t divisions {0};
+        bool preferTransient {false};
         bool tonal {false};
         float detectedRootMidi {-1.0f};
         std::string utf8Path;

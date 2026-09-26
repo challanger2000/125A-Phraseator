@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <cmath>
 #include <vector>
 
 using namespace phraseator;
@@ -27,6 +28,41 @@ void appendU32(std::vector<std::uint8_t>& out, std::uint32_t v) {
 void appendId(std::vector<std::uint8_t>& out, const char id[5]) {
     for (int i = 0; i < 4; ++i)
         out.push_back(static_cast<std::uint8_t>(id[i]));
+}
+
+std::vector<std::uint8_t> makePulseMono16(std::uint32_t frames) {
+    std::vector<std::int16_t> samples(frames, 0);
+    const std::uint32_t hits[] {0u, 12000u, 24000u, 36000u};
+
+    for (const auto hit : hits) {
+        for (std::uint32_t i = 0; i < 240u && hit + i < frames; ++i) {
+            const double gain = 1.0 - static_cast<double>(i) / 240.0;
+            samples[hit + i] = static_cast<std::int16_t>(
+                std::lround(gain * 28000.0));
+        }
+    }
+
+    std::vector<std::uint8_t> out;
+    const std::uint32_t dataBytes = frames * 2u;
+
+    appendId(out, "RIFF");
+    appendU32(out, 36u + dataBytes);
+    appendId(out, "WAVE");
+    appendId(out, "fmt ");
+    appendU32(out, 16u);
+    appendU16(out, 1u);
+    appendU16(out, 1u);
+    appendU32(out, 48000u);
+    appendU32(out, 96000u);
+    appendU16(out, 2u);
+    appendU16(out, 16u);
+    appendId(out, "data");
+    appendU32(out, dataBytes);
+
+    for (const auto sample : samples)
+        appendU16(out, static_cast<std::uint16_t>(sample));
+
+    return out;
 }
 
 std::vector<std::uint8_t> makeMono16(std::uint32_t frames) {
@@ -151,7 +187,46 @@ int main() {
 
     CHECK(exchange.activeBank().sourcePool().fragmentCount() == 6u);
 
+    const auto transientPath = std::filesystem::temp_directory_path() /
+                               "125A_Phraseator_TransientLoad_Test.wav";
+    std::filesystem::remove(transientPath, ec);
+    ec.clear();
+    CHECK(writeBytes(transientPath, makePulseMono16(48000u)));
+
+    SampleLoadRequest autoLoop;
+    autoLoop.sourceIndex = 2u;
+    autoLoop.sourceId = 300u;
+    autoLoop.path = transientPath;
+    autoLoop.mode = SampleLoadMode::EqualSlices;
+    autoLoop.equalDivisions = 16u;
+    autoLoop.preferTransient = true;
+
+    std::atomic<std::uint16_t> resolvedSlices {0u};
+    const auto transientId = worker.requestLoad(
+        autoLoop,
+        true,
+        [&](const SampleLoadWorkerResult& completed,
+            const std::vector<SampleLoadRequest>& resolved) {
+            if (completed.ok() && resolved.size() == 1u)
+                resolvedSlices.store(
+                    resolved.front().resolvedSliceCount,
+                    std::memory_order_release);
+        });
+
+    CHECK(transientId != 0u);
+    CHECK(worker.waitForResult(transientId, result, std::chrono::seconds(2)));
+    CHECK(result.ok());
+    CHECK(exchange.consumePending());
+
+    const auto* source2 = exchange.activeBank().sourcePool().source(2u);
+    CHECK(source2 != nullptr);
+    CHECK(source2->sliceCount == 4u);
+    CHECK(resolvedSlices.load(std::memory_order_acquire) == 4u);
+
     std::filesystem::remove(path, ec);
+    CHECK(!ec);
+    ec.clear();
+    std::filesystem::remove(transientPath, ec);
     CHECK(!ec);
 
     return 0;

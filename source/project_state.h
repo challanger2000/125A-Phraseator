@@ -17,7 +17,7 @@ struct SourceState {
 };
 
 struct ProjectState {
-    static constexpr std::uint32_t kCurrentVersion = 2u;
+    static constexpr std::uint32_t kCurrentVersion = 3u;
 
     std::uint32_t version {kCurrentVersion};
     std::uint32_t randomSeed {0x125A0001u};

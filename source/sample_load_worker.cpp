@@ -166,13 +166,29 @@ SampleLoadWorkerResult SampleLoadWorker::execute(WorkItem& item) {
         }
 
         if (request.mode == SampleLoadMode::EqualSlices) {
-            source.slices = Slicer::equalDivisions(
-                source.audio.frames(), request.equalDivisions);
+            if (request.preferTransient) {
+                source.slices = Slicer::transientDivisions(
+                    source.audio.view(),
+                    static_cast<double>(source.audio.sampleRate),
+                    request.equalDivisions);
+            }
+
+            if (source.slices.count == 0) {
+                source.slices = Slicer::equalDivisions(
+                    source.audio.frames(), request.equalDivisions);
+            }
 
             if (source.slices.count == 0) {
                 result.status = SampleLoadWorkerStatus::SliceFailed;
                 return result;
             }
+
+            request.resolvedSliceCount =
+                static_cast<std::uint16_t>(source.slices.count);
+            source.request.resolvedSliceCount = request.resolvedSliceCount;
+        } else {
+            request.resolvedSliceCount = 1u;
+            source.request.resolvedSliceCount = 1u;
         }
 
         prepared.push_back(std::move(source));

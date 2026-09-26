@@ -36,6 +36,8 @@ struct SampleLoadRequest {
     std::filesystem::path path;
     SampleLoadMode mode {SampleLoadMode::OneShot};
     std::size_t equalDivisions {0};
+    bool preferTransient {false};
+    std::uint16_t resolvedSliceCount {0};
     bool tonal {false};
     float detectedRootMidi {-1.0f};
 };

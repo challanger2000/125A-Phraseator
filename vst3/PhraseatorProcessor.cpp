@@ -108,6 +108,7 @@ tresult PLUGIN_API Processor::notify(IMessage* message) {
     request.path = std::filesystem::u8path(utf8Path);
     request.mode = mode == 0 ? SampleLoadMode::OneShot : SampleLoadMode::EqualSlices;
     request.equalDivisions = static_cast<std::size_t>(divisions);
+    request.preferTransient = request.mode == SampleLoadMode::EqualSlices;
     request.tonal = tonal != 0;
     request.detectedRootMidi = static_cast<float>(detectedRootMidi);
 
@@ -117,6 +118,7 @@ tresult PLUGIN_API Processor::notify(IMessage* message) {
     recallCandidate.mode = request.mode;
     recallCandidate.divisions = static_cast<std::uint16_t>(
         request.mode == SampleLoadMode::OneShot ? 1u : request.equalDivisions);
+    recallCandidate.preferTransient = request.preferTransient;
     recallCandidate.tonal = request.tonal;
     recallCandidate.detectedRootMidi = request.detectedRootMidi;
     recallCandidate.utf8Path = utf8Path;
@@ -142,7 +144,7 @@ tresult PLUGIN_API Processor::notify(IMessage* message) {
             auto& meta = state_.sources[targetIndex];
             meta.occupied = true;
             meta.sourceId = resolvedRecall.sourceId;
-            meta.sliceCount = resolvedRecall.divisions;
+            meta.sliceCount = resolved.resolvedSliceCount;
             meta.tonal = resolvedRecall.tonal;
             meta.detectedRootMidi = resolvedRecall.detectedRootMidi;
         });
@@ -681,6 +683,7 @@ bool Processor::writeProjectState(IBStream* state) const noexcept {
             !stream.writeInt32u(recall.sourceId) ||
             !stream.writeInt32(static_cast<int32>(recall.mode)) ||
             !stream.writeInt32(static_cast<int32>(recall.divisions)) ||
+            !stream.writeInt32(recall.preferTransient ? 1 : 0) ||
             !stream.writeInt32(recall.tonal ? 1 : 0) ||
             !stream.writeDouble(recall.detectedRootMidi) ||
             !stream.writeInt32(pathSize)) {
@@ -798,6 +801,7 @@ bool Processor::readProjectState(IBStream* state) noexcept {
             uint32 sourceId = 0;
             int32 mode = 0;
             int32 divisions = 0;
+            int32 preferTransient = 0;
             int32 tonal = 0;
             double detectedRootMidi = -1.0;
             int32 pathSize = 0;
@@ -806,6 +810,7 @@ bool Processor::readProjectState(IBStream* state) noexcept {
                 !stream.readInt32u(sourceId) ||
                 !stream.readInt32(mode) ||
                 !stream.readInt32(divisions) ||
+                (version >= 3 && !stream.readInt32(preferTransient)) ||
                 !stream.readInt32(tonal) ||
                 !stream.readDouble(detectedRootMidi) ||
                 !stream.readInt32(pathSize)) {
@@ -836,6 +841,7 @@ bool Processor::readProjectState(IBStream* state) noexcept {
             recall.sourceId = sourceId;
             recall.mode = mode == 0 ? SampleLoadMode::OneShot : SampleLoadMode::EqualSlices;
             recall.divisions = static_cast<std::uint16_t>(divisions);
+            recall.preferTransient = version >= 3 && preferTransient != 0;
             recall.tonal = tonal != 0;
             recall.detectedRootMidi = static_cast<float>(detectedRootMidi);
             recall.utf8Path = std::move(path);
@@ -889,6 +895,7 @@ void Processor::queueRecallLoads() noexcept {
                 request.equalDivisions = recall.mode == SampleLoadMode::OneShot
                     ? 0u
                     : static_cast<std::size_t>(recall.divisions);
+                request.preferTransient = recall.preferTransient;
                 request.tonal = recall.tonal;
                 request.detectedRootMidi = recall.detectedRootMidi;
                 requests.push_back(std::move(request));
