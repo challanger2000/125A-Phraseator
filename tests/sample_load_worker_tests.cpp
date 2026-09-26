@@ -5,7 +5,6 @@
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
-#include <thread>
 #include <vector>
 
 using namespace phraseator;
@@ -97,23 +96,45 @@ int main() {
     CHECK(source0 != nullptr);
     CHECK(source0->sliceCount == 1u);
 
-    SampleLoadRequest loop;
-    loop.sourceIndex = 1u;
-    loop.sourceId = 200u;
-    loop.path = path;
-    loop.mode = SampleLoadMode::EqualSlices;
-    loop.equalDivisions = 4u;
+    // Batch-load two changes and publish them in one bank swap. This must work
+    // without requiring the audio side to consume an intermediate bank.
+    SampleLoadRequest replace0;
+    replace0.sourceIndex = 0u;
+    replace0.sourceId = 101u;
+    replace0.path = path;
+    replace0.mode = SampleLoadMode::EqualSlices;
+    replace0.equalDivisions = 2u;
 
-    const auto loopId = worker.requestLoad(loop);
-    CHECK(loopId != 0u);
-    CHECK(worker.waitForResult(loopId, result, std::chrono::seconds(2)));
+    SampleLoadRequest loop1;
+    loop1.sourceIndex = 1u;
+    loop1.sourceId = 200u;
+    loop1.path = path;
+    loop1.mode = SampleLoadMode::EqualSlices;
+    loop1.equalDivisions = 4u;
+
+    std::vector<SampleLoadRequest> batch;
+    batch.push_back(replace0);
+    batch.push_back(loop1);
+
+    const auto batchId = worker.requestBatch(std::move(batch));
+    CHECK(batchId != 0u);
+    CHECK(worker.waitForResult(batchId, result, std::chrono::seconds(2)));
     CHECK(result.ok());
 
     CHECK(exchange.consumePending());
+
+    source0 = exchange.activeBank().sourcePool().source(0u);
     const auto* source1 = exchange.activeBank().sourcePool().source(1u);
+
+    CHECK(source0 != nullptr);
+    CHECK(source0->sourceId == 101u);
+    CHECK(source0->sliceCount == 2u);
+
     CHECK(source1 != nullptr);
+    CHECK(source1->sourceId == 200u);
     CHECK(source1->sliceCount == 4u);
-    CHECK(exchange.activeBank().sourcePool().fragmentCount() == 5u);
+
+    CHECK(exchange.activeBank().sourcePool().fragmentCount() == 6u);
 
     std::filesystem::remove(path, ec);
     CHECK(!ec);

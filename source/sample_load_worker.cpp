@@ -7,6 +7,16 @@
 
 namespace phraseator {
 
+namespace {
+
+struct PreparedSource {
+    SampleLoadRequest request;
+    OwnedAudioSource audio;
+    SliceSet slices;
+};
+
+} // namespace
+
 SampleLoadWorker::SampleLoadWorker(SampleBankExchange& exchange)
 : exchange_(exchange),
   thread_([this] { run(); }) {}
@@ -22,23 +32,44 @@ SampleLoadWorker::~SampleLoadWorker() {
         thread_.join();
 }
 
-std::uint64_t SampleLoadWorker::requestLoad(SampleLoadRequest request) {
+bool SampleLoadWorker::validRequest(const SampleLoadRequest& request) noexcept {
     if (request.sourceIndex >= kMaxSources || request.path.empty())
-        return 0u;
+        return false;
 
     if (request.mode == SampleLoadMode::EqualSlices &&
         (request.equalDivisions == 0 || request.equalDivisions > kMaxSlicesPerSource)) {
-        return 0u;
+        return false;
     }
 
-    request.requestId = nextRequestId_.fetch_add(1u, std::memory_order_relaxed);
-    const auto requestId = request.requestId;
+    return true;
+}
+
+std::uint64_t SampleLoadWorker::requestLoad(SampleLoadRequest request) {
+    std::vector<SampleLoadRequest> requests;
+    requests.push_back(std::move(request));
+    return requestBatch(std::move(requests));
+}
+
+std::uint64_t SampleLoadWorker::requestBatch(std::vector<SampleLoadRequest> requests) {
+    if (requests.empty())
+        return 0u;
+
+    for (const auto& request : requests) {
+        if (!validRequest(request))
+            return 0u;
+    }
+
+    const auto requestId = nextRequestId_.fetch_add(1u, std::memory_order_relaxed);
+
+    WorkItem item;
+    item.id = requestId;
+    item.requests = std::move(requests);
 
     {
         std::lock_guard<std::mutex> lock(mutex_);
         if (stopping_)
             return 0u;
-        requests_.push_back(std::move(request));
+        requests_.push_back(std::move(item));
     }
 
     cv_.notify_one();
@@ -94,14 +125,38 @@ bool SampleLoadWorker::acquireWritableBank(int& index, SampleBank*& bank) {
     }
 }
 
-SampleLoadWorkerResult SampleLoadWorker::execute(const SampleLoadRequest& request) {
-    SampleLoadWorkerResult result {request.requestId, SampleLoadWorkerStatus::InvalidRequest};
+SampleLoadWorkerResult SampleLoadWorker::execute(const WorkItem& item) {
+    SampleLoadWorkerResult result {item.id, SampleLoadWorkerStatus::InvalidRequest};
 
-    OwnedAudioSource decoded;
-    const auto loaded = SampleFileLoader::loadWav(request.path, decoded);
-    if (!loaded.ok()) {
-        result.status = SampleLoadWorkerStatus::FileLoadFailed;
-        return result;
+    std::vector<PreparedSource> prepared;
+    prepared.reserve(item.requests.size());
+
+    for (const auto& request : item.requests) {
+        if (!validRequest(request)) {
+            result.status = SampleLoadWorkerStatus::InvalidRequest;
+            return result;
+        }
+
+        PreparedSource source;
+        source.request = request;
+
+        const auto loaded = SampleFileLoader::loadWav(request.path, source.audio);
+        if (!loaded.ok()) {
+            result.status = SampleLoadWorkerStatus::FileLoadFailed;
+            return result;
+        }
+
+        if (request.mode == SampleLoadMode::EqualSlices) {
+            source.slices = Slicer::equalDivisions(
+                source.audio.frames(), request.equalDivisions);
+
+            if (source.slices.count == 0) {
+                result.status = SampleLoadWorkerStatus::SliceFailed;
+                return result;
+            }
+        }
+
+        prepared.push_back(std::move(source));
     }
 
     int bankIndex = -1;
@@ -113,37 +168,32 @@ SampleLoadWorkerResult SampleLoadWorker::execute(const SampleLoadRequest& reques
 
     *bank = exchange_.activeBank();
 
-    bool staged = false;
+    for (auto& source : prepared) {
+        bool staged = false;
 
-    if (request.mode == SampleLoadMode::OneShot) {
-        staged = bank->setOneShot(
-            request.sourceIndex,
-            request.sourceId,
-            std::move(decoded),
-            request.tonal,
-            request.detectedRootMidi);
-    } else {
-        const auto slices = Slicer::equalDivisions(decoded.frames(), request.equalDivisions);
-        if (slices.count == 0) {
+        if (source.request.mode == SampleLoadMode::OneShot) {
+            staged = bank->setOneShot(
+                source.request.sourceIndex,
+                source.request.sourceId,
+                std::move(source.audio),
+                source.request.tonal,
+                source.request.detectedRootMidi);
+        } else {
+            staged = bank->setLoop(
+                source.request.sourceIndex,
+                source.request.sourceId,
+                std::move(source.audio),
+                source.slices.regions.data(),
+                source.slices.count,
+                source.request.tonal,
+                source.request.detectedRootMidi);
+        }
+
+        if (!staged) {
             exchange_.cancelWrite(bankIndex);
             result.status = SampleLoadWorkerStatus::SliceFailed;
             return result;
         }
-
-        staged = bank->setLoop(
-            request.sourceIndex,
-            request.sourceId,
-            std::move(decoded),
-            slices.regions.data(),
-            slices.count,
-            request.tonal,
-            request.detectedRootMidi);
-    }
-
-    if (!staged) {
-        exchange_.cancelWrite(bankIndex);
-        result.status = SampleLoadWorkerStatus::SliceFailed;
-        return result;
     }
 
     if (!exchange_.commitWrite(bankIndex)) {
@@ -158,7 +208,7 @@ SampleLoadWorkerResult SampleLoadWorker::execute(const SampleLoadRequest& reques
 
 void SampleLoadWorker::run() {
     for (;;) {
-        SampleLoadRequest request;
+        WorkItem item;
 
         {
             std::unique_lock<std::mutex> lock(mutex_);
@@ -169,11 +219,11 @@ void SampleLoadWorker::run() {
             if (stopping_ && requests_.empty())
                 break;
 
-            request = std::move(requests_.front());
+            item = std::move(requests_.front());
             requests_.pop_front();
         }
 
-        const auto result = execute(request);
+        const auto result = execute(item);
 
         {
             std::lock_guard<std::mutex> lock(mutex_);

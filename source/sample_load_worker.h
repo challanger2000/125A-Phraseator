@@ -11,6 +11,7 @@
 #include <filesystem>
 #include <mutex>
 #include <thread>
+#include <vector>
 
 namespace phraseator {
 
@@ -29,7 +30,6 @@ enum class SampleLoadWorkerStatus : std::uint8_t {
 };
 
 struct SampleLoadRequest {
-    std::uint64_t requestId {0};
     std::size_t sourceIndex {0};
     std::uint32_t sourceId {0};
     std::filesystem::path path;
@@ -57,22 +57,29 @@ public:
     SampleLoadWorker& operator=(const SampleLoadWorker&) = delete;
 
     std::uint64_t requestLoad(SampleLoadRequest request);
+    std::uint64_t requestBatch(std::vector<SampleLoadRequest> requests);
 
     bool waitForResult(std::uint64_t requestId,
                        SampleLoadWorkerResult& result,
                        std::chrono::milliseconds timeout);
 
 private:
+    struct WorkItem {
+        std::uint64_t id {0};
+        std::vector<SampleLoadRequest> requests;
+    };
+
     void run();
-    SampleLoadWorkerResult execute(const SampleLoadRequest& request);
+    SampleLoadWorkerResult execute(const WorkItem& item);
     bool acquireWritableBank(int& index, SampleBank*& bank);
+    static bool validRequest(const SampleLoadRequest& request) noexcept;
 
     SampleBankExchange& exchange_;
     std::thread thread_;
 
     std::mutex mutex_;
     std::condition_variable cv_;
-    std::deque<SampleLoadRequest> requests_;
+    std::deque<WorkItem> requests_;
     std::deque<SampleLoadWorkerResult> results_;
     std::atomic<std::uint64_t> nextRequestId_ {1u};
     bool stopping_ {false};
