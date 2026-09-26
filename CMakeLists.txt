@@ -24,6 +24,8 @@ set(PHRASEATOR_CORE_SOURCES
     source/slicer.h
     source/pitch_mapper.cpp
     source/pitch_mapper.h
+    source/pitch_detector.cpp
+    source/pitch_detector.h
     source/parameters.h
     source/project_state.h
     source/owned_audio_source.h
@@ -64,6 +66,9 @@ target_link_libraries(PhraseatorSlicerTests PRIVATE PhraseatorCore)
 add_executable(PhraseatorPitchTests tests/pitch_mapper_tests.cpp)
 target_link_libraries(PhraseatorPitchTests PRIVATE PhraseatorCore)
 
+add_executable(PhraseatorPitchDetectorTests tests/pitch_detector_tests.cpp)
+target_link_libraries(PhraseatorPitchDetectorTests PRIVATE PhraseatorCore)
+
 add_executable(PhraseatorStateContractTests tests/state_contract_tests.cpp)
 target_link_libraries(PhraseatorStateContractTests PRIVATE PhraseatorCore)
 
@@ -90,6 +95,7 @@ add_test(NAME PhraseatorStepClockTests COMMAND PhraseatorStepClockTests)
 add_test(NAME PhraseatorSchedulerTests COMMAND PhraseatorSchedulerTests)
 add_test(NAME PhraseatorSlicerTests COMMAND PhraseatorSlicerTests)
 add_test(NAME PhraseatorPitchTests COMMAND PhraseatorPitchTests)
+add_test(NAME PhraseatorPitchDetectorTests COMMAND PhraseatorPitchDetectorTests)
 add_test(NAME PhraseatorStateContractTests COMMAND PhraseatorStateContractTests)
 add_test(NAME PhraseatorWavDecoderTests COMMAND PhraseatorWavDecoderTests)
 add_test(NAME PhraseatorSampleBankTests COMMAND PhraseatorSampleBankTests)

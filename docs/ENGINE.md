@@ -47,6 +47,7 @@ music-theory laws.
 - VARIATE preserves an existing active step's fragment more often than it replaces it, so variation behaves like mutation rather than a fresh random pattern.
 - Pan is bounded by the PAN macro and defaults near center.
 - Pitch changes are constrained when key/scale mode is enabled.
+- User-loaded sources are analyzed off the audio thread with an independently implemented YIN-style fundamental estimator. Only high-confidence, time-stable detections are marked tonal; unstable/noisy material remains unpitched.
 - Fixed random seeds are supported for deterministic recall.
 
 ## Source/fragment model

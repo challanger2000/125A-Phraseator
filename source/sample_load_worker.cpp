@@ -1,6 +1,7 @@
 #include "sample_load_worker.h"
 
 #include "sample_file_loader.h"
+#include "pitch_detector.h"
 #include "slicer.h"
 
 #include <utility>
@@ -151,6 +152,15 @@ SampleLoadWorkerResult SampleLoadWorker::execute(const WorkItem& item) {
         if (!loaded.ok()) {
             result.status = SampleLoadWorkerStatus::FileLoadFailed;
             return result;
+        }
+
+        if (!source.request.tonal &&
+            source.request.detectedRootMidi < 0.0f) {
+            const auto pitch = PitchDetector::analyze(source.audio);
+            if (pitch.tonal) {
+                source.request.tonal = true;
+                source.request.detectedRootMidi = pitch.midiNote;
+            }
         }
 
         if (request.mode == SampleLoadMode::EqualSlices) {
