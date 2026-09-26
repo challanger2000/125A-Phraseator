@@ -1,6 +1,7 @@
 #include "phrase_scheduler.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace phraseator {
 
@@ -47,7 +48,8 @@ double PhraseScheduler::stepTriggerTime(std::uint64_t absoluteStep) const noexce
 
     const double gridStart = static_cast<double>(absoluteStep) * clock_.samplesPerStep();
     const double offset = std::clamp(static_cast<double>(step.timingOffset), 0.0, 0.49);
-    return gridStart + offset * clock_.samplesPerStep();
+    const double offsetSamples = std::round(offset * clock_.samplesPerStep());
+    return gridStart + offsetSamples;
 }
 
 void PhraseScheduler::scheduleRatchets(
