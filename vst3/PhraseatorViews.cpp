@@ -3,7 +3,7 @@
 
 #include "vstgui/lib/cdrawcontext.h"
 #include "vstgui/lib/cgraphicspath.h"
-#include "vstgui/lib/controls/ctextbutton.h"
+#include "vstgui/lib/controls/cbuttons.h"
 
 #include <algorithm>
 #include <cctype>
