@@ -37,9 +37,10 @@ int main() {
     // repeats=2 must retrigger halfway, at sample 3000.
     std::vector<float> left(3001u);
     std::vector<float> right(3001u);
-    scheduler.processBlock(pool, buffers, 0.0, true,
-                           left.data(), right.data(), left.size());
+    const bool firstBlockProduced = scheduler.processBlock(
+        pool, buffers, 0.0, true, left.data(), right.data(), left.size());
 
+    CHECK(firstBlockProduced);
     CHECK(std::fabs(left[0] - centerGain) < 1.0e-5f);
     CHECK(std::fabs(right[0] - centerGain) < 1.0e-5f);
     CHECK(std::fabs(left[3000] - centerGain) < 1.0e-5f);
@@ -55,8 +56,9 @@ int main() {
     CHECK(std::fabs(grooveLeft[1199]) < 1.0e-8f);
     CHECK(std::fabs(grooveLeft[1200] - centerGain) < 1.0e-5f);
 
-    scheduler.processBlock(pool, buffers, 8000.0, false,
-                           grooveLeft.data(), grooveRight.data(), 8u);
+    const bool stoppedProduced = scheduler.processBlock(
+        pool, buffers, 8000.0, false, grooveLeft.data(), grooveRight.data(), 8u);
+    CHECK(!stoppedProduced);
     for (std::size_t i = 0; i < 8u; ++i)
         CHECK(grooveLeft[i] == 0.0f);
 

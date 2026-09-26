@@ -110,7 +110,7 @@ void PhraseScheduler::scheduleAbsoluteStep(
     hasPendingStep_ = true;
 }
 
-void PhraseScheduler::processBlock(
+bool PhraseScheduler::processBlock(
     const SourcePool& pool,
     const std::array<AudioBufferView, kMaxSources>& buffers,
     double projectTimeSamples,
@@ -120,7 +120,7 @@ void PhraseScheduler::processBlock(
     std::size_t numSamples) noexcept {
 
     if (outLeft == nullptr || outRight == nullptr || numSamples == 0)
-        return;
+        return false;
 
     std::fill(outLeft, outLeft + numSamples, 0.0f);
     std::fill(outRight, outRight + numSamples, 0.0f);
@@ -130,9 +130,10 @@ void PhraseScheduler::processBlock(
         hasTriggeredStep_ = false;
         hasPendingStep_ = false;
         ratchetsRemaining_ = 0u;
-        return;
+        return false;
     }
 
+    bool producedAudio = false;
     const double blockStart = std::max(0.0, projectTimeSamples);
     const auto startAbsoluteStep = clock_.absoluteStepAt(blockStart);
 
@@ -170,7 +171,10 @@ void PhraseScheduler::processBlock(
         const auto frame = player_.processSample(pool, buffers);
         outLeft[i] = frame.left;
         outRight[i] = frame.right;
+        producedAudio = producedAudio || frame.left != 0.0f || frame.right != 0.0f;
     }
+
+    return producedAudio;
 }
 
 } // namespace phraseator

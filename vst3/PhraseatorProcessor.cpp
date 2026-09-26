@@ -277,15 +277,16 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
         if (!out || !out[0] || !out[1])
             return kResultFalse;
 
-        scheduler_.processBlock(
+        const bool producedAudio = scheduler_.processBlock(
             bank.sourcePool(), bank.buffers(), projectTime, playing,
             out[0], out[1], static_cast<std::size_t>(data.numSamples));
+
+        data.outputs[0].silenceFlags = producedAudio ? 0 : 0x3;
 
     } else {
         return kResultFalse;
     }
 
-    data.outputs[0].silenceFlags = 0;
     fallbackProjectTimeSamples_ = projectTime + static_cast<double>(data.numSamples);
 
     return kResultOk;

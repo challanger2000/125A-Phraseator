@@ -18,7 +18,7 @@ public:
 
     void prepare(double sampleRate, double tempoBpm) noexcept;
 
-    void processBlock(const SourcePool& pool,
+    bool processBlock(const SourcePool& pool,
                       const std::array<AudioBufferView, kMaxSources>& buffers,
                       double projectTimeSamples,
                       bool playing,
