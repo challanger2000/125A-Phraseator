@@ -1,7 +1,7 @@
 #include "parameters.h"
+#include "test_common.h"
 #include "project_state.h"
 
-#include <cassert>
 #include <type_traits>
 
 using namespace phraseator;
@@ -12,14 +12,14 @@ int main() {
     static_assert(ProjectState::kCurrentVersion == 1u);
 
     ProjectState state;
-    assert(state.version == 1u);
-    assert(state.randomSeed == 0x125A0001u);
-    assert(state.density == ParameterDefaults::density);
-    assert(state.variation == ParameterDefaults::variation);
-    assert(state.repeat == 0.0f);
-    assert(state.delayAmount == 0.0f);
-    assert(!state.pitchToKey);
-    assert(!state.lockPattern);
+    CHECK(state.version == 1u);
+    CHECK(state.randomSeed == 0x125A0001u);
+    CHECK(state.density == ParameterDefaults::density);
+    CHECK(state.variation == ParameterDefaults::variation);
+    CHECK(state.repeat == 0.0f);
+    CHECK(state.delayAmount == 0.0f);
+    CHECK(!state.pitchToKey);
+    CHECK(!state.lockPattern);
 
     return 0;
 }

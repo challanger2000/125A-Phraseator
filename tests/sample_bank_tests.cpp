@@ -1,6 +1,6 @@
 #include "sample_bank.h"
+#include "test_common.h"
 
-#include <cassert>
 
 using namespace phraseator;
 
@@ -19,42 +19,42 @@ OwnedAudioSource makeMono() {
 int main() {
     SampleBankExchange exchange;
 
-    assert(exchange.activeIndex() == 0);
-    assert(exchange.activeBank().sourcePool().fragmentCount() == 0u);
+    CHECK(exchange.activeIndex() == 0);
+    CHECK(exchange.activeBank().sourcePool().fragmentCount() == 0u);
 
     const int writeIndex = exchange.beginWrite();
-    assert(writeIndex == 1);
+    CHECK(writeIndex == 1);
 
     auto* bank = exchange.writableBank(writeIndex);
-    assert(bank != nullptr);
+    CHECK(bank != nullptr);
     bank->clear();
 
     auto source = makeMono();
-    assert(bank->setOneShot(0, 101u, std::move(source)));
+    CHECK(bank->setOneShot(0, 101u, std::move(source)));
 
     // Publish does not mutate the realtime-visible bank until the audio thread consumes it.
-    assert(exchange.commitWrite(writeIndex));
-    assert(exchange.activeBank().sourcePool().fragmentCount() == 0u);
+    CHECK(exchange.commitWrite(writeIndex));
+    CHECK(exchange.activeBank().sourcePool().fragmentCount() == 0u);
 
-    assert(exchange.consumePending());
-    assert(exchange.activeIndex() == 1);
-    assert(exchange.activeBank().sourcePool().fragmentCount() == 1u);
-    assert(exchange.activeBank().buffers()[0].valid());
-    assert(exchange.activeBank().buffers()[0].frames == 3u);
+    CHECK(exchange.consumePending());
+    CHECK(exchange.activeIndex() == 1);
+    CHECK(exchange.activeBank().sourcePool().fragmentCount() == 1u);
+    CHECK(exchange.activeBank().buffers()[0].valid());
+    CHECK(exchange.activeBank().buffers()[0].frames == 3u);
 
     // While no pending bank exists, the old active bank becomes the next safe write target.
     const int secondWrite = exchange.beginWrite();
-    assert(secondWrite == 0);
+    CHECK(secondWrite == 0);
     auto* secondBank = exchange.writableBank(secondWrite);
-    assert(secondBank != nullptr);
+    CHECK(secondBank != nullptr);
     secondBank->clear();
 
     SliceRegion slices[2] {{0u, 1u}, {1u, 3u}};
     auto loop = makeMono();
-    assert(secondBank->setLoop(0, 202u, std::move(loop), slices, 2u));
-    assert(exchange.commitWrite(secondWrite));
-    assert(exchange.consumePending());
-    assert(exchange.activeBank().sourcePool().fragmentCount() == 2u);
+    CHECK(secondBank->setLoop(0, 202u, std::move(loop), slices, 2u));
+    CHECK(exchange.commitWrite(secondWrite));
+    CHECK(exchange.consumePending());
+    CHECK(exchange.activeBank().sourcePool().fragmentCount() == 2u);
 
     return 0;
 }

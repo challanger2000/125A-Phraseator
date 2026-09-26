@@ -1,6 +1,6 @@
 #include "phrase_engine.h"
+#include "test_common.h"
 
-#include <cassert>
 #include <cmath>
 
 using namespace phraseator;
@@ -18,13 +18,13 @@ int main() {
     const auto pb = b.generate(settings);
 
     for (std::size_t i = 0; i < kStepCount; ++i) {
-        assert(pa[i].active == pb[i].active);
-        assert(pa[i].fragment == pb[i].fragment);
-        assert(std::fabs(pa[i].pan - pb[i].pan) < 1.0e-6f);
+        CHECK(pa[i].active == pb[i].active);
+        CHECK(pa[i].fragment == pb[i].fragment);
+        CHECK(std::fabs(pa[i].pan - pb[i].pan) < 1.0e-6f);
         if (pa[i].active) {
-            assert(pa[i].fragment < settings.fragmentCount);
-            assert(pa[i].pan >= -settings.pan);
-            assert(pa[i].pan <= settings.pan);
+            CHECK(pa[i].fragment < settings.fragmentCount);
+            CHECK(pa[i].pan >= -settings.pan);
+            CHECK(pa[i].pan <= settings.pan);
         }
     }
 
@@ -34,9 +34,9 @@ int main() {
     PhraseEngine c(99u);
     const auto pv = c.vary(pa, unchanged);
     for (std::size_t i = 0; i < kStepCount; ++i) {
-        assert(pv[i].active == pa[i].active);
-        assert(pv[i].fragment == pa[i].fragment);
-        assert(pv[i].pitchSemitones == pa[i].pitchSemitones);
+        CHECK(pv[i].active == pa[i].active);
+        CHECK(pv[i].fragment == pa[i].fragment);
+        CHECK(pv[i].pitchSemitones == pa[i].pitchSemitones);
     }
 
     return 0;

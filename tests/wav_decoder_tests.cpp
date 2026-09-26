@@ -1,6 +1,6 @@
 #include "wav_decoder.h"
+#include "test_common.h"
 
-#include <cassert>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -86,14 +86,14 @@ int main() {
         OwnedAudioSource decoded;
         const auto status = WavDecoder::decode(bytes.data(), bytes.size(), decoded);
 
-        assert(status == WavDecodeStatus::Ok);
-        assert(decoded.valid());
-        assert(decoded.sampleRate == 48000u);
-        assert(!decoded.stereo);
-        assert(decoded.frames() == 3u);
-        assert(std::fabs(decoded.left[0] + 1.0f) < 1.0e-6f);
-        assert(std::fabs(decoded.left[1]) < 1.0e-6f);
-        assert(decoded.left[2] > 0.999f);
+        CHECK(status == WavDecodeStatus::Ok);
+        CHECK(decoded.valid());
+        CHECK(decoded.sampleRate == 48000u);
+        CHECK(!decoded.stereo);
+        CHECK(decoded.frames() == 3u);
+        CHECK(std::fabs(decoded.left[0] + 1.0f) < 1.0e-6f);
+        CHECK(std::fabs(decoded.left[1]) < 1.0e-6f);
+        CHECK(decoded.left[2] > 0.999f);
     }
 
     {
@@ -101,23 +101,23 @@ int main() {
         OwnedAudioSource decoded;
         const auto status = WavDecoder::decode(bytes.data(), bytes.size(), decoded);
 
-        assert(status == WavDecodeStatus::Ok);
-        assert(decoded.valid());
-        assert(decoded.sampleRate == 44100u);
-        assert(decoded.stereo);
-        assert(decoded.frames() == 2u);
-        assert(std::fabs(decoded.left[0] - 0.25f) < 1.0e-6f);
-        assert(std::fabs(decoded.right[0] + 0.25f) < 1.0e-6f);
-        assert(std::fabs(decoded.left[1] - 1.5f) < 1.0e-6f);
-        assert(std::fabs(decoded.right[1] + 1.5f) < 1.0e-6f);
+        CHECK(status == WavDecodeStatus::Ok);
+        CHECK(decoded.valid());
+        CHECK(decoded.sampleRate == 44100u);
+        CHECK(decoded.stereo);
+        CHECK(decoded.frames() == 2u);
+        CHECK(std::fabs(decoded.left[0] - 0.25f) < 1.0e-6f);
+        CHECK(std::fabs(decoded.right[0] + 0.25f) < 1.0e-6f);
+        CHECK(std::fabs(decoded.left[1] - 1.5f) < 1.0e-6f);
+        CHECK(std::fabs(decoded.right[1] + 1.5f) < 1.0e-6f);
     }
 
     {
         const std::uint8_t invalid[4] {0, 1, 2, 3};
         OwnedAudioSource decoded;
-        assert(WavDecoder::decode(invalid, sizeof(invalid), decoded) ==
+        CHECK(WavDecoder::decode(invalid, sizeof(invalid), decoded) ==
                WavDecodeStatus::InvalidContainer);
-        assert(!decoded.valid());
+        CHECK(!decoded.valid());
     }
 
     return 0;

@@ -1,7 +1,7 @@
 #include "phrase_scheduler.h"
+#include "test_common.h"
 
 #include <array>
-#include <cassert>
 #include <cmath>
 #include <vector>
 
@@ -9,7 +9,7 @@ using namespace phraseator;
 
 int main() {
     SourcePool pool;
-    assert(pool.setOneShot(0, 1u, 2u, 48000.0, false));
+    CHECK(pool.setOneShot(0, 1u, 2u, 48000.0, false));
 
     const float sample[2] {1.0f, 0.0f};
     std::array<AudioBufferView, kMaxSources> buffers {};
@@ -39,10 +39,10 @@ int main() {
     scheduler.processBlock(pool, buffers, 0.0, true,
                            left.data(), right.data(), left.size());
 
-    assert(std::fabs(left[0] - centerGain) < 1.0e-5f);
-    assert(std::fabs(right[0] - centerGain) < 1.0e-5f);
-    assert(std::fabs(left[3000] - centerGain) < 1.0e-5f);
-    assert(std::fabs(right[3000] - centerGain) < 1.0e-5f);
+    CHECK(std::fabs(left[0] - centerGain) < 1.0e-5f);
+    CHECK(std::fabs(right[0] - centerGain) < 1.0e-5f);
+    CHECK(std::fabs(left[3000] - centerGain) < 1.0e-5f);
+    CHECK(std::fabs(right[3000] - centerGain) < 1.0e-5f);
 
     // Regression: a new host block beginning exactly on the next 16th boundary
     // must trigger that step even though playback never stopped.
@@ -50,13 +50,13 @@ int main() {
     float boundaryRight[8] {};
     scheduler.processBlock(pool, buffers, 6000.0, true,
                            boundaryLeft, boundaryRight, 8u);
-    assert(std::fabs(boundaryLeft[0] - centerGain) < 1.0e-5f);
-    assert(std::fabs(boundaryRight[0] - centerGain) < 1.0e-5f);
+    CHECK(std::fabs(boundaryLeft[0] - centerGain) < 1.0e-5f);
+    CHECK(std::fabs(boundaryRight[0] - centerGain) < 1.0e-5f);
 
     scheduler.processBlock(pool, buffers, 7000.0, false,
                            boundaryLeft, boundaryRight, 8u);
     for (float x : boundaryLeft)
-        assert(x == 0.0f);
+        CHECK(x == 0.0f);
 
     return 0;
 }
