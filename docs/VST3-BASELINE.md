@@ -8,9 +8,11 @@ Processor:
 - owns realtime state;
 - exposes stereo instrument output;
 - accepts an event input for future MIDI interaction;
-- reads host tempo and project sample position when available;
+- reads host tempo and project sample position;
 - performs no file I/O in process();
-- serializes deterministic project state.
+- serializes deterministic project state;
+- executes GENERATE / VARIATE on explicit trigger edges;
+- honors LOCK PATTERN for those generation actions.
 
 Controller:
 - exposes stable parameter IDs;
@@ -27,6 +29,18 @@ It intentionally has:
 - zero audio inputs;
 - one stereo audio output;
 - one event input.
+
+## Audio processing baseline
+
+The current realtime core supports:
+- deterministic 16-step playback;
+- host-tempo synchronization;
+- exact host-block boundary triggering;
+- sample-synchronized ratchets;
+- fragment pitch playback;
+- stereo pan variation.
+
+The processor currently advertises 32-bit sample processing only. 64-bit audio processing will not be claimed until the realtime playback path actually supports it.
 
 ## Current limitation
 
