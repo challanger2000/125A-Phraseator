@@ -24,6 +24,8 @@ set(PHRASEATOR_CORE_SOURCES
     source/slicer.h
     source/pitch_mapper.cpp
     source/pitch_mapper.h
+    source/parameters.h
+    source/project_state.h
 )
 
 add_library(PhraseatorCore STATIC ${PHRASEATOR_CORE_SOURCES})
@@ -50,6 +52,9 @@ target_link_libraries(PhraseatorSlicerTests PRIVATE PhraseatorCore)
 add_executable(PhraseatorPitchTests tests/pitch_mapper_tests.cpp)
 target_link_libraries(PhraseatorPitchTests PRIVATE PhraseatorCore)
 
+add_executable(PhraseatorStateContractTests tests/state_contract_tests.cpp)
+target_link_libraries(PhraseatorStateContractTests PRIVATE PhraseatorCore)
+
 enable_testing()
 add_test(NAME PhraseatorEngineTests COMMAND PhraseatorEngineTests)
 add_test(NAME PhraseatorSourcePoolTests COMMAND PhraseatorSourcePoolTests)
@@ -58,6 +63,7 @@ add_test(NAME PhraseatorStepClockTests COMMAND PhraseatorStepClockTests)
 add_test(NAME PhraseatorSchedulerTests COMMAND PhraseatorSchedulerTests)
 add_test(NAME PhraseatorSlicerTests COMMAND PhraseatorSlicerTests)
 add_test(NAME PhraseatorPitchTests COMMAND PhraseatorPitchTests)
+add_test(NAME PhraseatorStateContractTests COMMAND PhraseatorStateContractTests)
 
 if(PHRASEATOR_BUILD_VST3)
     if(NOT DEFINED VST3_SDK_ROOT)
