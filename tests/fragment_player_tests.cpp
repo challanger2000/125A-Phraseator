@@ -98,5 +98,34 @@ int main() {
         CHECK(std::fabs(hardRight.right - 0.5f) < 1.0e-5f);
     }
 
+    {
+        // Loop slices get a short de-click envelope; one-shots do not.
+        constexpr std::uint32_t loopFrames = 32u;
+        SourcePool loopPool;
+        const SliceRegion loopRegion {0u, loopFrames};
+        CHECK(loopPool.setLoopSlices(
+            0, 4u, loopFrames, 48000.0, false, &loopRegion, 1u));
+
+        float constant[loopFrames] {};
+        for (auto& x : constant)
+            x = 1.0f;
+
+        std::array<AudioBufferView, kMaxSources> loopBuffers {};
+        loopBuffers[0] = {constant, nullptr, loopFrames, false};
+
+        FragmentPlayer loopPlayer;
+        loopPlayer.prepare(48000.0);
+        CHECK(loopPlayer.trigger(
+            loopPool, loopBuffers, ref, 1.0f, -1.0f, 0.0f));
+
+        const auto first = loopPlayer.processSample(loopPool, loopBuffers);
+        CHECK(std::fabs(first.left) < 1.0e-8f);
+
+        StereoFrame middle {};
+        for (int i = 0; i < 16; ++i)
+            middle = loopPlayer.processSample(loopPool, loopBuffers);
+        CHECK(middle.left > 0.95f);
+    }
+
     return 0;
 }

@@ -16,7 +16,9 @@ struct VoiceState {
     double increment {1.0};
     float gain {1.0f};
     float pan {0.0f};
+    std::uint32_t startFrame {0};
     std::uint32_t endFrame {0};
+    double fadeFrames {0.0};
 };
 
 struct StereoFrame {

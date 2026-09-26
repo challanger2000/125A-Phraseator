@@ -69,6 +69,7 @@ bool FragmentPlayer::trigger(const SourcePool& pool,
     voice->active = true;
     voice->fragment = fragment;
     voice->position = static_cast<double>(region.startFrame);
+    voice->startFrame = region.startFrame;
 
     // Preserve original sample pitch/duration across host sample rates.
     // Source-rate conversion and creative pitch transpose are multiplicative.
@@ -83,6 +84,19 @@ bool FragmentPlayer::trigger(const SourcePool& pool,
     voice->gain = std::max(0.0f, gain);
     voice->pan = clamp(pan, -1.0f, 1.0f);
     voice->endFrame = region.endFrame;
+
+    if (source->type == SourceType::Loop) {
+        // EMPIRICALLY TUNED de-click baseline: 0.25 ms at the source rate,
+        // bounded to at most half the slice length.
+        const double requestedFade =
+            std::max(1.0, std::round(sourceRate * 0.00025));
+        const double maxFade =
+            std::max(0.0, static_cast<double>(region.lengthFrames()) * 0.5);
+        voice->fadeFrames = std::min(requestedFade, maxFade);
+    } else {
+        voice->fadeFrames = 0.0;
+    }
+
     return true;
 }
 
@@ -131,8 +145,23 @@ StereoFrame FragmentPlayer::processSample(const SourcePool& pool,
             gR = std::sin(angle) * voice.gain;
         }
 
-        out.left += l * gL;
-        out.right += r * gR;
+        float envelope = 1.0f;
+        if (voice.fadeFrames > 0.0) {
+            const double fromStart =
+                voice.position - static_cast<double>(voice.startFrame);
+            const double lastPlayable =
+                static_cast<double>(voice.endFrame > 0u ? voice.endFrame - 1u : 0u);
+            const double toEnd = lastPlayable - voice.position;
+
+            const double fadeIn =
+                std::clamp(fromStart / voice.fadeFrames, 0.0, 1.0);
+            const double fadeOut =
+                std::clamp(toEnd / voice.fadeFrames, 0.0, 1.0);
+            envelope = static_cast<float>(std::min(fadeIn, fadeOut));
+        }
+
+        out.left += l * gL * envelope;
+        out.right += r * gR * envelope;
 
         voice.position += voice.increment;
         if (voice.position >= static_cast<double>(voice.endFrame))

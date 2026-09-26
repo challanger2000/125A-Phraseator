@@ -57,6 +57,7 @@ Initial limits:
 - Loop = up to 64 validated slices.
 - Fragment lookup is deterministic and allocation-free.
 - Source sample rate is converted against the current host sample rate during playback, before creative pitch transposition is applied.
+- Loop fragments use an EMPIRICALLY TUNED 0.25 ms bounded de-click envelope at slice edges; one-shots keep their original attack.
 - Invalid/overlapping slice definitions are rejected before realtime use.
 
 These limits are implementation baselines, not final product claims.
