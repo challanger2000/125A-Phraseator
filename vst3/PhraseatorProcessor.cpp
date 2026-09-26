@@ -126,19 +126,25 @@ tresult PLUGIN_API Processor::notify(IMessage* message) {
         request,
         false,
         [this, targetIndex, recallCandidate](
-            const SampleLoadWorkerResult& result) {
-            if (!result.ok())
+            const SampleLoadWorkerResult& result,
+            const std::vector<SampleLoadRequest>& resolvedRequests) {
+            if (!result.ok() || resolvedRequests.empty())
                 return;
 
+            auto resolvedRecall = recallCandidate;
+            const auto& resolved = resolvedRequests.front();
+            resolvedRecall.tonal = resolved.tonal;
+            resolvedRecall.detectedRootMidi = resolved.detectedRootMidi;
+
             std::lock_guard<std::mutex> lock(sourceRecallMutex_);
-            sourceRecall_[targetIndex] = recallCandidate;
+            sourceRecall_[targetIndex] = resolvedRecall;
 
             auto& meta = state_.sources[targetIndex];
             meta.occupied = true;
-            meta.sourceId = recallCandidate.sourceId;
-            meta.sliceCount = recallCandidate.divisions;
-            meta.tonal = recallCandidate.tonal;
-            meta.detectedRootMidi = recallCandidate.detectedRootMidi;
+            meta.sourceId = resolvedRecall.sourceId;
+            meta.sliceCount = resolvedRecall.divisions;
+            meta.tonal = resolvedRecall.tonal;
+            meta.detectedRootMidi = resolvedRecall.detectedRootMidi;
         });
 
     if (requestId == 0u)

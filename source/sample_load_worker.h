@@ -52,7 +52,8 @@ struct SampleLoadWorkerResult {
 class SampleLoadWorker {
 public:
     using CompletionCallback =
-        std::function<void(const SampleLoadWorkerResult&)>;
+        std::function<void(const SampleLoadWorkerResult&,
+                           const std::vector<SampleLoadRequest>&)>;
 
     explicit SampleLoadWorker(SampleBankExchange& exchange);
     ~SampleLoadWorker();
@@ -80,7 +81,7 @@ private:
     };
 
     void run();
-    SampleLoadWorkerResult execute(const WorkItem& item);
+    SampleLoadWorkerResult execute(WorkItem& item);
     bool acquireWritableBank(int& index, SampleBank*& bank);
     static bool validRequest(const SampleLoadRequest& request) noexcept;
 

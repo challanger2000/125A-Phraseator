@@ -91,8 +91,11 @@ int main() {
     const auto oneShotId = worker.requestLoad(
         oneShot,
         true,
-        [&](const SampleLoadWorkerResult& completed) {
-            completionOk.store(completed.ok(), std::memory_order_release);
+        [&](const SampleLoadWorkerResult& completed,
+            const std::vector<SampleLoadRequest>& resolved) {
+            completionOk.store(
+                completed.ok() && resolved.size() == 1u,
+                std::memory_order_release);
             completionCalled.store(true, std::memory_order_release);
         });
     CHECK(oneShotId != 0u);

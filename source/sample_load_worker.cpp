@@ -133,13 +133,13 @@ bool SampleLoadWorker::acquireWritableBank(int& index, SampleBank*& bank) {
     }
 }
 
-SampleLoadWorkerResult SampleLoadWorker::execute(const WorkItem& item) {
+SampleLoadWorkerResult SampleLoadWorker::execute(WorkItem& item) {
     SampleLoadWorkerResult result {item.id, SampleLoadWorkerStatus::InvalidRequest};
 
     std::vector<PreparedSource> prepared;
     prepared.reserve(item.requests.size());
 
-    for (const auto& request : item.requests) {
+    for (auto& request : item.requests) {
         if (!validRequest(request)) {
             result.status = SampleLoadWorkerStatus::InvalidRequest;
             return result;
@@ -160,6 +160,8 @@ SampleLoadWorkerResult SampleLoadWorker::execute(const WorkItem& item) {
             if (pitch.tonal) {
                 source.request.tonal = true;
                 source.request.detectedRootMidi = pitch.midiNote;
+                request.tonal = true;
+                request.detectedRootMidi = pitch.midiNote;
             }
         }
 
@@ -244,7 +246,7 @@ void SampleLoadWorker::run() {
 
         if (item.completion) {
             try {
-                item.completion(result);
+                item.completion(result, item.requests);
             } catch (...) {
                 // Completion callbacks are non-realtime notifications.
                 // A callback failure must never terminate the loader thread.

@@ -49,6 +49,8 @@ The stored pattern and random seed remain authoritative.
 
 For State v2, existing source files are queued as one non-realtime batch after state restoration. Missing files are skipped without substituting another sample; their remembered path remains in the saved state.
 
+For newly loaded material, source recall metadata is committed only after decode/slicing/bank publication succeeds. When automatic pitch analysis resolves a stable tonal root, that resolved tonal flag and root note are persisted too, so later project reload does not depend on re-running a potentially changed detector.
+
 ## Realtime boundary
 
 Variable-length source paths are stored outside the realtime ProjectState object and protected by a mutex that is never touched from process().
