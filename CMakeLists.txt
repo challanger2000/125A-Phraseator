@@ -102,7 +102,7 @@ if(PHRASEATOR_BUILD_VST3)
 
     set(SMTG_ENABLE_VST3_PLUGIN_EXAMPLES OFF CACHE BOOL "" FORCE)
     set(SMTG_ENABLE_VST3_HOSTING_EXAMPLES ON CACHE BOOL "" FORCE)
-    set(SMTG_ENABLE_VSTGUI_SUPPORT OFF CACHE BOOL "" FORCE)
+    set(SMTG_ENABLE_VSTGUI_SUPPORT ON CACHE BOOL "" FORCE)
     set(SMTG_RUN_VST_VALIDATOR ON CACHE BOOL "" FORCE)
     set(SMTG_CREATE_PLUGIN_LINK OFF CACHE BOOL "" FORCE)
 
@@ -120,6 +120,9 @@ if(PHRASEATOR_BUILD_VST3)
         vst3/PhraseatorProcessor.cpp
         vst3/PhraseatorController.h
         vst3/PhraseatorController.cpp
+        vst3/PhraseatorViews.h
+        vst3/PhraseatorViews.cpp
+        vst3/branding_master.h
         vst3/entry.cpp
     )
 
@@ -133,10 +136,16 @@ if(PHRASEATOR_BUILD_VST3)
         Phraseator
         PRIVATE
             sdk
+            vstgui_support
             PhraseatorCore
     )
 
     target_compile_features(Phraseator PRIVATE cxx_std_17)
+
+    smtg_target_add_plugin_resources(Phraseator
+        RESOURCES
+            resource/Phraseator.uidesc
+    )
 
     if(WIN32)
         target_sources(

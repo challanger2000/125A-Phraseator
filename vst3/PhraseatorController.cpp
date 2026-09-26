@@ -6,6 +6,11 @@
 
 #include "base/source/fstreamer.h"
 #include "public.sdk/source/vst/vstcomponentbase.h"
+#include "PhraseatorViews.h"
+#include "base/source/fstring.h"
+#include "vstgui/lib/cfileselector.h"
+#include "vstgui/lib/controls/ccontrol.h"
+#include <cstring>
 
 #include <algorithm>
 #include <cmath>
@@ -16,6 +21,9 @@ using namespace Steinberg;
 using namespace Steinberg::Vst;
 
 namespace {
+constexpr int32 kLoadOneBase = 2000;
+constexpr int32 kLoadLoopBase = 2100;
+
 ParamID pid(ParameterId id) noexcept {
     return static_cast<ParamID>(id);
 }
@@ -62,6 +70,79 @@ tresult PLUGIN_API Controller::initialize(FUnknown* context) {
                             ParameterInfo::kCanAutomate, pid(ParameterId::VariateTrigger));
 
     return kResultOk;
+}
+
+tresult PLUGIN_API Controller::setState(IBStream* state) {
+    if (!state) return kInvalidArgument;
+    IBStreamer stream(state, kLittleEndian);
+    double zoom = 1.0;
+    if (!stream.readDouble(zoom)) return kResultOk;
+    guiZoom_ = zoom >= 1.25 ? 1.5 : 1.0;
+    if (editor_) editor_->setZoomFactor(guiZoom_);
+    return kResultOk;
+}
+
+tresult PLUGIN_API Controller::getState(IBStream* state) {
+    if (!state) return kInvalidArgument;
+    IBStreamer stream(state, kLittleEndian);
+    return stream.writeDouble(guiZoom_) ? kResultOk : kResultFalse;
+}
+
+IPlugView* PLUGIN_API Controller::createView(FIDString name) {
+    if (!name || std::strcmp(name, ViewType::kEditor) != 0) return nullptr;
+    auto* editor = new VSTGUI::VST3Editor(this, "view", "Phraseator.uidesc");
+    gui::configureEditor(editor, 1040.0, 640.0, guiZoom_);
+    editor_ = editor;
+    return editor;
+}
+
+VSTGUI::CView* Controller::createCustomView(VSTGUI::UTF8StringPtr name,
+                                            const VSTGUI::UIAttributes& attributes,
+                                            const VSTGUI::IUIDescription*,
+                                            VSTGUI::VST3Editor* editor) {
+    return gui::createCustomView(name, attributes, editor, this);
+}
+
+VSTGUI::CView* Controller::verifyView(VSTGUI::CView* view,
+                                      const VSTGUI::UIAttributes&,
+                                      const VSTGUI::IUIDescription*,
+                                      VSTGUI::VST3Editor* editor) {
+    editor_ = editor;
+    return view;
+}
+
+void Controller::valueChanged(VSTGUI::CControl* control) {
+    if (!control || control->getValueNormalized() < 0.5f) return;
+    const auto tag = control->getTag();
+    if (tag >= kLoadOneBase && tag < kLoadOneBase + 8)
+        openSampleSelector(tag - kLoadOneBase, false);
+    else if (tag >= kLoadLoopBase && tag < kLoadLoopBase + 8)
+        openSampleSelector(tag - kLoadLoopBase, true);
+    control->setValueNormalized(0.0f);
+    control->invalid();
+}
+
+void Controller::willClose(VSTGUI::VST3Editor* editor) {
+    if (editor_ == editor) editor_ = nullptr;
+}
+
+void Controller::openSampleSelector(int sourceIndex, bool asLoop) {
+    if (!editor_ || sourceIndex < 0 || sourceIndex >= 8) return;
+    auto* selector = VSTGUI::CNewFileSelector::create(editor_->getFrame(), VSTGUI::CNewFileSelector::kSelectFile);
+    if (!selector) return;
+    selector->setTitle(asLoop ? "Load loop" : "Load one-shot");
+    selector->addFileExtension(VSTGUI::CFileExtension("WAVE", "wav", "audio/wav"));
+    selector->setAllowMultiFileSelection(false);
+    selector->run([this, sourceIndex, asLoop](VSTGUI::CNewFileSelector* sel) {
+        if (!sel || sel->getNumSelectedFiles() == 0) return;
+        const auto* utf8 = sel->getSelectedFile(0);
+        if (!utf8 || *utf8 == 0) return;
+        Steinberg::String path;
+        path.fromUTF8(utf8);
+        sendLoadSample(path.text(), sourceIndex, static_cast<uint32>(sourceIndex + 1),
+                       asLoop, asLoop ? 16 : 0, false, -1.0);
+    });
+    selector->forget();
 }
 
 tresult PLUGIN_API Controller::setComponentState(IBStream* state) {
