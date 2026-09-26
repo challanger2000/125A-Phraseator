@@ -1,4 +1,4 @@
-name: Phraseator Core Tests
+name: Phraseator Tests
 
 on:
   push:
@@ -16,11 +16,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure
-        run: cmake -S . -B build -DPHRASEATOR_BUILD_VST3=OFF
+      - name: Configure core
+        run: cmake -S . -B build-core -DPHRASEATOR_BUILD_VST3=OFF
 
-      - name: Build
-        run: cmake --build build --config Release
+      - name: Build core
+        run: cmake --build build-core --config Release
 
-      - name: Test
-        run: ctest --test-dir build -C Release --output-on-failure
+      - name: Test core
+        run: ctest --test-dir build-core -C Release --output-on-failure
+
+  vst3-build:
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[vst3]')
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure VST3
+        run: cmake -S . -B build-vst3 -DPHRASEATOR_BUILD_VST3=ON
+
+      - name: Build VST3
+        run: cmake --build build-vst3 --config Release --target Phraseator
