@@ -5,7 +5,7 @@
 #include "../source/phrase_engine.h"
 #include "../source/phrase_scheduler.h"
 #include "../source/project_state.h"
-#include "../source/source_pool.h"
+#include "../source/sample_bank.h"
 
 #include <array>
 #include <cstdint>
@@ -49,8 +49,7 @@ private:
     ProjectState state_ {};
     PhraseEngine engine_ {state_.randomSeed};
     PhraseScheduler scheduler_ {};
-    SourcePool sourcePool_ {};
-    std::array<AudioBufferView, kMaxSources> buffers_ {};
+    SampleBankExchange sampleBanks_ {};
 
     double sampleRate_ {48000.0};
     double fallbackProjectTimeSamples_ {0.0};

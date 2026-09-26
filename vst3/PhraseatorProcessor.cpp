@@ -187,7 +187,7 @@ GenerationSettings Processor::currentGenerationSettings() const noexcept {
     settings.pan = state_.pan;
     settings.groove = state_.groove;
 
-    const auto fragments = sourcePool_.fragmentCount();
+    const auto fragments = sampleBanks_.activeBank().sourcePool().fragmentCount();
     settings.fragmentCount = static_cast<std::uint16_t>(
         std::clamp<std::size_t>(fragments == 0 ? 1 : fragments, 1, kMaxFragments));
     return settings;
@@ -235,6 +235,9 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
         playing = playing && ((ctx.state & ProcessContext::kPlaying) != 0);
     }
 
+    sampleBanks_.consumePending();
+    const auto& bank = sampleBanks_.activeBank();
+
     scheduler_.prepare(sampleRate_, tempo);
     scheduler_.setPattern(state_.pattern);
 
@@ -244,7 +247,7 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
             return kResultFalse;
 
         scheduler_.processBlock(
-            sourcePool_, buffers_, projectTime, playing,
+            bank.sourcePool(), bank.buffers(), projectTime, playing,
             out[0], out[1], static_cast<std::size_t>(data.numSamples));
 
     } else {
