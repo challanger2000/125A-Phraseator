@@ -141,6 +141,20 @@ void Processor::applyNormalizedParameter(ParamID id, double rawValue) noexcept {
         case static_cast<ParamID>(ParameterId::LockPattern):
             state_.lockPattern = value >= 0.5;
             break;
+        case static_cast<ParamID>(ParameterId::GenerateTrigger): {
+            const bool rising = generateTrigger_ < 0.5 && value >= 0.5;
+            generateTrigger_ = value;
+            if (rising && !state_.lockPattern)
+                generatePattern();
+            break;
+        }
+        case static_cast<ParamID>(ParameterId::VariateTrigger): {
+            const bool rising = variateTrigger_ < 0.5 && value >= 0.5;
+            variateTrigger_ = value;
+            if (rising && !state_.lockPattern)
+                varyPattern();
+            break;
+        }
         default:
             break;
     }
@@ -162,6 +176,31 @@ void Processor::readParameterChanges(IParameterChanges* changes) noexcept {
 
         applyNormalizedParameter(queue->getParameterId(), value);
     }
+}
+
+GenerationSettings Processor::currentGenerationSettings() const noexcept {
+    GenerationSettings settings;
+    settings.density = state_.density;
+    settings.variation = state_.variation;
+    settings.repeat = state_.repeat;
+    settings.pitch = state_.pitch;
+    settings.pan = state_.pan;
+    settings.groove = state_.groove;
+
+    const auto fragments = sourcePool_.fragmentCount();
+    settings.fragmentCount = static_cast<std::uint16_t>(
+        std::clamp<std::size_t>(fragments == 0 ? 1 : fragments, 1, kMaxFragments));
+    return settings;
+}
+
+void Processor::generatePattern() noexcept {
+    state_.pattern = engine_.generate(currentGenerationSettings());
+    scheduler_.setPattern(state_.pattern);
+}
+
+void Processor::varyPattern() noexcept {
+    state_.pattern = engine_.vary(state_.pattern, currentGenerationSettings());
+    scheduler_.setPattern(state_.pattern);
 }
 
 void Processor::syncEngineFromState() noexcept {
