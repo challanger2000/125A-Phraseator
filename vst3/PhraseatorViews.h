@@ -12,6 +12,7 @@ class LogoView final : public VSTGUI::CView {
 public:
     explicit LogoView(const VSTGUI::CRect& size);
     void draw(VSTGUI::CDrawContext* context) override;
+    CLASS_METHODS(StepIndicator, VSTGUI::CControl)
 };
 
 class StepIndicator final : public VSTGUI::CControl {
