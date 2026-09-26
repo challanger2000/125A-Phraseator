@@ -100,9 +100,20 @@ tresult PLUGIN_API Controller::initialize(FUnknown* context) {
     parameters.addParameter(STR16("Variate"), nullptr, 1, 0.0,
                             ParameterInfo::kCanAutomate, pid(ParameterId::VariateTrigger));
 
+    static const TChar* kPatternStepTitles[kPatternViewCount] {
+        STR16("Pattern Step 01"), STR16("Pattern Step 02"),
+        STR16("Pattern Step 03"), STR16("Pattern Step 04"),
+        STR16("Pattern Step 05"), STR16("Pattern Step 06"),
+        STR16("Pattern Step 07"), STR16("Pattern Step 08"),
+        STR16("Pattern Step 09"), STR16("Pattern Step 10"),
+        STR16("Pattern Step 11"), STR16("Pattern Step 12"),
+        STR16("Pattern Step 13"), STR16("Pattern Step 14"),
+        STR16("Pattern Step 15"), STR16("Pattern Step 16")
+    };
+
     for (int32 i = 0; i < kPatternViewCount; ++i) {
         parameters.addParameter(
-            STR16("Pattern Step"), nullptr, kPatternViewStepCount, 0.0,
+            kPatternStepTitles[i], nullptr, kPatternViewStepCount, 0.0,
             ParameterInfo::kIsHidden,
             static_cast<ParamID>(kPatternViewBase + i));
     }
