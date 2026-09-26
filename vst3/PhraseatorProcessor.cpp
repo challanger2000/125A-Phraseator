@@ -13,6 +13,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
+#include <string>
+#include <vector>
 
 namespace phraseator::vst3 {
 
@@ -20,6 +23,9 @@ using namespace Steinberg;
 using namespace Steinberg::Vst;
 
 namespace {
+constexpr int32 kMinStateVersion = 1;
+constexpr int32 kMaxRecallPathBytes = 16384;
+
 double clamp01(double v) noexcept {
     if (!std::isfinite(v))
         return 0.0;
@@ -94,18 +100,41 @@ tresult PLUGIN_API Processor::notify(IMessage* message) {
     if (!utf8 || *utf8 == 0)
         return kResultFalse;
 
+    const std::string utf8Path(utf8);
+
     SampleLoadRequest request;
     request.sourceIndex = static_cast<std::size_t>(sourceIndex);
     request.sourceId = static_cast<std::uint32_t>(sourceId);
-    request.path = std::filesystem::u8path(utf8);
+    request.path = std::filesystem::u8path(utf8Path);
     request.mode = mode == 0 ? SampleLoadMode::OneShot : SampleLoadMode::EqualSlices;
     request.equalDivisions = static_cast<std::size_t>(divisions);
     request.tonal = tonal != 0;
     request.detectedRootMidi = static_cast<float>(detectedRootMidi);
 
-    return sampleLoader_->requestLoad(std::move(request)) != 0u
-        ? kResultTrue
-        : kResultFalse;
+    const auto requestId = sampleLoader_->requestLoad(request);
+    if (requestId == 0u)
+        return kResultFalse;
+
+    {
+        std::lock_guard<std::mutex> lock(sourceRecallMutex_);
+        auto& recall = sourceRecall_[static_cast<std::size_t>(sourceIndex)];
+        recall.occupied = true;
+        recall.sourceId = static_cast<std::uint32_t>(sourceId);
+        recall.mode = request.mode;
+        recall.divisions = static_cast<std::uint16_t>(request.mode == SampleLoadMode::OneShot ? 1u : request.equalDivisions);
+        recall.tonal = request.tonal;
+        recall.detectedRootMidi = request.detectedRootMidi;
+        recall.utf8Path = utf8Path;
+
+        auto& meta = state_.sources[static_cast<std::size_t>(sourceIndex)];
+        meta.occupied = true;
+        meta.sourceId = recall.sourceId;
+        meta.sliceCount = recall.divisions;
+        meta.tonal = recall.tonal;
+        meta.detectedRootMidi = recall.detectedRootMidi;
+    }
+
+    return kResultTrue;
 }
 
 tresult PLUGIN_API Processor::setBusArrangements(
@@ -409,6 +438,29 @@ bool Processor::writeProjectState(IBStream* state) const noexcept {
         }
     }
 
+    std::lock_guard<std::mutex> lock(sourceRecallMutex_);
+    for (const auto& recall : sourceRecall_) {
+        if (recall.utf8Path.size() > static_cast<std::size_t>(kMaxRecallPathBytes))
+            return false;
+
+        const auto pathSize = static_cast<int32>(recall.utf8Path.size());
+
+        if (!stream.writeInt32(recall.occupied ? 1 : 0) ||
+            !stream.writeInt32u(recall.sourceId) ||
+            !stream.writeInt32(static_cast<int32>(recall.mode)) ||
+            !stream.writeInt32(static_cast<int32>(recall.divisions)) ||
+            !stream.writeInt32(recall.tonal ? 1 : 0) ||
+            !stream.writeDouble(recall.detectedRootMidi) ||
+            !stream.writeInt32(pathSize)) {
+            return false;
+        }
+
+        if (pathSize > 0 &&
+            stream.writeRaw(recall.utf8Path.data(), pathSize) != pathSize) {
+            return false;
+        }
+    }
+
     return true;
 }
 
@@ -423,7 +475,8 @@ bool Processor::readProjectState(IBStream* state) noexcept {
     int32 seed = 0;
 
     if (!stream.readInt32(magic) || magic != kStateMagic ||
-        !stream.readInt32(version) || version != kStateVersion ||
+        !stream.readInt32(version) ||
+        version < kMinStateVersion || version > kStateVersion ||
         !stream.readInt32(seed)) {
         return false;
     }
@@ -505,9 +558,118 @@ bool Processor::readProjectState(IBStream* state) noexcept {
         step.timingOffset = static_cast<float>(std::clamp(timing, -0.5, 0.5));
     }
 
+    std::array<SourceRecallEntry, kMaxSources> recallEntries {};
+
+    if (version >= 2) {
+        for (std::size_t i = 0; i < recallEntries.size(); ++i) {
+            int32 occupied = 0;
+            uint32 sourceId = 0;
+            int32 mode = 0;
+            int32 divisions = 0;
+            int32 tonal = 0;
+            double detectedRootMidi = -1.0;
+            int32 pathSize = 0;
+
+            if (!stream.readInt32(occupied) ||
+                !stream.readInt32u(sourceId) ||
+                !stream.readInt32(mode) ||
+                !stream.readInt32(divisions) ||
+                !stream.readInt32(tonal) ||
+                !stream.readDouble(detectedRootMidi) ||
+                !stream.readInt32(pathSize)) {
+                return false;
+            }
+
+            if (mode < 0 || mode > 1 ||
+                divisions < 0 || divisions > static_cast<int32>(kMaxSlicesPerSource) ||
+                !std::isfinite(detectedRootMidi) ||
+                pathSize < 0 || pathSize > kMaxRecallPathBytes) {
+                return false;
+            }
+
+            std::string path;
+            try {
+                path.resize(static_cast<std::size_t>(pathSize));
+            } catch (...) {
+                return false;
+            }
+
+            if (pathSize > 0 &&
+                stream.readRaw(path.data(), pathSize) != pathSize) {
+                return false;
+            }
+
+            auto& recall = recallEntries[i];
+            recall.occupied = occupied != 0;
+            recall.sourceId = sourceId;
+            recall.mode = mode == 0 ? SampleLoadMode::OneShot : SampleLoadMode::EqualSlices;
+            recall.divisions = static_cast<std::uint16_t>(divisions);
+            recall.tonal = tonal != 0;
+            recall.detectedRootMidi = static_cast<float>(detectedRootMidi);
+            recall.utf8Path = std::move(path);
+
+            auto& meta = candidate.sources[i];
+            meta.occupied = recall.occupied;
+            meta.sourceId = recall.sourceId;
+            meta.sliceCount = recall.divisions;
+            meta.tonal = recall.tonal;
+            meta.detectedRootMidi = recall.detectedRootMidi;
+        }
+    }
+
     state_ = candidate;
+    {
+        std::lock_guard<std::mutex> lock(sourceRecallMutex_);
+        sourceRecall_ = std::move(recallEntries);
+    }
+
     syncEngineFromState();
+    queueRecallLoads();
     return true;
+}
+
+void Processor::queueRecallLoads() noexcept {
+    if (!sampleLoader_)
+        return;
+
+    try {
+        std::vector<SampleLoadRequest> requests;
+
+        {
+            std::lock_guard<std::mutex> lock(sourceRecallMutex_);
+            requests.reserve(sourceRecall_.size());
+
+            for (std::size_t i = 0; i < sourceRecall_.size(); ++i) {
+                const auto& recall = sourceRecall_[i];
+                if (!recall.occupied || recall.utf8Path.empty())
+                    continue;
+
+                std::error_code ec;
+                const auto path = std::filesystem::u8path(recall.utf8Path);
+                if (!std::filesystem::exists(path, ec) || ec)
+                    continue;
+
+                SampleLoadRequest request;
+                request.sourceIndex = i;
+                request.sourceId = recall.sourceId;
+                request.path = path;
+                request.mode = recall.mode;
+                request.equalDivisions = recall.mode == SampleLoadMode::OneShot
+                    ? 0u
+                    : static_cast<std::size_t>(recall.divisions);
+                request.tonal = recall.tonal;
+                request.detectedRootMidi = recall.detectedRootMidi;
+                requests.push_back(std::move(request));
+            }
+        }
+
+        if (!requests.empty())
+            sampleLoader_->requestBatch(std::move(requests));
+
+    } catch (...) {
+        // Project state is preserved even if asynchronous source restoration
+        // cannot be queued. Audio/state recall must not crash the host.
+    }
 }
 
 tresult PLUGIN_API Processor::setState(IBStream* state) {

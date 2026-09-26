@@ -1,6 +1,6 @@
 # State / Parameter Contract
 
-This file defines the compatibility baseline before the VST3 layer is added.
+This file defines the compatibility baseline for Phraseator.
 
 ## Stable parameter IDs
 
@@ -13,28 +13,43 @@ The V0.1 parameter ID ranges are reserved as follows:
 
 Once a public build exists, IDs and meanings must not be silently reused or reinterpreted.
 
-## Project-state baseline
+## Project state
 
-State version 1 stores:
+### Version 1
 
+Stores:
 - deterministic random seed;
 - musical macro values;
 - key / scale settings;
 - lock state;
-- current pattern;
-- source metadata references;
+- current 16-step pattern;
 - internal FX amounts.
 
-Actual decoded sample audio is not serialized into the realtime state structure.
+### Version 2
+
+Adds fixed per-slot source metadata and UTF-8 source paths:
+- occupied state;
+- source ID;
+- one-shot / equal-sliced-loop mode;
+- slice division count;
+- tonal flag;
+- detected root note;
+- external source path.
+
+Version 1 remains readable. It simply restores with no remembered sample paths.
+
+Decoded audio itself is never serialized into project state.
 
 ## Recall rule
 
 Opening a project must not generate a fresh pattern.
 
-The stored pattern and random seed are authoritative until the user explicitly presses GENERATE / VARIATE or changes a control whose documented behavior intentionally regenerates material.
+The stored pattern and random seed remain authoritative.
 
-## Source persistence
+For State v2, existing source files are queued as one non-realtime batch after state restoration. Missing files are skipped without substituting another sample; their remembered path remains in the saved state.
 
-The future file-loading layer must store enough non-realtime metadata to relocate user-selected source files safely.
+## Realtime boundary
 
-If a source file cannot be found, the plugin must fail gracefully and preserve the rest of the project state rather than silently substituting another file.
+Variable-length source paths are stored outside the realtime ProjectState object and protected by a mutex that is never touched from process().
+
+The audio callback does not perform path lookup, filesystem access, decoding or state-string allocation.

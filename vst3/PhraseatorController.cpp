@@ -79,7 +79,8 @@ tresult PLUGIN_API Controller::setComponentState(IBStream* state) {
     int32 seed = 0;
 
     if (!stream.readInt32(magic) || magic != kStateMagic ||
-        !stream.readInt32(version) || version != kStateVersion ||
+        !stream.readInt32(version) ||
+        version < 1 || version > kStateVersion ||
         !stream.readInt32(seed)) {
         return kResultFalse;
     }

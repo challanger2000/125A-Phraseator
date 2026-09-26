@@ -11,6 +11,8 @@
 #include <array>
 #include <cstdint>
 #include <memory>
+#include <mutex>
+#include <string>
 
 namespace phraseator::vst3 {
 
@@ -50,12 +52,25 @@ private:
     void generatePattern() noexcept;
     void varyPattern() noexcept;
     void applyPitchToKey(Pattern& pattern) noexcept;
+    void queueRecallLoads() noexcept;
+
+    struct SourceRecallEntry {
+        bool occupied {false};
+        std::uint32_t sourceId {0};
+        SampleLoadMode mode {SampleLoadMode::OneShot};
+        std::uint16_t divisions {0};
+        bool tonal {false};
+        float detectedRootMidi {-1.0f};
+        std::string utf8Path;
+    };
 
     ProjectState state_ {};
     PhraseEngine engine_ {state_.randomSeed};
     PhraseScheduler scheduler_ {};
     SampleBankExchange sampleBanks_ {};
     std::unique_ptr<SampleLoadWorker> sampleLoader_;
+    std::array<SourceRecallEntry, kMaxSources> sourceRecall_ {};
+    mutable std::mutex sourceRecallMutex_;
 
     double sampleRate_ {48000.0};
     double fallbackProjectTimeSamples_ {0.0};
