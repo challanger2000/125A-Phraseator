@@ -56,6 +56,7 @@ Initial limits:
 - 16 active source slots.
 - One-shot = one fragment.
 - Loop = up to 64 validated slices.
+- Offline transient slicing uses short-term onset-energy flux with an EMPIRICALLY TUNED threshold/minimum-spacing policy; callers can fall back to equal divisions when no reliable transients are found.
 - Fragment lookup is deterministic and allocation-free.
 - Source sample rate is converted against the current host sample rate during playback, before creative pitch transposition is applied.
 - Loop fragments use an EMPIRICALLY TUNED 0.25 ms bounded de-click envelope at slice edges; one-shots keep their original attack.

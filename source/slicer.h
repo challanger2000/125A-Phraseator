@@ -1,6 +1,7 @@
 #pragma once
 
 #include "source_pool.h"
+#include "audio_buffer.h"
 
 #include <array>
 #include <cstddef>
@@ -21,6 +22,10 @@ public:
     static SliceSet fromBoundaries(std::uint32_t totalFrames,
                                    const std::uint32_t* boundaries,
                                    std::size_t boundaryCount) noexcept;
+
+    static SliceSet transientDivisions(const AudioBufferView& audio,
+                                       double sampleRate,
+                                       std::size_t maxSlices);
 };
 
 } // namespace phraseator
