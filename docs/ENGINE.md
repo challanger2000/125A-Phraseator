@@ -31,11 +31,20 @@ A fixed-size sequence of steps. Initial target: 16 steps.
 Generation must use weighted musical decisions instead of independent random values.
 
 Initial rules:
+
+Evidence classification for the musical generation heuristics below:
+**EMPIRICALLY TUNED**. They are product-behaviour choices that must later be
+validated with listening fixtures and usage tests; they are not presented as
+music-theory laws.
+
 - Strong beats receive higher event probability than weak subdivisions.
 - Density scales the number of occupied steps without destroying pulse.
 - Repeats prefer short contiguous groups.
 - Variation mutates an existing pattern rather than always replacing it.
 - Avoid pathological same-fragment repetition unless Repeat is high.
+- Use a local motif anchor per quarter-note group so active steps are not sixteen unrelated sample choices.
+- Prefer recent/local fragment continuity, with Repeat increasing the probability of deliberate adjacent reuse.
+- VARIATE preserves an existing active step's fragment more often than it replaces it, so variation behaves like mutation rather than a fresh random pattern.
 - Pan is bounded by the PAN macro and defaults near center.
 - Pitch changes are constrained when key/scale mode is enabled.
 - Fixed random seeds are supported for deterministic recall.
