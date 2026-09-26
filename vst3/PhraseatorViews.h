@@ -12,7 +12,6 @@ class LogoView final : public VSTGUI::CView {
 public:
     explicit LogoView(const VSTGUI::CRect& size);
     void draw(VSTGUI::CDrawContext* context) override;
-    CLASS_METHODS(StepIndicator, VSTGUI::CControl)
 };
 
 class StepIndicator final : public VSTGUI::CControl {
@@ -21,6 +20,7 @@ public:
                   VSTGUI::IControlListener* listener,
                   std::int32_t tag);
     void draw(VSTGUI::CDrawContext* context) override;
+    CLASS_METHODS(StepIndicator, VSTGUI::CControl)
 };
 
 class MacroKnob final : public VSTGUI::CKnob {
