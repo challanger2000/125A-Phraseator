@@ -1,0 +1,53 @@
+#pragma once
+
+#include "audio_buffer.h"
+#include "source_pool.h"
+
+#include <array>
+#include <cstddef>
+#include <cstdint>
+
+namespace phraseator {
+
+struct VoiceState {
+    bool active {false};
+    FragmentRef fragment {};
+    double position {0.0};
+    double increment {1.0};
+    float gain {1.0f};
+    float pan {0.0f};
+    std::uint32_t endFrame {0};
+};
+
+struct StereoFrame {
+    float left {0.0f};
+    float right {0.0f};
+};
+
+class FragmentPlayer {
+public:
+    static constexpr std::size_t kMaxVoices = 16;
+
+    void reset() noexcept;
+
+    bool trigger(const SourcePool& pool,
+                 const std::array<AudioBufferView, kMaxSources>& buffers,
+                 const FragmentRef& fragment,
+                 float gain,
+                 float pan,
+                 float pitchSemitones) noexcept;
+
+    StereoFrame processSample(const SourcePool& pool,
+                              const std::array<AudioBufferView, kMaxSources>& buffers) noexcept;
+
+    std::size_t activeVoiceCount() const noexcept;
+
+private:
+    static float clamp(float v, float lo, float hi) noexcept;
+    static float sampleLinear(const float* data, std::uint32_t frames, double position) noexcept;
+    VoiceState* acquireVoice() noexcept;
+
+    std::array<VoiceState, kMaxVoices> voices_ {};
+};
+
+} // namespace phraseator

@@ -13,6 +13,9 @@ set(PHRASEATOR_CORE_SOURCES
     source/phrase_engine.h
     source/source_pool.cpp
     source/source_pool.h
+    source/audio_buffer.h
+    source/fragment_player.cpp
+    source/fragment_player.h
 )
 
 add_library(PhraseatorCore STATIC ${PHRASEATOR_CORE_SOURCES})
@@ -24,9 +27,13 @@ target_link_libraries(PhraseatorEngineTests PRIVATE PhraseatorCore)
 add_executable(PhraseatorSourcePoolTests tests/source_pool_tests.cpp)
 target_link_libraries(PhraseatorSourcePoolTests PRIVATE PhraseatorCore)
 
+add_executable(PhraseatorPlaybackTests tests/fragment_player_tests.cpp)
+target_link_libraries(PhraseatorPlaybackTests PRIVATE PhraseatorCore)
+
 enable_testing()
 add_test(NAME PhraseatorEngineTests COMMAND PhraseatorEngineTests)
 add_test(NAME PhraseatorSourcePoolTests COMMAND PhraseatorSourcePoolTests)
+add_test(NAME PhraseatorPlaybackTests COMMAND PhraseatorPlaybackTests)
 
 if(PHRASEATOR_BUILD_VST3)
     if(NOT DEFINED VST3_SDK_ROOT)
