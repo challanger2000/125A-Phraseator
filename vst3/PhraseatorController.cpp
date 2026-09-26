@@ -51,19 +51,50 @@ tresult PLUGIN_API Controller::initialize(FUnknown* context) {
     parameters.addParameter(STR16("Groove"), STR16("%"), 0, ParameterDefaults::groove,
                             ParameterInfo::kCanAutomate, pid(ParameterId::Groove));
 
-    parameters.addParameter(STR16("Key Root"), nullptr, 11, 0.0,
-                            ParameterInfo::kCanAutomate, pid(ParameterId::KeyRoot));
-    parameters.addParameter(STR16("Scale"), nullptr, 2, 0.0,
-                            ParameterInfo::kCanAutomate, pid(ParameterId::ScaleMode));
-    parameters.addParameter(STR16("Pitch To Key"), nullptr, 1, 0.0,
-                            ParameterInfo::kCanAutomate, pid(ParameterId::PitchToKey));
+    {
+        auto* root = new StringListParameter(
+            STR16("Key Root"), pid(ParameterId::KeyRoot));
+        root->appendString(STR16("C"));
+        root->appendString(STR16("C#"));
+        root->appendString(STR16("D"));
+        root->appendString(STR16("D#"));
+        root->appendString(STR16("E"));
+        root->appendString(STR16("F"));
+        root->appendString(STR16("F#"));
+        root->appendString(STR16("G"));
+        root->appendString(STR16("G#"));
+        root->appendString(STR16("A"));
+        root->appendString(STR16("A#"));
+        root->appendString(STR16("B"));
+        parameters.addParameter(root);
+    }
+    {
+        auto* scale = new StringListParameter(
+            STR16("Scale"), pid(ParameterId::ScaleMode));
+        scale->appendString(STR16("Chromatic"));
+        scale->appendString(STR16("Major"));
+        scale->appendString(STR16("Minor"));
+        parameters.addParameter(scale);
+    }
+    {
+        auto* pitchToKey = new StringListParameter(
+            STR16("Pitch To Key"), pid(ParameterId::PitchToKey));
+        pitchToKey->appendString(STR16("Off"));
+        pitchToKey->appendString(STR16("On"));
+        parameters.addParameter(pitchToKey);
+    }
 
     parameters.addParameter(STR16("Delay"), STR16("%"), 0, ParameterDefaults::delayAmount,
                             ParameterInfo::kCanAutomate, pid(ParameterId::DelayAmount));
     parameters.addParameter(STR16("Filter"), STR16("%"), 0, ParameterDefaults::filterAmount,
                             ParameterInfo::kCanAutomate, pid(ParameterId::FilterAmount));
-    parameters.addParameter(STR16("Lock Pattern"), nullptr, 1, 0.0,
-                            ParameterInfo::kCanAutomate, pid(ParameterId::LockPattern));
+    {
+        auto* lock = new StringListParameter(
+            STR16("Lock Pattern"), pid(ParameterId::LockPattern));
+        lock->appendString(STR16("Unlocked"));
+        lock->appendString(STR16("Locked"));
+        parameters.addParameter(lock);
+    }
     parameters.addParameter(STR16("Generate"), nullptr, 1, 0.0,
                             ParameterInfo::kCanAutomate, pid(ParameterId::GenerateTrigger));
     parameters.addParameter(STR16("Variate"), nullptr, 1, 0.0,

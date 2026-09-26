@@ -98,8 +98,11 @@
 
     <view class="CViewContainer" origin="810,310" size="210,116" transparent="false" background-color="Panel2"/>
     <view class="CTextLabel" origin="826,324" size="170,18" title="PITCH TO KEY" transparent="true" font-color="Muted" font="Section"/>
-    <view class="CSegmentButton" origin="826,350" size="176,26" control-tag="1102" style="horizontal" segment-names="OFF,ON" font="Small"/>
-    <view class="CSegmentButton" origin="826,382" size="176,26" control-tag="1100" style="horizontal" segment-names="C,C#,D,D#,E,F,F#,G,G#,A,A#,B" font="Small"/>
+    <view class="CSegmentButton" origin="826,348" size="176,24" control-tag="1102" style="horizontal" font="Small"/>
+    <view class="CTextLabel" origin="826,380" size="44,16" title="ROOT" transparent="true" font-color="Muted" font="Small"/>
+    <view class="COptionMenu" origin="872,378" size="54,22" control-tag="1100" back-color="ValueBack" frame-color="Line" frame-width="1" font-color="Text" font="Small"/>
+    <view class="CTextLabel" origin="934,380" size="42,16" title="SCALE" transparent="true" font-color="Muted" font="Small"/>
+    <view class="COptionMenu" origin="826,402" size="176,22" control-tag="1101" back-color="ValueBack" frame-color="Line" frame-width="1" font-color="Text" font="Small"/>
 
     <view class="CViewContainer" origin="810,444" size="210,116" transparent="false" background-color="Panel2"/>
     <view class="CTextLabel" origin="826,458" size="170,18" title="FINISH" transparent="true" font-color="Muted" font="Section"/>
