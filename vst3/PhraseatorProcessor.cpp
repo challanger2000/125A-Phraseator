@@ -5,6 +5,8 @@
 #include "../source/pitch_mapper.h"
 
 #include "base/source/fstreamer.h"
+#include "base/source/fstring.h"
+#include "pluginterfaces/base/fstrdefs.h"
 #include "pluginterfaces/vst/ivstparameterchanges.h"
 #include "pluginterfaces/vst/ivstprocesscontext.h"
 #include "pluginterfaces/vst/vstspeaker.h"
@@ -38,7 +40,72 @@ tresult PLUGIN_API Processor::initialize(FUnknown* context) {
     addAudioOutput(STR16("Stereo Out"), SpeakerArr::kStereo);
     addEventInput(STR16("Event In"), 16);
 
+    sampleLoader_ = std::make_unique<SampleLoadWorker>(sampleBanks_);
+
     return kResultOk;
+}
+
+tresult PLUGIN_API Processor::terminate() {
+    sampleLoader_.reset();
+    return AudioEffect::terminate();
+}
+
+tresult PLUGIN_API Processor::notify(IMessage* message) {
+    if (!message)
+        return kInvalidArgument;
+
+    if (!FIDStringsEqual(message->getMessageID(), kMsgLoadSample))
+        return AudioEffect::notify(message);
+
+    auto* attributes = message->getAttributes();
+    if (!attributes || !sampleLoader_)
+        return kResultFalse;
+
+    TChar pathChars[2048] {};
+    int64 sourceIndex = -1;
+    int64 sourceId = 0;
+    int64 mode = 0;
+    int64 divisions = 0;
+    int64 tonal = 0;
+    double detectedRootMidi = -1.0;
+
+    if (attributes->getString(kAttrPath, pathChars, sizeof(pathChars)) != kResultTrue ||
+        attributes->getInt(kAttrSourceIndex, sourceIndex) != kResultTrue ||
+        attributes->getInt(kAttrSourceId, sourceId) != kResultTrue ||
+        attributes->getInt(kAttrMode, mode) != kResultTrue ||
+        attributes->getInt(kAttrDivisions, divisions) != kResultTrue ||
+        attributes->getInt(kAttrTonal, tonal) != kResultTrue ||
+        attributes->getFloat(kAttrDetectedRootMidi, detectedRootMidi) != kResultTrue) {
+        return kResultFalse;
+    }
+
+    if (sourceIndex < 0 || sourceIndex >= static_cast<int64>(kMaxSources) ||
+        sourceId < 0 ||
+        mode < 0 || mode > 1 ||
+        divisions < 0 || divisions > static_cast<int64>(kMaxSlicesPerSource)) {
+        return kResultFalse;
+    }
+
+    String path(pathChars);
+    if (!path.toMultiByte(kCP_Utf8))
+        return kResultFalse;
+
+    const auto* utf8 = path.text8();
+    if (!utf8 || *utf8 == 0)
+        return kResultFalse;
+
+    SampleLoadRequest request;
+    request.sourceIndex = static_cast<std::size_t>(sourceIndex);
+    request.sourceId = static_cast<std::uint32_t>(sourceId);
+    request.path = std::filesystem::u8path(utf8);
+    request.mode = mode == 0 ? SampleLoadMode::OneShot : SampleLoadMode::EqualSlices;
+    request.equalDivisions = static_cast<std::size_t>(divisions);
+    request.tonal = tonal != 0;
+    request.detectedRootMidi = static_cast<float>(detectedRootMidi);
+
+    return sampleLoader_->requestLoad(std::move(request)) != 0u
+        ? kResultTrue
+        : kResultFalse;
 }
 
 tresult PLUGIN_API Processor::setBusArrangements(

@@ -6,9 +6,11 @@
 #include "../source/phrase_scheduler.h"
 #include "../source/project_state.h"
 #include "../source/sample_bank.h"
+#include "../source/sample_load_worker.h"
 
 #include <array>
 #include <cstdint>
+#include <memory>
 
 namespace phraseator::vst3 {
 
@@ -21,6 +23,8 @@ public:
     }
 
     Steinberg::tresult PLUGIN_API initialize(Steinberg::FUnknown* context) override;
+    Steinberg::tresult PLUGIN_API terminate() override;
+    Steinberg::tresult PLUGIN_API notify(Steinberg::Vst::IMessage* message) override;
     Steinberg::tresult PLUGIN_API setBusArrangements(
         Steinberg::Vst::SpeakerArrangement* inputs,
         Steinberg::int32 numIns,
@@ -51,6 +55,7 @@ private:
     PhraseEngine engine_ {state_.randomSeed};
     PhraseScheduler scheduler_ {};
     SampleBankExchange sampleBanks_ {};
+    std::unique_ptr<SampleLoadWorker> sampleLoader_;
 
     double sampleRate_ {48000.0};
     double fallbackProjectTimeSamples_ {0.0};

@@ -12,6 +12,14 @@ public:
 
     Steinberg::tresult PLUGIN_API initialize(Steinberg::FUnknown* context) override;
     Steinberg::tresult PLUGIN_API setComponentState(Steinberg::IBStream* state) override;
+
+    Steinberg::tresult sendLoadSample(const Steinberg::TChar* path,
+                                      Steinberg::int32 sourceIndex,
+                                      Steinberg::uint32 sourceId,
+                                      bool asLoop,
+                                      Steinberg::int32 divisions,
+                                      bool tonal = false,
+                                      double detectedRootMidi = -1.0);
 };
 
 } // namespace phraseator::vst3

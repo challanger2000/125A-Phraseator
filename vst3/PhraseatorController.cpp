@@ -4,6 +4,7 @@
 #include "../source/parameters.h"
 
 #include "base/source/fstreamer.h"
+#include "public.sdk/source/vst/vstcomponentbase.h"
 
 #include <algorithm>
 #include <cmath>
@@ -120,6 +121,49 @@ tresult PLUGIN_API Controller::setComponentState(IBStream* state) {
     setParamNormalized(pid(ParameterId::LockPattern), lockPattern != 0 ? 1.0 : 0.0);
 
     return kResultOk;
+}
+
+} // namespace phraseator::vst3
+
+
+namespace phraseator::vst3 {
+
+Steinberg::tresult Controller::sendLoadSample(const Steinberg::TChar* path,
+                                              Steinberg::int32 sourceIndex,
+                                              Steinberg::uint32 sourceId,
+                                              bool asLoop,
+                                              Steinberg::int32 divisions,
+                                              bool tonal,
+                                              double detectedRootMidi) {
+    using namespace Steinberg;
+    using namespace Steinberg::Vst;
+
+    if (!path || *path == 0 ||
+        sourceIndex < 0 || sourceIndex >= static_cast<int32>(kMaxSources) ||
+        divisions < 0 || divisions > static_cast<int32>(kMaxSlicesPerSource)) {
+        return kInvalidArgument;
+    }
+
+    auto message = owned(allocateMessage());
+    if (!message)
+        return kResultFalse;
+
+    message->setMessageID(kMsgLoadSample);
+    auto* attributes = message->getAttributes();
+    if (!attributes)
+        return kResultFalse;
+
+    if (attributes->setString(kAttrPath, path) != kResultTrue ||
+        attributes->setInt(kAttrSourceIndex, sourceIndex) != kResultTrue ||
+        attributes->setInt(kAttrSourceId, static_cast<int64>(sourceId)) != kResultTrue ||
+        attributes->setInt(kAttrMode, asLoop ? 1 : 0) != kResultTrue ||
+        attributes->setInt(kAttrDivisions, divisions) != kResultTrue ||
+        attributes->setInt(kAttrTonal, tonal ? 1 : 0) != kResultTrue ||
+        attributes->setFloat(kAttrDetectedRootMidi, detectedRootMidi) != kResultTrue) {
+        return kResultFalse;
+    }
+
+    return sendMessage(message);
 }
 
 } // namespace phraseator::vst3
