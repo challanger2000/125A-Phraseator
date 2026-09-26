@@ -35,6 +35,8 @@ set(PHRASEATOR_CORE_SOURCES
     source/sample_file_loader.h
     source/sample_load_worker.cpp
     source/sample_load_worker.h
+    source/phrase_fx.cpp
+    source/phrase_fx.h
 )
 
 add_library(PhraseatorCore STATIC ${PHRASEATOR_CORE_SOURCES})
@@ -77,6 +79,9 @@ target_link_libraries(PhraseatorSampleFileLoaderTests PRIVATE PhraseatorCore)
 add_executable(PhraseatorSampleLoadWorkerTests tests/sample_load_worker_tests.cpp)
 target_link_libraries(PhraseatorSampleLoadWorkerTests PRIVATE PhraseatorCore)
 
+add_executable(PhraseatorFxTests tests/phrase_fx_tests.cpp)
+target_link_libraries(PhraseatorFxTests PRIVATE PhraseatorCore)
+
 enable_testing()
 add_test(NAME PhraseatorEngineTests COMMAND PhraseatorEngineTests)
 add_test(NAME PhraseatorSourcePoolTests COMMAND PhraseatorSourcePoolTests)
@@ -90,6 +95,7 @@ add_test(NAME PhraseatorWavDecoderTests COMMAND PhraseatorWavDecoderTests)
 add_test(NAME PhraseatorSampleBankTests COMMAND PhraseatorSampleBankTests)
 add_test(NAME PhraseatorSampleFileLoaderTests COMMAND PhraseatorSampleFileLoaderTests)
 add_test(NAME PhraseatorSampleLoadWorkerTests COMMAND PhraseatorSampleLoadWorkerTests)
+add_test(NAME PhraseatorFxTests COMMAND PhraseatorFxTests)
 
 if(PHRASEATOR_BUILD_VST3)
     include(FetchContent)

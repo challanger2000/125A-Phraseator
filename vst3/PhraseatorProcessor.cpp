@@ -163,6 +163,7 @@ tresult PLUGIN_API Processor::setupProcessing(ProcessSetup& setup) {
         : 48000.0;
 
     scheduler_.prepare(sampleRate_, 120.0);
+    fx_.prepare(sampleRate_);
     fallbackProjectTimeSamples_ = 0.0;
 
     return AudioEffect::setupProcessing(setup);
@@ -172,6 +173,7 @@ tresult PLUGIN_API Processor::setActive(TBool state) {
     active_ = state != 0;
     if (!active_) {
         scheduler_.reset();
+        fx_.reset();
         fallbackProjectTimeSamples_ = 0.0;
     }
     return AudioEffect::setActive(state);
@@ -183,9 +185,11 @@ tresult PLUGIN_API Processor::setProcessing(TBool state) {
         scheduler_.reset();
         scheduler_.prepare(sampleRate_, 120.0);
         scheduler_.setPattern(state_.pattern);
+        fx_.reset();
         fallbackProjectTimeSamples_ = 0.0;
     } else {
         scheduler_.reset();
+        fx_.reset();
     }
 
     AudioEffect::setProcessing(state);
@@ -373,9 +377,14 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
         if (!out || !out[0] || !out[1])
             return kResultFalse;
 
-        const bool producedAudio = scheduler_.processBlock(
+        scheduler_.processBlock(
             bank.sourcePool(), bank.buffers(), projectTime, playing,
             out[0], out[1], static_cast<std::size_t>(data.numSamples));
+
+        fx_.setDelayAmount(state_.delayAmount);
+        fx_.setFilterAmount(state_.filterAmount);
+        const bool producedAudio = fx_.processBlock(
+            out[0], out[1], static_cast<std::size_t>(data.numSamples), tempo);
 
         data.outputs[0].silenceFlags = producedAudio ? 0 : 0x3;
 

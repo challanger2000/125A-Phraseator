@@ -52,10 +52,6 @@ tresult PLUGIN_API Controller::initialize(FUnknown* context) {
 
     parameters.addParameter(STR16("Delay"), STR16("%"), 0, ParameterDefaults::delayAmount,
                             ParameterInfo::kCanAutomate, pid(ParameterId::DelayAmount));
-    parameters.addParameter(STR16("Reverb"), STR16("%"), 0, ParameterDefaults::reverbAmount,
-                            ParameterInfo::kCanAutomate, pid(ParameterId::ReverbAmount));
-    parameters.addParameter(STR16("Drive"), STR16("%"), 0, ParameterDefaults::driveAmount,
-                            ParameterInfo::kCanAutomate, pid(ParameterId::DriveAmount));
     parameters.addParameter(STR16("Filter"), STR16("%"), 0, ParameterDefaults::filterAmount,
                             ParameterInfo::kCanAutomate, pid(ParameterId::FilterAmount));
     parameters.addParameter(STR16("Lock Pattern"), nullptr, 1, 0.0,

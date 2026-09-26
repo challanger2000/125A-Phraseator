@@ -4,6 +4,7 @@
 
 #include "../source/phrase_engine.h"
 #include "../source/phrase_scheduler.h"
+#include "../source/phrase_fx.h"
 #include "../source/project_state.h"
 #include "../source/sample_bank.h"
 #include "../source/sample_load_worker.h"
@@ -67,6 +68,7 @@ private:
     ProjectState state_ {};
     PhraseEngine engine_ {state_.randomSeed};
     PhraseScheduler scheduler_ {};
+    PhraseFx fx_ {};
     SampleBankExchange sampleBanks_ {};
     std::unique_ptr<SampleLoadWorker> sampleLoader_;
     std::array<SourceRecallEntry, kMaxSources> sourceRecall_ {};
