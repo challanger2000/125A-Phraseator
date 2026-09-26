@@ -103,22 +103,23 @@ SliceSet Slicer::transientDivisions(const AudioBufferView& audio,
 
     std::vector<double> flux(blocks, 0.0);
     double maxFlux = 0.0;
-    std::vector<double> nonZeroFlux;
-    nonZeroFlux.reserve(blocks);
-
     for (std::size_t i = 1; i < blocks; ++i) {
         const double value = std::max(0.0, envelope[i] - envelope[i - 1u]);
         flux[i] = value;
         maxFlux = std::max(maxFlux, value);
-        if (value > 0.0)
-            nonZeroFlux.push_back(value);
     }
 
-    if (maxFlux < 1.0e-5 || nonZeroFlux.empty())
+    if (maxFlux < 1.0e-5)
         return empty;
 
-    std::sort(nonZeroFlux.begin(), nonZeroFlux.end());
-    const double median = nonZeroFlux[nonZeroFlux.size() / 2u];
+    // EMPIRICALLY TUNED adaptive threshold.
+    // Use the full flux distribution (including zero/quiet hops) as the
+    // background baseline. Using only positive flux values can make the
+    // median equal to a set of equally strong real onsets; multiplying that
+    // median then raises the threshold above every onset and rejects them all.
+    std::vector<double> sortedFlux(flux.begin() + 1, flux.end());
+    std::sort(sortedFlux.begin(), sortedFlux.end());
+    const double median = sortedFlux[sortedFlux.size() / 2u];
     const double threshold = std::max(median * 3.0, maxFlux * 0.18);
 
     struct Peak {
