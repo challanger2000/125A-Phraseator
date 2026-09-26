@@ -2,6 +2,7 @@
 
 #include "PhraseatorIDs.h"
 #include "../source/parameters.h"
+#include "../source/source_pool.h"
 
 #include "base/source/fstreamer.h"
 #include "public.sdk/source/vst/vstcomponentbase.h"
@@ -128,7 +129,7 @@ tresult PLUGIN_API Controller::setComponentState(IBStream* state) {
 
 namespace phraseator::vst3 {
 
-Steinberg::tresult Controller::sendLoadSample(const Steinberg::TChar* path,
+Steinberg::tresult Controller::sendLoadSample(const Steinberg::Vst::TChar* path,
                                               Steinberg::int32 sourceIndex,
                                               Steinberg::uint32 sourceId,
                                               bool asLoop,
