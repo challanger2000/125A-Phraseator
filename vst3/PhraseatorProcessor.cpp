@@ -23,9 +23,6 @@ double clamp01(double v) noexcept {
     return std::clamp(v, 0.0, 1.0);
 }
 
-ParamID toParamId(ParameterId id) noexcept {
-    return static_cast<ParamID>(id);
-}
 }
 
 Processor::Processor() {
@@ -58,7 +55,7 @@ tresult PLUGIN_API Processor::setBusArrangements(
 }
 
 tresult PLUGIN_API Processor::canProcessSampleSize(int32 symbolicSampleSize) {
-    return (symbolicSampleSize == kSample32 || symbolicSampleSize == kSample64)
+    return symbolicSampleSize == kSample32
         ? kResultTrue
         : kResultFalse;
 }
@@ -193,8 +190,8 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
             tempo = ctx.tempo;
         }
 
-        if ((ctx.state & ProcessContext::kProjectTimeSamplesValid) != 0)
-            projectTime = static_cast<double>(ctx.projectTimeSamples);
+        // Steinberg VST3 defines projectTimeSamples as always valid.
+        projectTime = static_cast<double>(ctx.projectTimeSamples);
 
         playing = playing && ((ctx.state & ProcessContext::kPlaying) != 0);
     }
@@ -210,16 +207,6 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
         scheduler_.processBlock(
             sourcePool_, buffers_, projectTime, playing,
             out[0], out[1], static_cast<std::size_t>(data.numSamples));
-
-    } else if (data.symbolicSampleSize == kSample64) {
-        auto** out = data.outputs[0].channelBuffers64;
-        if (!out || !out[0] || !out[1])
-            return kResultFalse;
-
-        // Core currently renders float. Until the source/audio layer is connected,
-        // render deterministic silence for 64-bit hosts rather than allocate or convert.
-        std::fill(out[0], out[0] + data.numSamples, 0.0);
-        std::fill(out[1], out[1] + data.numSamples, 0.0);
 
     } else {
         return kResultFalse;
@@ -303,11 +290,6 @@ bool Processor::readProjectState(IBStream* state) noexcept {
     ProjectState candidate {};
     candidate.version = static_cast<std::uint32_t>(version);
     candidate.randomSeed = static_cast<std::uint32_t>(seed);
-
-    double* scalarTargets[] {
-        reinterpret_cast<double*>(nullptr)
-    };
-    (void)scalarTargets;
 
     double values[10] {};
     for (double& value : values) {
