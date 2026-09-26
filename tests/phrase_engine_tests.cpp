@@ -39,5 +39,52 @@ int main() {
         CHECK(pv[i].pitchSemitones == pa[i].pitchSemitones);
     }
 
+
+    {
+        GenerationSettings lowRepeat;
+        lowRepeat.density = 0.85f;
+        lowRepeat.fragmentCount = 12;
+        lowRepeat.repeat = 0.0f;
+
+        GenerationSettings highRepeat = lowRepeat;
+        highRepeat.repeat = 1.0f;
+
+        PhraseEngine lowEngine(0xA11CEu);
+        PhraseEngine highEngine(0xA11CEu);
+
+        int lowAdjacentReuse = 0;
+        int highAdjacentReuse = 0;
+        int lowPairs = 0;
+        int highPairs = 0;
+
+        for (int n = 0; n < 256; ++n) {
+            const auto low = lowEngine.generate(lowRepeat);
+            const auto high = highEngine.generate(highRepeat);
+
+            for (std::size_t i = 1; i < kStepCount; ++i) {
+                if (low[i - 1].active && low[i].active) {
+                    ++lowPairs;
+                    if (low[i - 1].fragment == low[i].fragment)
+                        ++lowAdjacentReuse;
+                }
+                if (high[i - 1].active && high[i].active) {
+                    ++highPairs;
+                    if (high[i - 1].fragment == high[i].fragment)
+                        ++highAdjacentReuse;
+                }
+            }
+        }
+
+        CHECK(lowPairs > 0);
+        CHECK(highPairs > 0);
+
+        const double lowRatio =
+            static_cast<double>(lowAdjacentReuse) / static_cast<double>(lowPairs);
+        const double highRatio =
+            static_cast<double>(highAdjacentReuse) / static_cast<double>(highPairs);
+
+        CHECK(highRatio > lowRatio);
+    }
+
     return 0;
 }
