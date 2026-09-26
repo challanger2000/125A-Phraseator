@@ -11,6 +11,8 @@ option(PHRASEATOR_BUILD_VST3 "Build the VST3 plugin target" OFF)
 set(PHRASEATOR_CORE_SOURCES
     source/phrase_engine.cpp
     source/phrase_engine.h
+    source/source_pool.cpp
+    source/source_pool.h
 )
 
 add_library(PhraseatorCore STATIC ${PHRASEATOR_CORE_SOURCES})
@@ -19,8 +21,12 @@ target_include_directories(PhraseatorCore PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/so
 add_executable(PhraseatorEngineTests tests/phrase_engine_tests.cpp)
 target_link_libraries(PhraseatorEngineTests PRIVATE PhraseatorCore)
 
+add_executable(PhraseatorSourcePoolTests tests/source_pool_tests.cpp)
+target_link_libraries(PhraseatorSourcePoolTests PRIVATE PhraseatorCore)
+
 enable_testing()
 add_test(NAME PhraseatorEngineTests COMMAND PhraseatorEngineTests)
+add_test(NAME PhraseatorSourcePoolTests COMMAND PhraseatorSourcePoolTests)
 
 if(PHRASEATOR_BUILD_VST3)
     if(NOT DEFINED VST3_SDK_ROOT)

@@ -3,12 +3,14 @@
 ## Core entities
 
 ### Source
-One imported audio file plus metadata.
+One imported audio file plus metadata. File decoding and disk access belong to a non-realtime layer.
 
 ### Fragment
 A playable region of a source:
 - entire one-shot, or
 - one slice of a loop.
+
+The realtime engine only receives validated, preloaded source/fragment metadata and audio buffers. No file I/O is permitted in the audio callback.
 
 ### Step
 A phrase event containing:
@@ -38,6 +40,17 @@ Initial rules:
 - Pitch changes are constrained when key/scale mode is enabled.
 - Fixed random seeds are supported for deterministic recall.
 
+## Source/fragment model
+
+Initial limits:
+- 16 active source slots.
+- One-shot = one fragment.
+- Loop = up to 64 validated slices.
+- Fragment lookup is deterministic and allocation-free.
+- Invalid/overlapping slice definitions are rejected before realtime use.
+
+These limits are implementation baselines, not final product claims.
+
 ## Determinism
 
 Project recall requires deterministic output.
@@ -49,3 +62,14 @@ Store:
 - generation parameters.
 
 No background randomization may occur merely from opening a project.
+
+## Realtime boundary
+
+The audio callback must not:
+- open files,
+- decode audio,
+- allocate memory,
+- acquire blocking locks,
+- log or format strings.
+
+Loading, decoding, transient analysis and future pitch analysis must happen outside the realtime callback. Results are published to the processor only after validation.
