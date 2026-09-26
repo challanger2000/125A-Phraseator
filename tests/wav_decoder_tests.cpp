@@ -1,0 +1,124 @@
+#include "wav_decoder.h"
+
+#include <cassert>
+#include <cmath>
+#include <cstdint>
+#include <cstring>
+#include <vector>
+
+using namespace phraseator;
+
+namespace {
+
+void appendU16(std::vector<std::uint8_t>& out, std::uint16_t v) {
+    out.push_back(static_cast<std::uint8_t>(v & 0xFFu));
+    out.push_back(static_cast<std::uint8_t>((v >> 8u) & 0xFFu));
+}
+
+void appendU32(std::vector<std::uint8_t>& out, std::uint32_t v) {
+    out.push_back(static_cast<std::uint8_t>(v & 0xFFu));
+    out.push_back(static_cast<std::uint8_t>((v >> 8u) & 0xFFu));
+    out.push_back(static_cast<std::uint8_t>((v >> 16u) & 0xFFu));
+    out.push_back(static_cast<std::uint8_t>((v >> 24u) & 0xFFu));
+}
+
+void appendId(std::vector<std::uint8_t>& out, const char id[5]) {
+    for (int i = 0; i < 4; ++i)
+        out.push_back(static_cast<std::uint8_t>(id[i]));
+}
+
+std::vector<std::uint8_t> makeMono16() {
+    std::vector<std::uint8_t> out;
+    appendId(out, "RIFF");
+    appendU32(out, 42u);
+    appendId(out, "WAVE");
+
+    appendId(out, "fmt ");
+    appendU32(out, 16u);
+    appendU16(out, 1u);
+    appendU16(out, 1u);
+    appendU32(out, 48000u);
+    appendU32(out, 96000u);
+    appendU16(out, 2u);
+    appendU16(out, 16u);
+
+    appendId(out, "data");
+    appendU32(out, 6u);
+    appendU16(out, 0x8000u);
+    appendU16(out, 0x0000u);
+    appendU16(out, 0x7FFFu);
+    return out;
+}
+
+std::vector<std::uint8_t> makeStereoFloat() {
+    std::vector<std::uint8_t> out;
+    appendId(out, "RIFF");
+    appendU32(out, 52u);
+    appendId(out, "WAVE");
+
+    appendId(out, "fmt ");
+    appendU32(out, 16u);
+    appendU16(out, 3u);
+    appendU16(out, 2u);
+    appendU32(out, 44100u);
+    appendU32(out, 352800u);
+    appendU16(out, 8u);
+    appendU16(out, 32u);
+
+    appendId(out, "data");
+    appendU32(out, 16u);
+
+    const float values[4] {0.25f, -0.25f, 1.5f, -1.5f};
+    for (float value : values) {
+        std::uint32_t raw = 0;
+        std::memcpy(&raw, &value, sizeof(raw));
+        appendU32(out, raw);
+    }
+
+    return out;
+}
+
+}
+
+int main() {
+    {
+        const auto bytes = makeMono16();
+        OwnedAudioSource decoded;
+        const auto status = WavDecoder::decode(bytes.data(), bytes.size(), decoded);
+
+        assert(status == WavDecodeStatus::Ok);
+        assert(decoded.valid());
+        assert(decoded.sampleRate == 48000u);
+        assert(!decoded.stereo);
+        assert(decoded.frames() == 3u);
+        assert(std::fabs(decoded.left[0] + 1.0f) < 1.0e-6f);
+        assert(std::fabs(decoded.left[1]) < 1.0e-6f);
+        assert(decoded.left[2] > 0.999f);
+    }
+
+    {
+        const auto bytes = makeStereoFloat();
+        OwnedAudioSource decoded;
+        const auto status = WavDecoder::decode(bytes.data(), bytes.size(), decoded);
+
+        assert(status == WavDecodeStatus::Ok);
+        assert(decoded.valid());
+        assert(decoded.sampleRate == 44100u);
+        assert(decoded.stereo);
+        assert(decoded.frames() == 2u);
+        assert(std::fabs(decoded.left[0] - 0.25f) < 1.0e-6f);
+        assert(std::fabs(decoded.right[0] + 0.25f) < 1.0e-6f);
+        assert(std::fabs(decoded.left[1] - 1.5f) < 1.0e-6f);
+        assert(std::fabs(decoded.right[1] + 1.5f) < 1.0e-6f);
+    }
+
+    {
+        const std::uint8_t invalid[4] {0, 1, 2, 3};
+        OwnedAudioSource decoded;
+        assert(WavDecoder::decode(invalid, sizeof(invalid), decoded) ==
+               WavDecodeStatus::InvalidContainer);
+        assert(!decoded.valid());
+    }
+
+    return 0;
+}
