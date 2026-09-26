@@ -47,6 +47,11 @@ private:
     Step makeStep(std::size_t stepIndex, const GenerationSettings& settings);
     bool shouldActivate(std::size_t stepIndex, float density);
     std::uint16_t chooseFragment(std::uint16_t fragmentCount);
+    void assignMusicalFragments(Pattern& pattern, const GenerationSettings& settings);
+    std::uint16_t chooseVariedFragment(const Pattern& input,
+                                       const Pattern& output,
+                                       std::size_t stepIndex,
+                                       const GenerationSettings& settings);
     float randomUnit();
 
     std::uint32_t seed_;
