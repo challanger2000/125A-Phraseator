@@ -56,8 +56,10 @@ public:
     SampleLoadWorker(const SampleLoadWorker&) = delete;
     SampleLoadWorker& operator=(const SampleLoadWorker&) = delete;
 
-    std::uint64_t requestLoad(SampleLoadRequest request);
-    std::uint64_t requestBatch(std::vector<SampleLoadRequest> requests);
+    std::uint64_t requestLoad(SampleLoadRequest request,
+                              bool retainResult = false);
+    std::uint64_t requestBatch(std::vector<SampleLoadRequest> requests,
+                               bool retainResult = false);
 
     bool waitForResult(std::uint64_t requestId,
                        SampleLoadWorkerResult& result,
@@ -67,6 +69,7 @@ private:
     struct WorkItem {
         std::uint64_t id {0};
         std::vector<SampleLoadRequest> requests;
+        bool retainResult {false};
     };
 
     void run();
