@@ -28,6 +28,7 @@ class FragmentPlayer {
 public:
     static constexpr std::size_t kMaxVoices = 16;
 
+    void prepare(double outputSampleRate) noexcept;
     void reset() noexcept;
 
     bool trigger(const SourcePool& pool,
@@ -48,6 +49,7 @@ private:
     VoiceState* acquireVoice() noexcept;
 
     std::array<VoiceState, kMaxVoices> voices_ {};
+    double outputSampleRate_ {48000.0};
 };
 
 } // namespace phraseator

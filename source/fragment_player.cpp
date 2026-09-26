@@ -5,6 +5,13 @@
 
 namespace phraseator {
 
+void FragmentPlayer::prepare(double outputSampleRate) noexcept {
+    outputSampleRate_ =
+        (std::isfinite(outputSampleRate) && outputSampleRate > 1000.0)
+        ? outputSampleRate
+        : 48000.0;
+}
+
 void FragmentPlayer::reset() noexcept {
     voices_ = {};
 }
@@ -62,7 +69,17 @@ bool FragmentPlayer::trigger(const SourcePool& pool,
     voice->active = true;
     voice->fragment = fragment;
     voice->position = static_cast<double>(region.startFrame);
-    voice->increment = std::pow(2.0, static_cast<double>(pitchSemitones) / 12.0);
+
+    // Preserve original sample pitch/duration across host sample rates.
+    // Source-rate conversion and creative pitch transpose are multiplicative.
+    const double sourceRate =
+        (std::isfinite(source->sampleRate) && source->sampleRate > 1000.0)
+        ? source->sampleRate
+        : outputSampleRate_;
+    const double rateRatio = sourceRate / outputSampleRate_;
+    const double pitchRatio =
+        std::pow(2.0, static_cast<double>(pitchSemitones) / 12.0);
+    voice->increment = rateRatio * pitchRatio;
     voice->gain = std::max(0.0f, gain);
     voice->pan = clamp(pan, -1.0f, 1.0f);
     voice->endFrame = region.endFrame;

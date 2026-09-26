@@ -20,6 +20,7 @@ void PhraseScheduler::reset() noexcept {
 
 void PhraseScheduler::prepare(double sampleRate, double tempoBpm) noexcept {
     clock_.configure(sampleRate, tempoBpm);
+    player_.prepare(sampleRate);
 }
 
 void PhraseScheduler::triggerStep(
