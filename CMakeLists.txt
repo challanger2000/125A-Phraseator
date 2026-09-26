@@ -16,6 +16,10 @@ set(PHRASEATOR_CORE_SOURCES
     source/audio_buffer.h
     source/fragment_player.cpp
     source/fragment_player.h
+    source/step_clock.cpp
+    source/step_clock.h
+    source/phrase_scheduler.cpp
+    source/phrase_scheduler.h
 )
 
 add_library(PhraseatorCore STATIC ${PHRASEATOR_CORE_SOURCES})
@@ -30,10 +34,18 @@ target_link_libraries(PhraseatorSourcePoolTests PRIVATE PhraseatorCore)
 add_executable(PhraseatorPlaybackTests tests/fragment_player_tests.cpp)
 target_link_libraries(PhraseatorPlaybackTests PRIVATE PhraseatorCore)
 
+add_executable(PhraseatorStepClockTests tests/step_clock_tests.cpp)
+target_link_libraries(PhraseatorStepClockTests PRIVATE PhraseatorCore)
+
+add_executable(PhraseatorSchedulerTests tests/phrase_scheduler_tests.cpp)
+target_link_libraries(PhraseatorSchedulerTests PRIVATE PhraseatorCore)
+
 enable_testing()
 add_test(NAME PhraseatorEngineTests COMMAND PhraseatorEngineTests)
 add_test(NAME PhraseatorSourcePoolTests COMMAND PhraseatorSourcePoolTests)
 add_test(NAME PhraseatorPlaybackTests COMMAND PhraseatorPlaybackTests)
+add_test(NAME PhraseatorStepClockTests COMMAND PhraseatorStepClockTests)
+add_test(NAME PhraseatorSchedulerTests COMMAND PhraseatorSchedulerTests)
 
 if(PHRASEATOR_BUILD_VST3)
     if(NOT DEFINED VST3_SDK_ROOT)
