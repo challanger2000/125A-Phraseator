@@ -31,10 +31,15 @@ private:
                      const SourcePool& pool,
                      const std::array<AudioBufferView, kMaxSources>& buffers) noexcept;
 
+    void triggerAbsoluteStep(std::uint64_t absoluteStep,
+                             const SourcePool& pool,
+                             const std::array<AudioBufferView, kMaxSources>& buffers) noexcept;
+
     Pattern pattern_ {};
     StepClock clock_ {};
     FragmentPlayer player_ {};
-    bool wasPlaying_ {false};
+    std::uint64_t lastTriggeredAbsoluteStep_ {0u};
+    bool hasTriggeredStep_ {false};
 };
 
 } // namespace phraseator

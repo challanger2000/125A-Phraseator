@@ -19,22 +19,23 @@ void StepClock::configure(double sampleRate, double tempoBpm) noexcept {
     samplesPerStep_ = quarterSamples / 4.0;
 }
 
-std::size_t StepClock::stepIndexAt(double projectTimeSamples) const noexcept {
+std::uint64_t StepClock::absoluteStepAt(double projectTimeSamples) const noexcept {
     if (samplesPerStep_ <= 0.0)
-        return 0;
+        return 0u;
 
     const double safeTime = std::max(0.0, projectTimeSamples);
-    const auto absoluteStep = static_cast<std::uint64_t>(std::floor(safeTime / samplesPerStep_));
-    return static_cast<std::size_t>(absoluteStep % 16u);
+    return static_cast<std::uint64_t>(std::floor(safeTime / samplesPerStep_));
+}
+
+std::size_t StepClock::stepIndexAt(double projectTimeSamples) const noexcept {
+    return static_cast<std::size_t>(absoluteStepAt(projectTimeSamples) % 16u);
 }
 
 double StepClock::nextStepBoundary(double projectTimeSamples) const noexcept {
     if (samplesPerStep_ <= 0.0)
         return projectTimeSamples;
 
-    const double safeTime = std::max(0.0, projectTimeSamples);
-    const double absoluteStep = std::floor(safeTime / samplesPerStep_);
-    return (absoluteStep + 1.0) * samplesPerStep_;
+    return (static_cast<double>(absoluteStepAt(projectTimeSamples)) + 1.0) * samplesPerStep_;
 }
 
 } // namespace phraseator

@@ -3,6 +3,7 @@
 #include <array>
 #include <cassert>
 #include <cmath>
+#include <vector>
 
 using namespace phraseator;
 
@@ -21,6 +22,8 @@ int main() {
     pattern[0].pan = 0.0f;
     pattern[0].pitchSemitones = 0.0f;
 
+    pattern[1] = pattern[0];
+
     PhraseScheduler scheduler;
     scheduler.setPattern(pattern);
     scheduler.prepare(48000.0, 120.0);
@@ -33,7 +36,13 @@ int main() {
     assert(std::fabs(left[0] - centerGain) < 1.0e-5f);
     assert(std::fabs(right[0] - centerGain) < 1.0e-5f);
 
-    scheduler.processBlock(pool, buffers, 1000.0, false, left, right, 8u);
+    // Regression: a new host block beginning exactly on the next 16th boundary
+    // must trigger that step even though playback never stopped.
+    scheduler.processBlock(pool, buffers, 6000.0, true, left, right, 8u);
+    assert(std::fabs(left[0] - centerGain) < 1.0e-5f);
+    assert(std::fabs(right[0] - centerGain) < 1.0e-5f);
+
+    scheduler.processBlock(pool, buffers, 7000.0, false, left, right, 8u);
     for (float x : left)
         assert(x == 0.0f);
 
