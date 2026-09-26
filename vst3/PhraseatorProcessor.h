@@ -56,6 +56,8 @@ private:
     void queueRecallLoads() noexcept;
     void emitPatternViewParameters(Steinberg::Vst::ProcessData& data,
                                    Steinberg::int32 sampleOffset) noexcept;
+    void emitSourceStatusParameters(Steinberg::Vst::ProcessData& data,
+                                    Steinberg::int32 sampleOffset) noexcept;
 
     struct SourceRecallEntry {
         bool occupied {false};
@@ -83,6 +85,7 @@ private:
     double generateTrigger_ {0.0};
     double variateTrigger_ {0.0};
     bool patternViewDirty_ {true};
+    bool sourceStatusDirty_ {true};
 };
 
 } // namespace phraseator::vst3

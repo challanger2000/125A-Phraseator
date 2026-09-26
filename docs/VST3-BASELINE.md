@@ -49,7 +49,8 @@ The VST3 layer now includes:
 - a functional VSTGUI editor;
 - explicit ONE / LOOP WAV loading for the first visible eight source slots;
 - asynchronous non-realtime sample decoding and bank publication;
-- 16-step pattern visualization driven by hidden read-only processor output parameters;
+- 16-step pattern visualization driven by hidden processor output parameters;
+- source-bay EMPTY / ONE / LOOP status driven by the actually active realtime sample bank, so failed loads are not shown as successful;
 - Generate / Variate / Lock controls;
 - musical macro controls;
 - key / scale controls;

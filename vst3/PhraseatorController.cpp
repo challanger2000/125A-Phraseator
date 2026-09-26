@@ -118,6 +118,25 @@ tresult PLUGIN_API Controller::initialize(FUnknown* context) {
             static_cast<ParamID>(kPatternViewBase + i));
     }
 
+    static const TChar* kSourceStatusTitles[kSourceStatusCount] {
+        STR16("Source Status 01"), STR16("Source Status 02"),
+        STR16("Source Status 03"), STR16("Source Status 04"),
+        STR16("Source Status 05"), STR16("Source Status 06"),
+        STR16("Source Status 07"), STR16("Source Status 08")
+    };
+
+    for (int32 i = 0; i < kSourceStatusCount; ++i) {
+        auto* status = new StringListParameter(
+            kSourceStatusTitles[i],
+            static_cast<ParamID>(kSourceStatusBase + i),
+            nullptr,
+            ParameterInfo::kIsHidden);
+        status->appendString(STR16("EMPTY"));
+        status->appendString(STR16("ONE"));
+        status->appendString(STR16("LOOP"));
+        parameters.addParameter(status);
+    }
+
     return kResultOk;
 }
 

@@ -15,6 +15,9 @@ constexpr Steinberg::Vst::ParamID kPatternViewBase = 1400;
 constexpr Steinberg::int32 kPatternViewCount = 16;
 constexpr Steinberg::int32 kPatternViewStepCount = 128;
 
+constexpr Steinberg::Vst::ParamID kSourceStatusBase = 1500;
+constexpr Steinberg::int32 kSourceStatusCount = 8;
+
 constexpr const char* kMsgLoadSample = "Phraseator.LoadSample";
 constexpr const char* kAttrPath = "Path";
 constexpr const char* kAttrSourceIndex = "SourceIndex";

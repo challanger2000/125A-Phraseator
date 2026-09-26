@@ -25,35 +25,35 @@
     <view class="CViewContainer" origin="20,84" size="280,536" transparent="false" background-color="Panel2"/>
     <view class="CTextLabel" origin="36,98" size="240,18" title="SOURCE BAY · 1–8" transparent="true" font-color="Muted" font="Section"/>
     <view class="CTextLabel" origin="36,126" size="34,30" title="01" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
-    <view class="CTextLabel" origin="76,126" size="94,30" title="EMPTY" transparent="true" font-color="Muted" font="Small" text-alignment="left"/>
+    <view class="CParamDisplay" origin="76,126" size="94,30" control-tag="1500" transparent="true" font-color="Muted" font="Small" text-alignment="left"/>
     <view class="CView" custom-view-name="PhraseLoadOne" control-tag="2000" origin="174,126" size="46,28"/>
     <view class="CView" custom-view-name="PhraseLoadLoop" control-tag="2100" origin="226,126" size="54,28"/>
     <view class="CTextLabel" origin="36,184" size="34,30" title="02" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
-    <view class="CTextLabel" origin="76,184" size="94,30" title="EMPTY" transparent="true" font-color="Muted" font="Small" text-alignment="left"/>
+    <view class="CParamDisplay" origin="76,184" size="94,30" control-tag="1501" transparent="true" font-color="Muted" font="Small" text-alignment="left"/>
     <view class="CView" custom-view-name="PhraseLoadOne" control-tag="2001" origin="174,184" size="46,28"/>
     <view class="CView" custom-view-name="PhraseLoadLoop" control-tag="2101" origin="226,184" size="54,28"/>
     <view class="CTextLabel" origin="36,242" size="34,30" title="03" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
-    <view class="CTextLabel" origin="76,242" size="94,30" title="EMPTY" transparent="true" font-color="Muted" font="Small" text-alignment="left"/>
+    <view class="CParamDisplay" origin="76,242" size="94,30" control-tag="1502" transparent="true" font-color="Muted" font="Small" text-alignment="left"/>
     <view class="CView" custom-view-name="PhraseLoadOne" control-tag="2002" origin="174,242" size="46,28"/>
     <view class="CView" custom-view-name="PhraseLoadLoop" control-tag="2102" origin="226,242" size="54,28"/>
     <view class="CTextLabel" origin="36,300" size="34,30" title="04" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
-    <view class="CTextLabel" origin="76,300" size="94,30" title="EMPTY" transparent="true" font-color="Muted" font="Small" text-alignment="left"/>
+    <view class="CParamDisplay" origin="76,300" size="94,30" control-tag="1503" transparent="true" font-color="Muted" font="Small" text-alignment="left"/>
     <view class="CView" custom-view-name="PhraseLoadOne" control-tag="2003" origin="174,300" size="46,28"/>
     <view class="CView" custom-view-name="PhraseLoadLoop" control-tag="2103" origin="226,300" size="54,28"/>
     <view class="CTextLabel" origin="36,358" size="34,30" title="05" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
-    <view class="CTextLabel" origin="76,358" size="94,30" title="EMPTY" transparent="true" font-color="Muted" font="Small" text-alignment="left"/>
+    <view class="CParamDisplay" origin="76,358" size="94,30" control-tag="1504" transparent="true" font-color="Muted" font="Small" text-alignment="left"/>
     <view class="CView" custom-view-name="PhraseLoadOne" control-tag="2004" origin="174,358" size="46,28"/>
     <view class="CView" custom-view-name="PhraseLoadLoop" control-tag="2104" origin="226,358" size="54,28"/>
     <view class="CTextLabel" origin="36,416" size="34,30" title="06" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
-    <view class="CTextLabel" origin="76,416" size="94,30" title="EMPTY" transparent="true" font-color="Muted" font="Small" text-alignment="left"/>
+    <view class="CParamDisplay" origin="76,416" size="94,30" control-tag="1505" transparent="true" font-color="Muted" font="Small" text-alignment="left"/>
     <view class="CView" custom-view-name="PhraseLoadOne" control-tag="2005" origin="174,416" size="46,28"/>
     <view class="CView" custom-view-name="PhraseLoadLoop" control-tag="2105" origin="226,416" size="54,28"/>
     <view class="CTextLabel" origin="36,474" size="34,30" title="07" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
-    <view class="CTextLabel" origin="76,474" size="94,30" title="EMPTY" transparent="true" font-color="Muted" font="Small" text-alignment="left"/>
+    <view class="CParamDisplay" origin="76,474" size="94,30" control-tag="1506" transparent="true" font-color="Muted" font="Small" text-alignment="left"/>
     <view class="CView" custom-view-name="PhraseLoadOne" control-tag="2006" origin="174,474" size="46,28"/>
     <view class="CView" custom-view-name="PhraseLoadLoop" control-tag="2106" origin="226,474" size="54,28"/>
     <view class="CTextLabel" origin="36,532" size="34,30" title="08" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
-    <view class="CTextLabel" origin="76,532" size="94,30" title="EMPTY" transparent="true" font-color="Muted" font="Small" text-alignment="left"/>
+    <view class="CParamDisplay" origin="76,532" size="94,30" control-tag="1507" transparent="true" font-color="Muted" font="Small" text-alignment="left"/>
     <view class="CView" custom-view-name="PhraseLoadOne" control-tag="2007" origin="174,532" size="46,28"/>
     <view class="CView" custom-view-name="PhraseLoadLoop" control-tag="2107" origin="226,532" size="54,28"/>
 

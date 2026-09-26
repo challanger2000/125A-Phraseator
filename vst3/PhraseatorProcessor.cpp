@@ -378,12 +378,52 @@ void Processor::emitPatternViewParameters(ProcessData& data,
         patternViewDirty_ = false;
 }
 
+void Processor::emitSourceStatusParameters(ProcessData& data,
+                                           int32 sampleOffset) noexcept {
+    if (!sourceStatusDirty_ || !data.outputParameterChanges)
+        return;
+
+    const int32 safeOffset = data.numSamples > 0
+        ? std::clamp<int32>(sampleOffset, 0, data.numSamples - 1)
+        : 0;
+
+    const auto& pool = sampleBanks_.activeBank().sourcePool();
+    bool complete = true;
+
+    for (int32 i = 0; i < kSourceStatusCount; ++i) {
+        int32 queueIndex = 0;
+        auto* queue = data.outputParameterChanges->addParameterData(
+            static_cast<ParamID>(kSourceStatusBase + i), queueIndex);
+
+        if (!queue) {
+            complete = false;
+            continue;
+        }
+
+        ParamValue value = 0.0;
+        if (const auto* source = pool.source(static_cast<std::size_t>(i))) {
+            if (source->type == SourceType::OneShot)
+                value = 0.5;
+            else if (source->type == SourceType::Loop)
+                value = 1.0;
+        }
+
+        int32 pointIndex = 0;
+        if (queue->addPoint(safeOffset, value, pointIndex) != kResultTrue)
+            complete = false;
+    }
+
+    if (complete)
+        sourceStatusDirty_ = false;
+}
+
 tresult PLUGIN_API Processor::process(ProcessData& data) {
     if (data.numOutputs <= 0 || data.outputs == nullptr || data.numSamples <= 0) {
         // Parameter-only flush calls still need to leave the component in the
         // final host-provided state even though there is no audio to segment.
         readParameterChanges(data.inputParameterChanges);
         emitPatternViewParameters(data, 0);
+        emitSourceStatusParameters(data, 0);
         return kResultOk;
     }
 
@@ -408,7 +448,8 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
         playing = playing && ((ctx.state & ProcessContext::kPlaying) != 0);
     }
 
-    sampleBanks_.consumePending();
+    if (sampleBanks_.consumePending())
+        sourceStatusDirty_ = true;
     const auto& bank = sampleBanks_.activeBank();
 
     scheduler_.prepare(sampleRate_, tempo);
@@ -557,6 +598,7 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
 
     data.outputs[0].silenceFlags = producedAudio ? 0 : 0x3;
     emitPatternViewParameters(data, data.numSamples - 1);
+    emitSourceStatusParameters(data, data.numSamples - 1);
     fallbackProjectTimeSamples_ = projectTime + static_cast<double>(data.numSamples);
 
     return kResultOk;
