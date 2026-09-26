@@ -340,10 +340,12 @@ void Processor::syncEngineFromState() noexcept {
 }
 
 tresult PLUGIN_API Processor::process(ProcessData& data) {
-    readParameterChanges(data.inputParameterChanges);
-
-    if (data.numOutputs <= 0 || data.outputs == nullptr || data.numSamples <= 0)
+    if (data.numOutputs <= 0 || data.outputs == nullptr || data.numSamples <= 0) {
+        // Parameter-only flush calls still need to leave the component in the
+        // final host-provided state even though there is no audio to segment.
+        readParameterChanges(data.inputParameterChanges);
         return kResultOk;
+    }
 
     if (data.outputs[0].numChannels < 2)
         return kResultFalse;
@@ -372,26 +374,148 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
     scheduler_.prepare(sampleRate_, tempo);
     scheduler_.setPattern(state_.pattern);
 
-    if (data.symbolicSampleSize == kSample32) {
-        auto** out = data.outputs[0].channelBuffers32;
-        if (!out || !out[0] || !out[1])
-            return kResultFalse;
+    if (data.symbolicSampleSize != kSample32)
+        return kResultFalse;
 
-        scheduler_.processBlock(
-            bank.sourcePool(), bank.buffers(), projectTime, playing,
-            out[0], out[1], static_cast<std::size_t>(data.numSamples));
+    auto** out = data.outputs[0].channelBuffers32;
+    if (!out || !out[0] || !out[1])
+        return kResultFalse;
+
+    struct ParameterCursor {
+        IParamValueQueue* queue {nullptr};
+        int32 pointIndex {0};
+        int32 pointCount {0};
+        int32 nextOffset {0};
+        ParamValue nextValue {0.0};
+        bool valid {false};
+    };
+
+    // Phraseator currently exports far fewer than 32 parameters. Keeping this
+    // fixed-size avoids allocation in process() while still leaving headroom.
+    constexpr std::size_t kMaxParameterQueues = 32;
+    std::array<ParameterCursor, kMaxParameterQueues> cursors {};
+    std::size_t cursorCount = 0;
+
+    if (data.inputParameterChanges) {
+        const int32 parameterCount = data.inputParameterChanges->getParameterCount();
+        const int32 boundedCount = std::min<int32>(
+            parameterCount, static_cast<int32>(kMaxParameterQueues));
+
+        for (int32 i = 0; i < boundedCount; ++i) {
+            auto* queue = data.inputParameterChanges->getParameterData(i);
+            if (!queue)
+                continue;
+
+            const int32 pointCount = queue->getPointCount();
+            if (pointCount <= 0)
+                continue;
+
+            auto& cursor = cursors[cursorCount];
+            cursor.queue = queue;
+            cursor.pointCount = pointCount;
+
+            int32 offset = 0;
+            ParamValue value = 0.0;
+            if (queue->getPoint(0, offset, value) != kResultTrue)
+                continue;
+
+            cursor.nextOffset = std::clamp<int32>(offset, 0, data.numSamples - 1);
+            cursor.nextValue = value;
+            cursor.valid = true;
+            ++cursorCount;
+        }
+    }
+
+    auto advanceCursor = [&](ParameterCursor& cursor) noexcept {
+        ++cursor.pointIndex;
+        if (cursor.pointIndex >= cursor.pointCount) {
+            cursor.valid = false;
+            return;
+        }
+
+        int32 offset = 0;
+        ParamValue value = 0.0;
+        if (cursor.queue->getPoint(cursor.pointIndex, offset, value) != kResultTrue) {
+            cursor.valid = false;
+            return;
+        }
+
+        cursor.nextOffset = std::clamp<int32>(offset, 0, data.numSamples - 1);
+        cursor.nextValue = value;
+    };
+
+    auto applyChangesAt = [&](int32 sampleOffset) noexcept {
+        for (std::size_t i = 0; i < cursorCount; ++i) {
+            auto& cursor = cursors[i];
+
+            while (cursor.valid && cursor.nextOffset <= sampleOffset) {
+                applyNormalizedParameter(
+                    cursor.queue->getParameterId(), cursor.nextValue);
+                advanceCursor(cursor);
+            }
+        }
+    };
+
+    auto nextAutomationOffset = [&](int32 currentOffset) noexcept {
+        int32 next = data.numSamples;
+
+        for (std::size_t i = 0; i < cursorCount; ++i) {
+            const auto& cursor = cursors[i];
+            if (cursor.valid && cursor.nextOffset >= currentOffset)
+                next = std::min(next, cursor.nextOffset);
+        }
+
+        return next;
+    };
+
+    bool producedAudio = false;
+    int32 currentOffset = 0;
+
+    // Changes at sample 0 must affect the first rendered sample.
+    applyChangesAt(0);
+
+    while (currentOffset < data.numSamples) {
+        int32 boundary = nextAutomationOffset(currentOffset);
+
+        // If the next pending point is exactly at the current position,
+        // consume it first and re-evaluate the following boundary.
+        if (boundary == currentOffset) {
+            applyChangesAt(currentOffset);
+            boundary = nextAutomationOffset(currentOffset);
+            if (boundary == currentOffset)
+                boundary = std::min<int32>(data.numSamples, currentOffset + 1);
+        }
+
+        const int32 segmentEnd = std::clamp<int32>(
+            boundary, currentOffset + 1, data.numSamples);
+        const std::size_t segmentSamples =
+            static_cast<std::size_t>(segmentEnd - currentOffset);
+
+        const bool schedulerAudio = scheduler_.processBlock(
+            bank.sourcePool(),
+            bank.buffers(),
+            projectTime + static_cast<double>(currentOffset),
+            playing,
+            out[0] + currentOffset,
+            out[1] + currentOffset,
+            segmentSamples);
 
         fx_.setDelayAmount(state_.delayAmount);
         fx_.setFilterAmount(state_.filterAmount);
-        const bool producedAudio = fx_.processBlock(
-            out[0], out[1], static_cast<std::size_t>(data.numSamples), tempo);
+        const bool fxAudio = fx_.processBlock(
+            out[0] + currentOffset,
+            out[1] + currentOffset,
+            segmentSamples,
+            tempo);
 
-        data.outputs[0].silenceFlags = producedAudio ? 0 : 0x3;
+        producedAudio = producedAudio || schedulerAudio || fxAudio;
+        currentOffset = segmentEnd;
 
-    } else {
-        return kResultFalse;
+        if (currentOffset < data.numSamples)
+            applyChangesAt(currentOffset);
     }
 
+    data.outputs[0].silenceFlags = producedAudio ? 0 : 0x3;
     fallbackProjectTimeSamples_ = projectTime + static_cast<double>(data.numSamples);
 
     return kResultOk;
