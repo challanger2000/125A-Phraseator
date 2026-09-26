@@ -25,6 +25,7 @@ void PhraseFx::prepare(double sampleRate) {
 
     delayLeft_.assign(maxDelaySamples + 2u, 0.0f);
     delayRight_.assign(maxDelaySamples + 2u, 0.0f);
+    delayGenerations_.assign(maxDelaySamples + 2u, 0u);
 
     reset();
 }
@@ -32,6 +33,8 @@ void PhraseFx::prepare(double sampleRate) {
 void PhraseFx::reset() noexcept {
     std::fill(delayLeft_.begin(), delayLeft_.end(), 0.0f);
     std::fill(delayRight_.begin(), delayRight_.end(), 0.0f);
+    std::fill(delayGenerations_.begin(), delayGenerations_.end(), 0u);
+    delayGeneration_ = 1u;
 
     writeIndex_ = 0u;
     delayCurrent_ = delayTarget_;
@@ -46,8 +49,12 @@ void PhraseFx::setDelayAmount(float amount) noexcept {
     const float next = clamp01(amount);
 
     if (next == 0.0f && delayTarget_ > 0.0f) {
-        std::fill(delayLeft_.begin(), delayLeft_.end(), 0.0f);
-        std::fill(delayRight_.begin(), delayRight_.end(), 0.0f);
+        // Realtime-safe logical clear: advancing the generation invalidates
+        // all previously written cells in O(1), instead of clearing a
+        // potentially multi-second buffer inside the audio callback.
+        ++delayGeneration_;
+        if (delayGeneration_ == 0u)
+            delayGeneration_ = 1u;
         writeIndex_ = 0u;
     }
 
@@ -59,6 +66,7 @@ void PhraseFx::setFilterAmount(float amount) noexcept {
 }
 
 float PhraseFx::readDelay(const std::vector<float>& buffer,
+                          const std::vector<std::uint64_t>& generations,
                           double readPosition) const noexcept {
     if (buffer.empty())
         return 0.0f;
@@ -74,7 +82,14 @@ float PhraseFx::readDelay(const std::vector<float>& buffer,
     const auto i1 = (i0 + 1u) % buffer.size();
     const float frac = static_cast<float>(readPosition - static_cast<double>(i0));
 
-    return buffer[i0] + (buffer[i1] - buffer[i0]) * frac;
+    const float s0 =
+        i0 < generations.size() && generations[i0] == delayGeneration_
+            ? buffer[i0] : 0.0f;
+    const float s1 =
+        i1 < generations.size() && generations[i1] == delayGeneration_
+            ? buffer[i1] : 0.0f;
+
+    return s0 + (s1 - s0) * frac;
 }
 
 bool PhraseFx::processBlock(float* left,
@@ -116,12 +131,13 @@ bool PhraseFx::processBlock(float* left,
             const double readPos =
                 static_cast<double>(writeIndex_) - delaySamplesCurrent_;
 
-            const float delayedL = readDelay(delayLeft_, readPos);
-            const float delayedR = readDelay(delayRight_, readPos);
+            const float delayedL = readDelay(delayLeft_, delayGenerations_, readPos);
+            const float delayedR = readDelay(delayRight_, delayGenerations_, readPos);
 
             constexpr float feedback = 0.34f;
             delayLeft_[writeIndex_] = inL + delayedR * feedback;
             delayRight_[writeIndex_] = inR + delayedL * feedback;
+            delayGenerations_[writeIndex_] = delayGeneration_;
 
             const float wet = delayCurrent_ * 0.70f;
             inL += delayedL * wet;

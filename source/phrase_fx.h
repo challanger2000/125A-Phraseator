@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <vector>
 
 namespace phraseator {
@@ -20,12 +21,16 @@ public:
 
 private:
     static float clamp01(float value) noexcept;
-    float readDelay(const std::vector<float>& buffer, double readPosition) const noexcept;
+    float readDelay(const std::vector<float>& buffer,
+                    const std::vector<std::uint64_t>& generations,
+                    double readPosition) const noexcept;
 
     double sampleRate_ {48000.0};
 
     std::vector<float> delayLeft_;
     std::vector<float> delayRight_;
+    std::vector<std::uint64_t> delayGenerations_;
+    std::uint64_t delayGeneration_ {1u};
     std::size_t writeIndex_ {0};
 
     float delayTarget_ {0.0f};

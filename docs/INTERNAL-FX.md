@@ -9,6 +9,7 @@ V0.1 currently implements two exposed finishing effects.
 - smoothed wet amount;
 - smoothed delay-time changes on tempo changes;
 - 0% produces no wet contribution.
+- disabling Delay invalidates the previous delay history in O(1) using a generation marker; no multi-second buffer clear occurs in the realtime callback.
 
 ## Filter
 - stereo low-pass finishing control;

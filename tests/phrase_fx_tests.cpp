@@ -54,5 +54,29 @@ int main() {
             CHECK(std::isfinite(x));
     }
 
+
+    {
+        // Regression: disabling delay must logically discard the old tail
+        // without requiring a physical full-buffer clear in setDelayAmount().
+        fx.reset();
+        fx.setDelayAmount(1.0f);
+
+        std::vector<float> l(1000u, 0.0f);
+        std::vector<float> r(1000u, 0.0f);
+        l[0] = 1.0f;
+        CHECK(fx.processBlock(l.data(), r.data(), l.size(), 120.0));
+
+        fx.setDelayAmount(0.0f);
+
+        std::vector<float> silenceL(13000u, 0.0f);
+        std::vector<float> silenceR(13000u, 0.0f);
+        fx.processBlock(silenceL.data(), silenceR.data(), silenceL.size(), 120.0);
+
+        for (float x : silenceL)
+            CHECK(std::isfinite(x));
+        for (float x : silenceR)
+            CHECK(std::isfinite(x));
+    }
+
     return 0;
 }
