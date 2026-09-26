@@ -32,6 +32,7 @@ std::uint64_t SampleLoadWorker::requestLoad(SampleLoadRequest request) {
     }
 
     request.requestId = nextRequestId_.fetch_add(1u, std::memory_order_relaxed);
+    const auto requestId = request.requestId;
 
     {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -41,7 +42,7 @@ std::uint64_t SampleLoadWorker::requestLoad(SampleLoadRequest request) {
     }
 
     cv_.notify_one();
-    return requests_.empty() ? 0u : request.requestId;
+    return requestId;
 }
 
 bool SampleLoadWorker::waitForResult(std::uint64_t requestId,
