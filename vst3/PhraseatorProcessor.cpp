@@ -688,14 +688,6 @@ void Processor::handleMidiEvent(const Event& event) noexcept {
         if (event.noteOn.velocity <= 0.0f) {
             heldMidiNotes_[static_cast<std::size_t>(pitch)] = false;
         } else {
-            bool hadHeldNote = false;
-            for (const bool held : heldMidiNotes_) {
-                if (held) {
-                    hadHeldNote = true;
-                    break;
-                }
-            }
-
             heldMidiNotes_[static_cast<std::size_t>(pitch)] = true;
 
             if (!patternHasActiveSteps() &&
