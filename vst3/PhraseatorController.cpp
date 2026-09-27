@@ -223,10 +223,10 @@ Steinberg::tresult Controller::sendActionCommand(const char* messageId) {
 Steinberg::tresult Controller::sendPatternStepEdit(
     Steinberg::int32 stepIndex,
     bool active,
-    Steinberg::int32 fragment) {
+    Steinberg::int32 sourceIndex) {
 
     if (stepIndex < 0 || stepIndex >= kPatternViewCount ||
-        fragment < 0 || fragment >= kPatternViewStepCount) {
+        sourceIndex < 0 || sourceIndex >= kSourceStatusCount) {
         return Steinberg::kInvalidArgument;
     }
 
@@ -241,7 +241,7 @@ Steinberg::tresult Controller::sendPatternStepEdit(
 
     if (attributes->setInt(kAttrStepIndex, stepIndex) != Steinberg::kResultTrue ||
         attributes->setInt(kAttrStepActive, active ? 1 : 0) != Steinberg::kResultTrue ||
-        attributes->setInt(kAttrStepFragment, fragment) != Steinberg::kResultTrue) {
+        attributes->setInt(kAttrStepSource, sourceIndex) != Steinberg::kResultTrue) {
         return Steinberg::kResultFalse;
     }
 
