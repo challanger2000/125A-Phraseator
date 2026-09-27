@@ -98,3 +98,13 @@ AUTO classification is intentionally conservative:
 - candidate loop events must be distributed into the later part of the file;
 - strongly decaying energy profiles are treated as ONE even when reverb reflections create additional transient-like peaks;
 - manual ONE/LOOP loading remains authoritative.
+
+
+## MIDI phrase gate and phase mode
+
+- Phrase playback is gated by incoming MIDI notes; host transport alone does not sound the phrase.
+- RESTART is the default: every new note-on resets phrase phase so Step 1 starts at the note's exact host sample position.
+- CONTINUE keeps phrase phase tied to the host timeline; incoming notes gate and transpose the continuing phrase without forcing Step 1.
+- MIDI note 60 remains neutral transpose; higher/lower notes transpose phrase playback.
+- Generate/Variate custom buttons use explicit controller action pulses so each click reaches the processor deterministically.
+- Loading additional sources preserves the current pattern; pressing GENERATE rebuilds source assignments from all currently loaded sources.
