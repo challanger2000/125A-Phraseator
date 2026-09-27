@@ -46,6 +46,9 @@ void PhraseScheduler::triggerStep(
     if (!pool.fragmentAt(flatIndex, ref))
         return;
 
+    // Monophonic phrase articulation: every new active step (and ratchet)
+    // ends the previous phrase voice with a short de-click release.
+    player_.chokeAll();
     player_.trigger(pool, buffers, ref, step.velocity, step.pan, step.pitchSemitones);
 }
 
