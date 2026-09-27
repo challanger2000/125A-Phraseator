@@ -11,6 +11,7 @@ Load arbitrary one-shots or loops, optionally slice and tune them, then generate
 ## V1 scope
 
 - One-shots and loop import
+- WAV drag-and-drop directly onto the 8 source slots, with AUTO one-shot/loop classification
 - Loop slicing
 - Musical phrase generation
 - Controlled variation rather than blind randomization
@@ -21,4 +22,4 @@ Load arbitrary one-shots or loops, optionally slice and tune them, then generate
 - Host-sync transport and tempo
 - Windows x64 VST3 first
 
-The UI should remain simple even when the internal rules are sophisticated.
+The UI should remain simple even when the internal rules are sophisticated. Phraseator deliberately does not include an internal sample browser; host/OS drag-and-drop plus explicit ONE / LOOP file loading cover the V0.1 workflow.
