@@ -50,6 +50,7 @@ public:
 
 private:
     void openSampleSelector(int sourceIndex, bool asLoop);
+    Steinberg::tresult sendActionCommand(const char* messageId);
     Steinberg::tresult sendLoadSampleMode(
         const Steinberg::Vst::TChar* path,
         Steinberg::int32 sourceIndex,
