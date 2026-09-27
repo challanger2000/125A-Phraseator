@@ -62,6 +62,18 @@ tresult PLUGIN_API Processor::notify(IMessage* message) {
     if (!message)
         return kInvalidArgument;
 
+    if (FIDStringsEqual(message->getMessageID(), kMsgGenerate)) {
+        if (!state_.lockPattern)
+            generatePattern();
+        return kResultTrue;
+    }
+
+    if (FIDStringsEqual(message->getMessageID(), kMsgVariate)) {
+        if (!state_.lockPattern)
+            varyPattern();
+        return kResultTrue;
+    }
+
     if (FIDStringsEqual(message->getMessageID(), kMsgClearSample)) {
         auto* attributes = message->getAttributes();
         if (!attributes || !sampleLoader_)
