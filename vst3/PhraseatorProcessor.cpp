@@ -629,12 +629,13 @@ void Processor::refreshSchedulerPattern() noexcept {
             continue;
         }
 
-        // Deterministic per-step live shaping. Moving a macro immediately
-        // changes playback, but the stored pattern/source choice stays intact.
+        // Deterministic per-step live shaping. The shape identity depends on
+        // seed + step, not the selected source, so VARIATE can swap material
+        // without implicitly changing PAN/VELOCITY/PITCH behavior.
         const auto base = liveHash(
             state_.randomSeed,
             static_cast<std::uint32_t>(i),
-            static_cast<std::uint32_t>(step.fragment),
+            0u,
             0x125A0001u);
 
         const float velocityDraw = liveUnit(liveHash(base, 0u, 0u, 0x1101u));
