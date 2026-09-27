@@ -16,8 +16,10 @@ void FragmentPlayer::reset() noexcept {
     voices_ = {};
 }
 
-void FragmentPlayer::chokeAll(std::uint32_t releaseSamples) noexcept {
-    const auto safeRelease = std::max<std::uint32_t>(1u, releaseSamples);
+void FragmentPlayer::chokeAll() noexcept {
+    // 2 ms de-click release, constant in time across host sample rates.
+    const auto safeRelease = static_cast<std::uint32_t>(
+        std::max(1.0, std::round(outputSampleRate_ * 0.002)));
     for (auto& voice : voices_) {
         if (!voice.active)
             continue;
