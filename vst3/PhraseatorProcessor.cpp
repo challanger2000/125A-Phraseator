@@ -38,6 +38,8 @@ double clamp01(double v) noexcept {
 
 Processor::Processor() {
     setControllerClass(kControllerUID);
+    for (auto& edit : patternEditPending_)
+        edit.store(-1, std::memory_order_relaxed);
 }
 
 tresult PLUGIN_API Processor::initialize(FUnknown* context) {
@@ -69,6 +71,31 @@ tresult PLUGIN_API Processor::notify(IMessage* message) {
 
     if (FIDStringsEqual(message->getMessageID(), kMsgVariate)) {
         variateCommandPending_.store(true, std::memory_order_release);
+        return kResultTrue;
+    }
+
+    if (FIDStringsEqual(message->getMessageID(), kMsgPatternStep)) {
+        auto* attributes = message->getAttributes();
+        if (!attributes)
+            return kResultFalse;
+
+        int64 stepIndex = -1;
+        int64 active = 0;
+        int64 fragment = 0;
+
+        if (attributes->getInt(kAttrStepIndex, stepIndex) != kResultTrue ||
+            attributes->getInt(kAttrStepActive, active) != kResultTrue ||
+            attributes->getInt(kAttrStepFragment, fragment) != kResultTrue ||
+            stepIndex < 0 || stepIndex >= static_cast<int64>(kStepCount) ||
+            fragment < 0 || fragment >= static_cast<int64>(kPatternViewStepCount)) {
+            return kResultFalse;
+        }
+
+        const int encoded = active != 0
+            ? static_cast<int>(fragment) + 1
+            : 0;
+        patternEditPending_[static_cast<std::size_t>(stepIndex)].store(
+            encoded, std::memory_order_release);
         return kResultTrue;
     }
 
@@ -701,6 +728,37 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
     if (variateCommandPending_.exchange(false, std::memory_order_acq_rel) &&
         !state_.lockPattern) {
         varyPattern();
+    }
+
+    bool patternEdited = false;
+    for (std::size_t i = 0; i < kStepCount; ++i) {
+        const int encoded =
+            patternEditPending_[i].exchange(-1, std::memory_order_acq_rel);
+        if (encoded < 0)
+            continue;
+
+        auto& step = state_.pattern[i];
+        if (encoded == 0) {
+            step.active = false;
+        } else {
+            step.active = true;
+            step.fragment = static_cast<std::uint16_t>(
+                std::clamp(encoded - 1, 0, kPatternViewStepCount - 1));
+            step.velocity = std::clamp(step.velocity, 0.0f, 1.0f);
+            if (step.velocity <= 0.0f)
+                step.velocity = 1.0f;
+            step.gate = std::clamp(step.gate, 0.0f, 1.0f);
+            if (step.gate <= 0.0f)
+                step.gate = 1.0f;
+            if (step.repeats == 0u)
+                step.repeats = 1u;
+        }
+        patternEdited = true;
+    }
+
+    if (patternEdited) {
+        refreshSchedulerPattern();
+        patternViewDirty_ = true;
     }
 
     if (data.symbolicSampleSize != kSample32)
