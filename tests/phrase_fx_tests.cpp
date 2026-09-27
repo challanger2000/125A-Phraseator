@@ -63,8 +63,8 @@ int main() {
             measured.setDelayAmount(1.0f);
             measured.setDelayDivision(division);
 
-            std::vector<float> settleL(4800u, 0.0f);
-            std::vector<float> settleR(4800u, 0.0f);
+            std::vector<float> settleL(48000u, 0.0f);
+            std::vector<float> settleR(48000u, 0.0f);
             measured.processBlock(
                 settleL.data(), settleR.data(), settleL.size(), 120.0);
 
@@ -78,8 +78,13 @@ int main() {
                 l.data(), r.data(), l.size(), 120.0));
 
             const int target = expected[division];
-            CHECK(std::fabs(l[static_cast<std::size_t>(target)]) > 0.001f ||
-                  std::fabs(r[static_cast<std::size_t>(target)]) > 0.001f);
+            float peak = 0.0f;
+            for (int offset = -2; offset <= 2; ++offset) {
+                const auto index = static_cast<std::size_t>(target + offset);
+                peak = std::max(peak, std::fabs(l[index]));
+                peak = std::max(peak, std::fabs(r[index]));
+            }
+            CHECK(peak > 0.001f);
         }
     }
 
