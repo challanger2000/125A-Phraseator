@@ -38,7 +38,7 @@ struct ParameterDefaults {
     static constexpr float groove = 0.0f;
 
     static constexpr float delayAmount = 0.0f;
-    static constexpr std::int32_t delayDivision = 1; // 1/8
+    static constexpr std::int32_t delayDivision = 2; // 1/8 (0=OFF)
     static constexpr std::int32_t filterMode = 0; // LP
     static constexpr float reverbAmount = 0.0f;
     static constexpr float driveAmount = 0.0f;
