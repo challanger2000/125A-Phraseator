@@ -12,8 +12,12 @@ void StepClock::reset() noexcept {
 }
 
 void StepClock::configure(double sampleRate, double tempoBpm) noexcept {
-    sampleRate_ = sampleRate > 1.0 ? sampleRate : 48000.0;
-    tempoBpm_ = std::clamp(tempoBpm, 20.0, 400.0);
+    sampleRate_ = std::isfinite(sampleRate) && sampleRate > 1.0
+        ? sampleRate
+        : 48000.0;
+    tempoBpm_ = std::isfinite(tempoBpm)
+        ? std::clamp(tempoBpm, 20.0, 400.0)
+        : 120.0;
 
     const double quarterSamples = sampleRate_ * 60.0 / tempoBpm_;
     samplesPerStep_ = quarterSamples / 4.0;
