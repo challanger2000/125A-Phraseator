@@ -22,7 +22,6 @@ using namespace Steinberg::Vst;
 
 namespace {
 constexpr int32 kLoadOneBase = 2000;
-constexpr int32 kLoadLoopBase = 2100;
 constexpr int32 kClearBase = 2200;
 
 ParamID pid(ParameterId id) noexcept {
@@ -410,8 +409,6 @@ tresult PLUGIN_API Controller::setComponentState(IBStream* state) {
     setParamNormalized(pid(ParameterId::OctaveMode),
         static_cast<double>(std::clamp<int32>(octaveMode, 0, 3)) / 3.0);
     setParamNormalized(pid(ParameterId::DelayAmount), values[6]);
-    setParamNormalized(pid(ParameterId::ReverbAmount), values[7]);
-    setParamNormalized(pid(ParameterId::DriveAmount), values[8]);
     setParamNormalized(pid(ParameterId::FilterAmount), values[9]);
 
     setParamNormalized(pid(ParameterId::KeyRoot),
