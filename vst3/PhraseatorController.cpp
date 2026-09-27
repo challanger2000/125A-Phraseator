@@ -188,20 +188,10 @@ void Controller::valueChanged(VSTGUI::CControl* control) {
 
     const auto tag = control->getTag();
 
-    if (tag == static_cast<Steinberg::int32>(ParameterId::GenerateTrigger) ||
-        tag == static_cast<Steinberg::int32>(ParameterId::VariateTrigger)) {
-        const auto paramId = static_cast<Steinberg::Vst::ParamID>(tag);
-
-        // Action buttons are momentary commands, not persistent parameters.
-        // Send an explicit rising edge followed by reset so the processor
-        // receives one deterministic trigger even when the custom button is
-        // not managed by VST3Editor's normal parameter binding path.
-        beginEdit(paramId);
-        setParamNormalized(paramId, 1.0);
-        performEdit(paramId, 1.0);
-        performEdit(paramId, 0.0);
-        setParamNormalized(paramId, 0.0);
-        endEdit(paramId);
+    if (tag == static_cast<Steinberg::int32>(ParameterId::GenerateTrigger)) {
+        sendActionCommand(kMsgGenerate);
+    } else if (tag == static_cast<Steinberg::int32>(ParameterId::VariateTrigger)) {
+        sendActionCommand(kMsgVariate);
     } else if (tag >= kLoadOneBase && tag < kLoadOneBase + 8) {
         openSampleSelector(tag - kLoadOneBase, false);
     } else if (tag >= kLoadLoopBase && tag < kLoadLoopBase + 8) {
@@ -216,6 +206,18 @@ void Controller::valueChanged(VSTGUI::CControl* control) {
 
 void Controller::willClose(VSTGUI::VST3Editor* editor) {
     if (editor_ == editor) editor_ = nullptr;
+}
+
+Steinberg::tresult Controller::sendActionCommand(const char* messageId) {
+    if (!messageId || *messageId == '\0')
+        return Steinberg::kInvalidArgument;
+
+    auto message = Steinberg::owned(allocateMessage());
+    if (!message)
+        return Steinberg::kResultFalse;
+
+    message->setMessageID(messageId);
+    return sendMessage(message);
 }
 
 void Controller::openSampleSelector(int sourceIndex, bool asLoop) {
