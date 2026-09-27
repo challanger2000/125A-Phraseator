@@ -84,8 +84,9 @@ int main() {
         const auto centered = stereoPlayer.processSample(
             stereoPool, stereoBuffers);
 
-        CHECK(std::fabs(centered.left - 1.0f) < 1.0e-5f);
-        CHECK(std::fabs(centered.right - 0.5f) < 1.0e-5f);
+        const float centeredMono = 0.75f * std::sqrt(0.5f);
+        CHECK(std::fabs(centered.left - centeredMono) < 1.0e-5f);
+        CHECK(std::fabs(centered.right - centeredMono) < 1.0e-5f);
 
         stereoPlayer.reset();
         CHECK(stereoPlayer.trigger(
@@ -95,7 +96,7 @@ int main() {
             stereoPool, stereoBuffers);
 
         CHECK(std::fabs(hardRight.left) < 1.0e-5f);
-        CHECK(std::fabs(hardRight.right - 0.5f) < 1.0e-5f);
+        CHECK(std::fabs(hardRight.right - 0.75f) < 1.0e-5f);
     }
 
     {
