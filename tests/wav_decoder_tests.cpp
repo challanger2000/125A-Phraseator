@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <iterator>
 #include <vector>
 
 using namespace phraseator;
@@ -76,6 +77,40 @@ std::vector<std::uint8_t> makeStereoFloat() {
     }
 
     return out;
+std::vector<std::uint8_t> makeStereo24Extensible(std::uint32_t subFormat = 1u) {
+    std::vector<std::uint8_t> out;
+    appendId(out, "RIFF");
+    appendU32(out, 72u);
+    appendId(out, "WAVE");
+
+    appendId(out, "fmt ");
+    appendU32(out, 40u);
+    appendU16(out, 0xFFFEu); // WAVE_FORMAT_EXTENSIBLE
+    appendU16(out, 2u);
+    appendU32(out, 48000u);
+    appendU32(out, 288000u);
+    appendU16(out, 6u);
+    appendU16(out, 24u);
+    appendU16(out, 22u); // cbSize
+    appendU16(out, 24u); // valid bits
+    appendU32(out, 0x3u); // FL|FR
+    appendU32(out, subFormat);
+    const std::uint8_t guidTail[12] {
+        0x00,0x00,0x10,0x00,0x80,0x00,0x00,0xAA,0x00,0x38,0x9B,0x71
+    };
+    out.insert(out.end(), std::begin(guidTail), std::end(guidTail));
+
+    appendId(out, "data");
+    appendU32(out, 12u);
+    const std::uint8_t samples[12] {
+        0x00,0x00,0x40, 0x00,0x00,0xC0,
+        0xFF,0xFF,0x7F, 0x00,0x00,0x80
+    };
+    out.insert(out.end(), std::begin(samples), std::end(samples));
+    return out;
+}
+
+
 }
 
 }
@@ -110,6 +145,31 @@ int main() {
         CHECK(std::fabs(decoded.right[0] + 0.25f) < 1.0e-6f);
         CHECK(std::fabs(decoded.left[1] - 1.5f) < 1.0e-6f);
         CHECK(std::fabs(decoded.right[1] + 1.5f) < 1.0e-6f);
+    }
+
+
+    {
+        const auto bytes = makeStereo24Extensible();
+        OwnedAudioSource decoded;
+        const auto status = WavDecoder::decode(bytes.data(), bytes.size(), decoded);
+
+        CHECK(status == WavDecodeStatus::Ok);
+        CHECK(decoded.valid());
+        CHECK(decoded.sampleRate == 48000u);
+        CHECK(decoded.stereo);
+        CHECK(decoded.frames() == 2u);
+        CHECK(std::fabs(decoded.left[0] - 0.5f) < 1.0e-5f);
+        CHECK(std::fabs(decoded.right[0] + 0.5f) < 1.0e-5f);
+        CHECK(decoded.left[1] > 0.999f);
+        CHECK(std::fabs(decoded.right[1] + 1.0f) < 1.0e-5f);
+    }
+
+    {
+        const auto bytes = makeStereo24Extensible(99u);
+        OwnedAudioSource decoded;
+        CHECK(WavDecoder::decode(bytes.data(), bytes.size(), decoded) ==
+              WavDecodeStatus::UnsupportedFormat);
+        CHECK(!decoded.valid());
     }
 
     {
