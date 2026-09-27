@@ -39,7 +39,8 @@ The current realtime core supports:
 - exact host-block boundary triggering;
 - sample-synchronized ratchets;
 - fragment pitch playback;
-- stereo pan variation.
+- stereo pan variation;
+- source-balanced fragment selection: generation chooses a loaded source approximately uniformly first, then a fragment/slice inside that source, preventing sliced loops from dominating one-shots purely by slice count.
 
 The processor currently advertises 32-bit sample processing only. 64-bit audio processing will not be claimed until the realtime playback path actually supports it.
 
