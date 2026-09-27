@@ -13,6 +13,12 @@ namespace phraseator {
 
 class SampleBank {
 public:
+    SampleBank() = default;
+    SampleBank(const SampleBank& other);
+    SampleBank& operator=(const SampleBank& other);
+    SampleBank(SampleBank&&) noexcept = default;
+    SampleBank& operator=(SampleBank&&) noexcept = default;
+
     void clear() noexcept;
     bool clearSource(std::size_t sourceIndex) noexcept;
 
