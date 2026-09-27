@@ -6,10 +6,12 @@
 #include "../source/phrase_scheduler.h"
 #include "../source/phrase_fx.h"
 #include "../source/project_state.h"
+#include "../source/pattern_fragment_remap.h"
 #include "../source/sample_bank.h"
 #include "../source/sample_load_worker.h"
 
 #include <array>
+#include <atomic>
 #include <cstdint>
 #include <memory>
 #include <mutex>
@@ -80,6 +82,8 @@ private:
     std::unique_ptr<SampleLoadWorker> sampleLoader_;
     std::array<SourceRecallEntry, kMaxSources> sourceRecall_ {};
     mutable std::mutex sourceRecallMutex_;
+    PatternFragmentSnapshot recallPatternSnapshot_ {};
+    std::atomic<bool> recallPatternRemapPending_ {false};
 
     double sampleRate_ {48000.0};
     double fallbackProjectTimeSamples_ {0.0};

@@ -416,6 +416,7 @@ void Processor::applyPitchToKey(Pattern& pattern) noexcept {
 }
 
 void Processor::generatePattern() noexcept {
+    recallPatternRemapPending_.store(false, std::memory_order_release);
     state_.pattern = engine_.generate(currentGenerationSettings());
     applyPitchToKey(state_.pattern);
     scheduler_.setPattern(state_.pattern);
@@ -423,6 +424,7 @@ void Processor::generatePattern() noexcept {
 }
 
 void Processor::varyPattern() noexcept {
+    recallPatternRemapPending_.store(false, std::memory_order_release);
     state_.pattern = engine_.vary(state_.pattern, currentGenerationSettings());
     applyPitchToKey(state_.pattern);
     scheduler_.setPattern(state_.pattern);
@@ -541,22 +543,34 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
         playing = playing && ((ctx.state & ProcessContext::kPlaying) != 0);
     }
 
+    const bool recallRemapPending =
+        recallPatternRemapPending_.load(std::memory_order_acquire);
+
     PatternFragmentSnapshot patternSnapshot {};
     const auto& oldPool = sampleBanks_.activeBank().sourcePool();
     const bool hadOldFragments = oldPool.fragmentCount() > 0u;
 
-    if (hadOldFragments)
+    if (!recallRemapPending && hadOldFragments)
         patternSnapshot = snapshotPatternFragments(state_.pattern, oldPool);
 
     if (sampleBanks_.consumePending()) {
         sourceStatusDirty_ = true;
+        const auto& newPool = sampleBanks_.activeBank().sourcePool();
 
-        if (hadOldFragments) {
-            const auto& newPool = sampleBanks_.activeBank().sourcePool();
-            if (restorePatternFragments(state_.pattern, patternSnapshot, newPool)) {
-                scheduler_.setPattern(state_.pattern);
-                patternViewDirty_ = true;
-            }
+        bool patternChanged = false;
+
+        if (recallPatternRemapPending_.exchange(
+                false, std::memory_order_acq_rel)) {
+            patternChanged = restorePatternFragments(
+                state_.pattern, recallPatternSnapshot_, newPool);
+        } else if (hadOldFragments) {
+            patternChanged = restorePatternFragments(
+                state_.pattern, patternSnapshot, newPool);
+        }
+
+        if (patternChanged) {
+            scheduler_.setPattern(state_.pattern);
+            patternViewDirty_ = true;
         }
     }
 
@@ -995,6 +1009,35 @@ bool Processor::readProjectState(IBStream* state) noexcept {
         }
     }
 
+    std::array<std::uint16_t, kMaxSources> savedSliceCounts {};
+    for (std::size_t i = 0; i < recallEntries.size(); ++i) {
+        const auto& recall = recallEntries[i];
+        if (!recall.occupied)
+            continue;
+
+        if (recall.mode == SampleLoadMode::OneShot) {
+            savedSliceCounts[i] = 1u;
+        } else {
+            savedSliceCounts[i] = recall.resolvedSliceCount > 0u
+                ? recall.resolvedSliceCount
+                : recall.divisions;
+        }
+    }
+
+    recallPatternSnapshot_ =
+        snapshotPatternFragmentsFromSourceCounts(
+            candidate.pattern, savedSliceCounts);
+
+    bool hasRecallIdentity = false;
+    for (const auto& identity : recallPatternSnapshot_) {
+        if (identity.valid) {
+            hasRecallIdentity = true;
+            break;
+        }
+    }
+    recallPatternRemapPending_.store(
+        hasRecallIdentity, std::memory_order_release);
+
     state_ = candidate;
     {
         std::lock_guard<std::mutex> lock(sourceRecallMutex_);
@@ -1007,30 +1050,44 @@ bool Processor::readProjectState(IBStream* state) noexcept {
 }
 
 void Processor::queueRecallLoads() noexcept {
-    if (!sampleLoader_)
+    if (!sampleLoader_) {
+        recallPatternRemapPending_.store(false, std::memory_order_release);
         return;
+    }
 
     try {
         std::vector<SampleLoadRequest> requests;
+        requests.reserve(kMaxSources);
 
         {
             std::lock_guard<std::mutex> lock(sourceRecallMutex_);
-            requests.reserve(sourceRecall_.size());
 
             for (std::size_t i = 0; i < sourceRecall_.size(); ++i) {
                 const auto& recall = sourceRecall_[i];
-                if (!recall.occupied || recall.utf8Path.empty())
-                    continue;
-
-                std::error_code ec;
-                const auto path = std::filesystem::u8path(recall.utf8Path);
-                if (!std::filesystem::exists(path, ec) || ec)
-                    continue;
 
                 SampleLoadRequest request;
                 request.sourceIndex = i;
+
+                bool canRestoreFile = false;
+                std::filesystem::path path;
+
+                if (recall.occupied && !recall.utf8Path.empty()) {
+                    std::error_code ec;
+                    path = std::filesystem::u8path(recall.utf8Path);
+                    canRestoreFile =
+                        std::filesystem::exists(path, ec) && !ec;
+                }
+
+                if (!canRestoreFile) {
+                    // State restore is authoritative. Empty or missing sources
+                    // must clear stale material from any previous bank state.
+                    request.mode = SampleLoadMode::Clear;
+                    requests.push_back(std::move(request));
+                    continue;
+                }
+
                 request.sourceId = recall.sourceId;
-                request.path = path;
+                request.path = std::move(path);
                 request.mode = recall.mode;
                 request.equalDivisions = recall.mode == SampleLoadMode::OneShot
                     ? 0u
@@ -1047,12 +1104,18 @@ void Processor::queueRecallLoads() noexcept {
             }
         }
 
-        if (!requests.empty())
+        const auto requestId =
             sampleLoader_->requestBatch(std::move(requests));
 
+        if (requestId == 0u) {
+            recallPatternRemapPending_.store(
+                false, std::memory_order_release);
+        }
+
     } catch (...) {
-        // Project state is preserved even if asynchronous source restoration
-        // cannot be queued. Audio/state recall must not crash the host.
+        recallPatternRemapPending_.store(false, std::memory_order_release);
+        // Project state remains intact even if asynchronous source restoration
+        // cannot be queued. The host must never crash on a recall failure.
     }
 }
 
