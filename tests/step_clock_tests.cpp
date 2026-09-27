@@ -2,6 +2,7 @@
 #include "test_common.h"
 
 #include <cmath>
+#include <limits>
 
 using namespace phraseator;
 
@@ -27,6 +28,14 @@ int main() {
 
     clock.configure(96000.0, 120.0);
     CHECK(std::fabs(clock.samplesPerStep() - 12000.0) < 1.0e-9);
+
+    clock.configure(std::numeric_limits<double>::quiet_NaN(),
+                    std::numeric_limits<double>::quiet_NaN());
+    CHECK(std::fabs(clock.samplesPerStep() - 6000.0) < 1.0e-9);
+
+    clock.configure(std::numeric_limits<double>::infinity(),
+                    std::numeric_limits<double>::infinity());
+    CHECK(std::fabs(clock.samplesPerStep() - 6000.0) < 1.0e-9);
 
     // Tempo limits are part of the scheduler safety contract.
     clock.configure(48000.0, 1.0);
