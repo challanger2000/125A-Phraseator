@@ -248,6 +248,7 @@ tresult PLUGIN_API Processor::setActive(TBool state) {
         heldMidiNotes_.fill(false);
         activeMidiNote_ = -1;
         midiTransposeSemitones_ = 0.0f;
+        midiPhraseStartProjectSample_ = 0.0;
         refreshSchedulerPattern();
     }
     return AudioEffect::setActive(state);
@@ -319,6 +320,9 @@ void Processor::applyNormalizedParameter(ParamID id, double rawValue) noexcept {
             break;
         case static_cast<ParamID>(ParameterId::LockPattern):
             state_.lockPattern = value >= 0.5;
+            break;
+        case static_cast<ParamID>(ParameterId::RestartMode):
+            state_.restartOnNote = value >= 0.5;
             break;
         case static_cast<ParamID>(ParameterId::GenerateTrigger): {
             const bool rising = generateTrigger_ < 0.5 && value >= 0.5;
@@ -478,7 +482,8 @@ void Processor::refreshSchedulerPattern() noexcept {
     scheduler_.setPattern(playback);
 }
 
-void Processor::handleMidiEvent(const Event& event) noexcept {
+void Processor::handleMidiEvent(const Event& event,
+                                double absoluteProjectSample) noexcept {
     auto applyCurrentNote = [this](int note) noexcept {
         activeMidiNote_ = note;
         midiTransposeSemitones_ = note >= 0
@@ -493,11 +498,24 @@ void Processor::handleMidiEvent(const Event& event) noexcept {
         if (event.noteOn.velocity <= 0.0f) {
             heldMidiNotes_[static_cast<std::size_t>(pitch)] = false;
         } else {
+            bool hadHeldNote = false;
+            for (const bool held : heldMidiNotes_) {
+                if (held) {
+                    hadHeldNote = true;
+                    break;
+                }
+            }
+
             heldMidiNotes_[static_cast<std::size_t>(pitch)] = true;
 
             if (!patternHasActiveSteps() &&
                 sampleBanks_.activeBank().sourcePool().fragmentCount() > 0u) {
                 generatePattern();
+            }
+
+            if (state_.restartOnNote || !hadHeldNote) {
+                midiPhraseStartProjectSample_ = std::max(0.0, absoluteProjectSample);
+                scheduler_.reset();
             }
 
             applyCurrentNote(pitch);
@@ -785,7 +803,9 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
 
     auto applyEventsAt = [&](int32 sampleOffset) noexcept {
         while (eventValid && nextEventOffset <= sampleOffset) {
-            handleMidiEvent(nextEvent);
+            handleMidiEvent(
+                nextEvent,
+                projectTime + static_cast<double>(sampleOffset));
             advanceEvent();
         }
     };
@@ -821,11 +841,19 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
         const std::size_t segmentSamples =
             static_cast<std::size_t>(segmentEnd - currentOffset);
 
+        const bool midiGateOpen = activeMidiNote_ >= 0;
+        const bool phrasePlaying = playing && midiGateOpen;
+        const double absoluteSegmentTime =
+            projectTime + static_cast<double>(currentOffset);
+        const double phraseTime = state_.restartOnNote
+            ? std::max(0.0, absoluteSegmentTime - midiPhraseStartProjectSample_)
+            : absoluteSegmentTime;
+
         const bool schedulerAudio = scheduler_.processBlock(
             bank.sourcePool(),
             bank.buffers(),
-            projectTime + static_cast<double>(currentOffset),
-            playing,
+            phraseTime,
+            phrasePlaying,
             out[0] + currentOffset,
             out[1] + currentOffset,
             segmentSamples);
@@ -888,7 +916,8 @@ bool Processor::writeProjectState(IBStream* state) const noexcept {
     if (!stream.writeInt32(state_.keyRoot) ||
         !stream.writeInt32(state_.scaleMode) ||
         !stream.writeInt32(state_.pitchToKey ? 1 : 0) ||
-        !stream.writeInt32(state_.lockPattern ? 1 : 0)) {
+        !stream.writeInt32(state_.lockPattern ? 1 : 0) ||
+        !stream.writeInt32(state_.restartOnNote ? 1 : 0)) {
         return false;
     }
 
@@ -985,11 +1014,13 @@ bool Processor::readProjectState(IBStream* state) noexcept {
     int32 scaleMode = 0;
     int32 pitchToKey = 0;
     int32 lockPattern = 0;
+    int32 restartOnNote = 1;
 
     if (!stream.readInt32(keyRoot) ||
         !stream.readInt32(scaleMode) ||
         !stream.readInt32(pitchToKey) ||
-        !stream.readInt32(lockPattern)) {
+        !stream.readInt32(lockPattern) ||
+        (version >= 5 && !stream.readInt32(restartOnNote))) {
         return false;
     }
 
@@ -997,6 +1028,7 @@ bool Processor::readProjectState(IBStream* state) noexcept {
     candidate.scaleMode = std::clamp<int32>(scaleMode, 0, 2);
     candidate.pitchToKey = pitchToKey != 0;
     candidate.lockPattern = lockPattern != 0;
+    candidate.restartOnNote = version >= 5 ? restartOnNote != 0 : true;
 
     for (auto& step : candidate.pattern) {
         int32 active = 0;
