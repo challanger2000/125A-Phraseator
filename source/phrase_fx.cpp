@@ -84,13 +84,14 @@ void PhraseFx::setDelayAmount(float amount) noexcept {
     const float next = clamp01(amount);
 
     if (next == 0.0f && delayTarget_ > 0.0f) {
-        // Realtime-safe logical clear: advancing the generation invalidates
-        // all previously written cells in O(1), instead of clearing a
-        // potentially multi-second buffer inside the audio callback.
+        // Realtime-safe logical clear. Reset the smoothed mix as well: a later
+        // re-enable must ramp up from dry rather than start 100% wet against
+        // an intentionally empty history buffer.
         ++delayGeneration_;
         if (delayGeneration_ == 0u)
             delayGeneration_ = 1u;
         writeIndex_ = 0u;
+        delayCurrent_ = 0.0f;
     }
 
     delayTarget_ = next;
@@ -103,6 +104,7 @@ void PhraseFx::setDelayDivision(std::int32_t division) noexcept {
         if (delayGeneration_ == 0u)
             delayGeneration_ = 1u;
         writeIndex_ = 0u;
+        delayCurrent_ = 0.0f;
     }
     delayDivision_ = next;
 }
@@ -168,8 +170,10 @@ bool PhraseFx::processBlock(float* left,
     bool producedAudio = false;
 
     for (std::size_t i = 0; i < numSamples; ++i) {
+        const float effectiveDelayTarget =
+            delayEnabled ? delayTarget_ : 0.0f;
         delayCurrent_ += static_cast<float>(
-            (static_cast<double>(delayTarget_) - delayCurrent_) * amountCoeff);
+            (static_cast<double>(effectiveDelayTarget) - delayCurrent_) * amountCoeff);
 
         filterCurrent_ += static_cast<float>(
             (static_cast<double>(filterTarget_) - filterCurrent_) * amountCoeff);
