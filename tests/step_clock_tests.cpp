@@ -20,5 +20,19 @@ int main() {
     clock.configure(48000.0, 60.0);
     CHECK(std::fabs(clock.samplesPerStep() - 12000.0) < 1.0e-9);
 
+    clock.configure(44100.0, 120.0);
+    CHECK(std::fabs(clock.samplesPerStep() - 5512.5) < 1.0e-9);
+    CHECK(clock.absoluteStepAt(5512.49) == 0u);
+    CHECK(clock.absoluteStepAt(5512.5) == 1u);
+
+    clock.configure(96000.0, 120.0);
+    CHECK(std::fabs(clock.samplesPerStep() - 12000.0) < 1.0e-9);
+
+    // Tempo limits are part of the scheduler safety contract.
+    clock.configure(48000.0, 1.0);
+    CHECK(std::fabs(clock.samplesPerStep() - 36000.0) < 1.0e-9); // 20 BPM clamp
+    clock.configure(48000.0, 1000.0);
+    CHECK(std::fabs(clock.samplesPerStep() - 1800.0) < 1.0e-9); // 400 BPM clamp
+
     return 0;
 }
