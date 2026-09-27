@@ -111,7 +111,7 @@ int main() {
         // Long one-shots are phrase-monophonic: an empty step lets the current
         // voice continue, but the next active step from any source chokes it.
         SourcePool chokePool;
-        constexpr std::uint32_t frames = 7000u;
+        constexpr std::uint32_t frames = 20000u;
         CHECK(chokePool.setOneShot(0, 10u, frames, 48000.0, false));
         CHECK(chokePool.setOneShot(1, 11u, frames, 48000.0, false));
 
@@ -146,9 +146,11 @@ int main() {
         CHECK(chokeScheduler.processBlock(
             chokePool, chokeBuffers, 0.0, true, l.data(), r.data(), l.size()));
 
-        CHECK(l[6000] > 0.30f); // empty step: original long sample continues
-        // Step 2 begins at sample 12000. After the short de-click release,
-        // only source 1 should remain.
+        CHECK(std::fabs(l[6000] - 0.5f * centerGain) < 1.0e-4f);
+        CHECK(std::fabs(l[11999] - 0.5f * centerGain) < 1.0e-4f);
+        // Step 2 begins at sample 12000. Source 0 would still be sounding
+        // here without the choke, so this proves the new step ends it.
+        CHECK(l[12000] > 0.25f * centerGain);
         CHECK(std::fabs(l[12110] - 0.25f * centerGain) < 1.0e-4f);
     }
 
