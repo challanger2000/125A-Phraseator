@@ -189,7 +189,7 @@ void SourceSlotView::draw(VSTGUI::CDrawContext* context) {
     const double normalized =
         std::clamp(static_cast<double>(getValueNormalized()), 0.0, 1.0);
 
-    const char* label = "EMPTY";
+    const char* label = "DROP WAV";
     if (normalized > 0.75)
         label = "LOOP";
     else if (normalized > 0.25)
