@@ -39,7 +39,7 @@ struct ParameterDefaults {
 
     static constexpr float delayAmount = 0.0f;
     static constexpr std::int32_t delayDivision = 2; // 1/8 (0=OFF)
-    static constexpr std::int32_t filterMode = 0; // LP
+    static constexpr std::int32_t filterMode = 1; // HP / low-cut
     static constexpr float reverbAmount = 0.0f;
     static constexpr float driveAmount = 0.0f;
     static constexpr float filterAmount = 0.0f;
