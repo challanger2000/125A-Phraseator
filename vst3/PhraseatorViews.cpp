@@ -354,11 +354,7 @@ void SourceSlotView::draw(VSTGUI::CDrawContext* context) {
     const double normalized =
         std::clamp(static_cast<double>(getValueNormalized()), 0.0, 1.0);
 
-    const char* label = "DROP WAV";
-    if (normalized > 0.75)
-        label = "LOOP";
-    else if (normalized > 0.25)
-        label = "ONE";
+    const char* label = normalized > 0.0 ? "SAMPLE" : "DROP WAV";
 
     if (dragActive_) {
         context->setFillColor({28, 55, 78, 255});
@@ -501,9 +497,7 @@ VSTGUI::CView* createCustomView(VSTGUI::UTF8StringPtr name,
     if(std::strcmp(name,"PhraseVariate")==0 && tag>=0)
         return new VSTGUI::CTextButton(rect,controller,tag,"VARIATE");
     if(std::strcmp(name,"PhraseLoadOne")==0 && tag>=0)
-        return new VSTGUI::CTextButton(rect,controller,tag,"ONE");
-    if(std::strcmp(name,"PhraseLoadLoop")==0 && tag>=0)
-        return new VSTGUI::CTextButton(rect,controller,tag,"LOOP");
+        return new VSTGUI::CTextButton(rect,controller,tag,"LOAD");
     if(std::strcmp(name,"PhraseClear")==0 && tag>=0)
         return new VSTGUI::CTextButton(rect,controller,tag,"X");
 
