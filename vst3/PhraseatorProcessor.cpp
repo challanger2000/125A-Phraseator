@@ -370,7 +370,8 @@ void Processor::applyNormalizedParameter(ParamID id, double rawValue) noexcept {
             id - static_cast<ParamID>(kStepRatchetBase));
         if (stepIndex < state_.pattern.size()) {
             state_.pattern[stepIndex].repeats = static_cast<std::uint8_t>(
-                std::clamp(static_cast<int>(std::lround(value * 3.0)) + 1, 1, 4));
+                std::clamp(static_cast<int>(std::lround(value * 3.0)) + 1,
+                           1, static_cast<int>(kMaxRatchetHits)));
             refreshSchedulerPattern();
             patternViewDirty_ = true;
         }
@@ -771,7 +772,8 @@ void Processor::emitPatternViewParameters(ProcessData& data,
         } else {
             const ParamValue ratchetValue =
                 static_cast<ParamValue>(
-                    std::clamp<int>(static_cast<int>(step.repeats), 1, 4) - 1) / 3.0;
+                    std::clamp<int>(static_cast<int>(step.repeats),
+                                    1, static_cast<int>(kMaxRatchetHits)) - 1) / 3.0;
             int32 ratchetPointIndex = 0;
             if (ratchetQueue->addPoint(
                     safeOffset, ratchetValue, ratchetPointIndex) != kResultTrue) {
@@ -1381,7 +1383,7 @@ bool Processor::readProjectState(IBStream* state) noexcept {
         step.pitchSemitones = static_cast<float>(std::clamp(pitch, -24.0, 24.0));
         step.pan = static_cast<float>(std::clamp(pan, -1.0, 1.0));
         step.gate = static_cast<float>(std::clamp(gate, 0.0, 1.0));
-        step.repeats = static_cast<std::uint8_t>(std::clamp<int32>(repeats, 1, 4));
+        step.repeats = static_cast<std::uint8_t>(std::clamp<int32>(repeats, 1, static_cast<int32>(kMaxRatchetHits)));
         step.timingOffset = static_cast<float>(std::clamp(timing, -0.5, 0.5));
     }
 
