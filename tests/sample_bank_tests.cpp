@@ -82,5 +82,26 @@ int main() {
         CHECK(std::fabs(copied.buffers()[0].left[0] - copied.buffers()[1].left[0]) < 1.0e-6f);
     }
 
+
+    {
+        // Conservative auto level should bring the same one-shot recorded at
+        // very different amplitudes to a comparable playback level.
+        SampleBank levelBank;
+        auto loud = makeMono();
+        auto quiet = makeMono();
+        for (auto& x : quiet.left)
+            x *= 0.1f;
+
+        CHECK(levelBank.setOneShot(0, 401u, std::move(loud)));
+        CHECK(levelBank.setOneShot(1, 402u, std::move(quiet)));
+        CHECK(levelBank.buffers()[0].valid());
+        CHECK(levelBank.buffers()[1].valid());
+
+        const float loudPeak = std::fabs(levelBank.buffers()[0].left[0]);
+        const float quietPeak = std::fabs(levelBank.buffers()[1].left[0]);
+        CHECK(std::fabs(loudPeak - quietPeak) < 1.0e-4f);
+        CHECK(loudPeak <= 0.89f + 1.0e-6f);
+    }
+
     return 0;
 }
