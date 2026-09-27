@@ -23,5 +23,13 @@ int main() {
     // F4 remains valid in D natural minor.
     CHECK(std::fabs(PitchMapper::quantizedOffset(60.0f, 5.0f, 2, ScaleMode::Minor) - 5.0f) < 1.0e-6f);
 
+    // Processor order contract: MIDI transpose is added before final
+    // Pitch-To-Key quantization. C4 + live +1 + MIDI +1 = D4, which is valid
+    // in C major; quantizing before MIDI would incorrectly leave C#4.
+    const float preQuantized = 1.0f + 1.0f;
+    CHECK(std::fabs(
+        PitchMapper::quantizedOffset(
+            60.0f, preQuantized, 0, ScaleMode::Major) - 2.0f) < 1.0e-6f);
+
     return 0;
 }
