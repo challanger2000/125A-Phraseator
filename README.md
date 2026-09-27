@@ -42,3 +42,5 @@ The UI should remain simple even when the internal rules are sophisticated. Phra
 - **PHRASE MODE — CONTINUE** keeps the phrase timeline running with the host through MIDI note gaps and only gates the direct phrase audio; **RETRIGGER** restarts the phrase from step 1 on each new MIDI note.
 
 - Regression coverage verifies long-sample choke across empty steps and the CONTINUE/RETRIGGER timing contract.
+
+- Audit coverage includes exact 1x-4x ratchet timing, long-sample choke, CONTINUE/RETRIGGER timing, delay OFF history isolation, multi-rate step timing, 2 ms choke release, auto-level bounds/stereo, and realtime parameter-capacity/state checks.
