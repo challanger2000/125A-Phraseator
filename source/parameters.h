@@ -24,7 +24,8 @@ enum class ParameterId : std::uint32_t {
 
     GenerateTrigger = 1300,
     VariateTrigger = 1301,
-    LockPattern = 1302
+    LockPattern = 1302,
+    RestartMode = 1303
 };
 
 struct ParameterDefaults {
