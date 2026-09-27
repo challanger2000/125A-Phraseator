@@ -316,9 +316,10 @@ Pattern PhraseEngine::vary(const Pattern& input, const GenerationSettings& raw) 
             }
 
             if (output[i].fragment == input[i].fragment) {
-                const float delta = input[i].velocity > 0.86f ? -0.10f : 0.10f;
-                output[i].velocity =
-                    std::clamp(input[i].velocity + delta, 0.50f, 1.0f);
+                // Live-shape parameters (velocity/pan/pitch/groove) are
+                // playback controls and must not be used as the sole VARIATE
+                // fallback. Change an audible structural detail instead.
+                output[i].repeats = input[i].repeats == 1u ? 2u : 1u;
             }
 
             changed = differs(output[i], input[i]);
