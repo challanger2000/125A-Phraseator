@@ -181,14 +181,33 @@ VSTGUI::CView* Controller::verifyView(VSTGUI::CView* view,
 }
 
 void Controller::valueChanged(VSTGUI::CControl* control) {
-    if (!control || control->getValueNormalized() < 0.5f) return;
+    if (!control || control->getValueNormalized() < 0.5f)
+        return;
+
     const auto tag = control->getTag();
-    if (tag >= kLoadOneBase && tag < kLoadOneBase + 8)
+
+    if (tag == static_cast<Steinberg::int32>(ParameterId::GenerateTrigger) ||
+        tag == static_cast<Steinberg::int32>(ParameterId::VariateTrigger)) {
+        const auto paramId = static_cast<Steinberg::Vst::ParamID>(tag);
+
+        // Action buttons are momentary commands, not persistent parameters.
+        // Send an explicit rising edge followed by reset so the processor
+        // receives one deterministic trigger even when the custom button is
+        // not managed by VST3Editor's normal parameter binding path.
+        beginEdit(paramId);
+        setParamNormalized(paramId, 1.0);
+        performEdit(paramId, 1.0);
+        performEdit(paramId, 0.0);
+        setParamNormalized(paramId, 0.0);
+        endEdit(paramId);
+    } else if (tag >= kLoadOneBase && tag < kLoadOneBase + 8) {
         openSampleSelector(tag - kLoadOneBase, false);
-    else if (tag >= kLoadLoopBase && tag < kLoadLoopBase + 8)
+    } else if (tag >= kLoadLoopBase && tag < kLoadLoopBase + 8) {
         openSampleSelector(tag - kLoadLoopBase, true);
-    else if (tag >= kClearBase && tag < kClearBase + 8)
+    } else if (tag >= kClearBase && tag < kClearBase + 8) {
         sendClearSample(tag - kClearBase);
+    }
+
     control->setValueNormalized(0.0f);
     control->invalid();
 }
