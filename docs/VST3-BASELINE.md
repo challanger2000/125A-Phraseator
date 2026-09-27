@@ -48,18 +48,19 @@ The processor currently advertises 32-bit sample processing only. 64-bit audio p
 
 The VST3 layer now includes:
 - a functional VSTGUI editor;
-- explicit ONE / LOOP WAV loading for the first visible eight source slots;
+- explicit ONE / LOOP WAV loading for eight V0.1 source slots;
+- per-slot clear action that removes the source from the published bank and fragment pool;
 - asynchronous non-realtime sample decoding and bank publication;
 - transient-preferred LOOP slicing with equal-grid fallback;
 - conservative offline pitch detection with persisted resolved root metadata;
 - 16-step pattern visualization driven by hidden processor output parameters;
 - source-bay EMPTY / ONE / LOOP status driven by the actually active realtime sample bank, so failed loads are not shown as successful;
 - Generate / Variate / Lock controls;
-- musical macro controls;
+- generation macro controls;
 - key / scale controls;
 - Delay / Filter finishing controls.
 
-The technical source bank remains 16 slots. The first editor baseline exposes slots 1-8; bank/page access for slots 9-16 is a later UI task.
+The technical source bank retains capacity for 16 slots, while V0.1 intentionally exposes 8 user-facing slots. Additional paging is not part of the V0.1 product surface.
 
 ## SDK baseline
 
@@ -73,7 +74,7 @@ This matches the current baseline already used by the active 125A Final reposito
 
 State format begins with:
 - magic: PHR1
-- version: 3
+- version: 4
 
 The component state includes generation macros, key/scale state, pattern lock state and the current 16-step pattern.
 

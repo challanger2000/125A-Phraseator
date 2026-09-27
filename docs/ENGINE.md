@@ -86,4 +86,4 @@ The audio callback must not:
 - acquire blocking locks,
 - log or format strings.
 
-Loading, decoding, transient analysis and future pitch analysis must happen outside the realtime callback. Results are published to the processor only after validation.
+Loading, decoding, transient analysis and pitch analysis must happen outside the realtime callback. Results are published to the processor only after validation.

@@ -7,9 +7,9 @@ Phraseator turns arbitrary audio material into immediately useful rhythmic phras
 The user should not need to program a sampler in detail. The primary workflow is:
 
 1. Load one-shots and/or loops.
-2. Slice loops when useful.
+2. Adjust a few generation macro controls.
 3. Press **GENERATE**.
-4. Adjust a few musical macro controls.
+4. Use **VARIATE** when useful.
 5. Lock what works.
 6. Optionally add simple internal FX.
 
@@ -24,8 +24,9 @@ The user should not need to program a sampler in detail. The primary workflow is
 
 ## V1 source model
 
-- Up to 16 active source slots.
-- A slot may contain a one-shot or a loop.
+- 8 user-facing source slots in V0.1.
+- The engine reserves technical capacity for up to 16 sources without requiring a second UI page in V0.1.
+- A slot may contain a one-shot or a loop and can be replaced or cleared.
 - Loops can expose slices as playable fragments.
 - Fragments share one phrase-generation pool.
 - Sample loading is from external files; Phraseator does not require a bundled library.
@@ -59,11 +60,10 @@ Percussive/noisy material must remain usable without pitch analysis.
 ## Slicing
 
 Loop slicing supports:
-- equal divisions,
-- transient-based slicing,
-- manual correction later.
+- transient-preferred automatic slicing,
+- deterministic equal-division fallback when reliable onsets are not found.
 
-The slices become ordinary phrase fragments for the generator.
+The resolved slice boundaries are stored in project state so recall does not depend on re-running analysis. The slices become ordinary phrase fragments for the generator.
 
 ## Internal FX
 
@@ -83,3 +83,5 @@ These are finishing tools, not a second product inside the product.
 - Multi-output routing matrix
 - Complex modulation system
 - Cloud/AI dependency
+- Manual waveform/slice editor
+- Source-bank paging beyond the 8-slot V0.1 surface

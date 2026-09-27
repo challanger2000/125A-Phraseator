@@ -21,7 +21,7 @@ Initial fixed design target:
 - dark technical base panel
 - clear module separation
 - restrained hardware influence rather than photorealistic rack imitation
-- scalable implementation later through VSTGUI zoom; layout ratios should remain stable
+- VSTGUI zoom baseline at 100% / 150%; layout ratios remain stable
 
 The authoritative 125A logo geometry must come from:
 
@@ -50,16 +50,15 @@ Purpose:
 show the user's source material without becoming a browser.
 
 Visible elements:
-- 8 source slots initially visible
-- two banks/pages for the 16-source technical capacity
+- 8 source slots in the V0.1 surface
 - each slot shows:
   - source number
-  - short file name
-  - ONE SHOT / LOOP
-  - slice count when applicable
-  - tonal marker only when relevant
-  - load/replace action
-  - lock state
+  - EMPTY / ONE / LOOP state from the active realtime bank
+  - ONE load/replace action
+  - LOOP load/replace action
+  - clear action
+
+The engine may retain greater technical source capacity, but a second source-bank page is not required for V0.1.
 
 The source bay is not a library index. Loading remains explicit and user-driven.
 
@@ -86,7 +85,7 @@ Dominant primary action:
 
 GENERATE should remain visually obvious even when the user is not reading labels.
 
-### Macro controls — center/bottom
+### Generation macro controls — center/bottom
 
 Six primary musical controls:
 
@@ -133,8 +132,8 @@ The UI must not display controls that do not have validated functional DSP behin
 Primary workflow:
 
 1. Load arbitrary samples.
-2. Press GENERATE.
-3. Adjust macro controls.
+2. Adjust generation macro controls.
+3. Press GENERATE.
 4. Press VARIATE when useful.
 5. LOCK a good phrase.
 6. Optionally add DELAY / FILTER.
@@ -169,6 +168,8 @@ Until a Phraseator-specific approved package exists in 125A-Knob-Designer:
 - multi-output mixer
 - decorative meters without direct musical value
 - exposed Reverb/Drive before DSP validation
+- source-bank paging beyond the 8-slot V0.1 surface
+- mandatory file-name/slice-count metadata in the compact source bay
 
 ## Static layout coordinates
 
