@@ -22,6 +22,8 @@ double musicalFilterCutoff(double amount, double sampleRate) noexcept {
     return maxCutoff * std::pow(minCutoff / maxCutoff, amount);
 }
 
+} // namespace
+
 float PhraseFx::clamp01(float value) noexcept {
     if (!std::isfinite(value))
         return 0.0f;
