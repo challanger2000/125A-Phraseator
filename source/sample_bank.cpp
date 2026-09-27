@@ -42,7 +42,7 @@ void applyConservativeAutoLevel(OwnedAudioSource& audio) noexcept {
     constexpr double kTargetActiveRms = 0.18;
     constexpr double kPeakCeiling = 0.89;
     double gain = std::min(kTargetActiveRms / rms, kPeakCeiling / peak);
-    gain = std::clamp(gain, 0.25, 4.0);
+    gain = std::clamp(gain, 0.10, 4.0);
 
     for (auto& x : audio.left)
         x = static_cast<float>(x * gain);
