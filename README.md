@@ -17,7 +17,7 @@ Load arbitrary one-shots or loops, optionally slice and tune them, then generate
 - Optional pitch-to-key / scale behavior for tonal material
 - Density, Variation, Repeat, Pitch, Pan and Groove controls
 - Simple built-in Delay and Filter; Reverb/Drive remain reserved research items until separately validated
-- Pattern / sample locking
+- Pattern locking
 - Host-sync transport and tempo
 - Windows x64 VST3 first
 
