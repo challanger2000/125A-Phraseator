@@ -57,7 +57,7 @@ int main() {
         // Quarter note = 24000 samples.
         const int expected[7] {24000, 12000, 18000, 8000, 6000, 9000, 4000};
 
-        for (int division = 0; division < 7; ++division) {
+        for (int division = 1; division <= 7; ++division) {
             PhraseFx measured;
             measured.prepare(48000.0);
             measured.setDelayAmount(1.0f);
@@ -69,7 +69,7 @@ int main() {
                 settleL.data(), settleR.data(), settleL.size(), 120.0);
 
             const std::size_t count =
-                static_cast<std::size_t>(expected[division] + 2);
+                static_cast<std::size_t>(expected[division - 1] + 2);
             std::vector<float> l(count, 0.0f);
             std::vector<float> r(count, 0.0f);
             l[0] = 1.0f;
@@ -77,7 +77,7 @@ int main() {
             CHECK(measured.processBlock(
                 l.data(), r.data(), l.size(), 120.0));
 
-            const int target = expected[division];
+            const int target = expected[division - 1];
             float peak = 0.0f;
             for (int offset = -2; offset <= 2; ++offset) {
                 const auto index = static_cast<std::size_t>(target + offset);
@@ -85,6 +85,24 @@ int main() {
                 peak = std::max(peak, std::fabs(r[index]));
             }
             CHECK(peak > 0.001f);
+        }
+    }
+
+    {
+        PhraseFx bypassed;
+        bypassed.prepare(48000.0);
+        bypassed.setDelayAmount(1.0f);
+        bypassed.setDelayDivision(0);
+
+        float l[4] {1.0f, 0.5f, -0.25f, 0.0f};
+        float r[4] {-1.0f, 0.25f, 0.5f, 0.0f};
+        const float refL[4] {1.0f, 0.5f, -0.25f, 0.0f};
+        const float refR[4] {-1.0f, 0.25f, 0.5f, 0.0f};
+
+        CHECK(bypassed.processBlock(l, r, 4u, 120.0));
+        for (int i = 0; i < 4; ++i) {
+            CHECK(l[i] == refL[i]);
+            CHECK(r[i] == refR[i]);
         }
     }
 
