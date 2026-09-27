@@ -501,7 +501,7 @@ int main() {
         muted.sourceSpansAuthoritative = true;
         muted.sourceSpanCount = 0u;
 
-        PhraseEngine engine(0xA11M0u);
+        PhraseEngine engine(0xA1100u);
         const auto generated = engine.generate(muted);
         for (const auto& step : generated)
             CHECK(!step.active);
