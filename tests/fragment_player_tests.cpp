@@ -161,5 +161,38 @@ int main() {
         CHECK(p96.activeVoiceCount() == 0u);
     }
 
+
+    {
+        // PAN is a true live macro on an already-running voice. The voice
+        // stores its pan tendency and the global amount can move it without
+        // requiring a retrigger.
+        SourcePool panPool;
+        constexpr std::uint32_t frames = 64u;
+        CHECK(panPool.setOneShot(0, 12u, frames, 48000.0, false));
+
+        float constant[frames] {};
+        for (auto& x : constant) x = 1.0f;
+        std::array<AudioBufferView, kMaxSources> panBuffers {};
+        panBuffers[0] = {constant, nullptr, frames, false};
+
+        FragmentRef panRef {0u, 0u};
+        FragmentPlayer player;
+        player.prepare(48000.0);
+        player.setPanAmount(0.0f);
+        CHECK(player.trigger(panPool, panBuffers, panRef, 1.0f, 1.0f, 0.0f));
+
+        const auto centered = player.processSample(panPool, panBuffers);
+        CHECK(std::fabs(centered.left - centered.right) < 1.0e-6f);
+
+        player.setPanAmount(1.0f);
+        const auto right = player.processSample(panPool, panBuffers);
+        CHECK(std::fabs(right.left) < 1.0e-5f);
+        CHECK(right.right > 0.99f);
+
+        player.setPanAmount(0.0f);
+        const auto centeredAgain = player.processSample(panPool, panBuffers);
+        CHECK(std::fabs(centeredAgain.left - centeredAgain.right) < 1.0e-6f);
+    }
+
     return 0;
 }
