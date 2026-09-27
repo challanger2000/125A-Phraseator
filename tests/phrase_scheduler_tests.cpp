@@ -250,5 +250,35 @@ int main() {
         }
     }
 
+
+    {
+        // Invalid/stale fragment indices must never wrap to another source.
+        SourcePool invalidPool;
+        constexpr std::uint32_t frames = 8u;
+        CHECK(invalidPool.setOneShot(0, 40u, frames, 48000.0, false));
+
+        const float click[frames] {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+        std::array<AudioBufferView, kMaxSources> invalidBuffers {};
+        invalidBuffers[0] = {click, nullptr, frames, false};
+
+        Pattern invalidPattern {};
+        invalidPattern[0].active = true;
+        invalidPattern[0].fragment = 5u; // out of range; fragment count is 1
+        invalidPattern[0].velocity = 1.0f;
+
+        PhraseScheduler sch;
+        sch.setPattern(invalidPattern);
+        sch.prepare(48000.0, 120.0);
+
+        float l[16] {};
+        float rr[16] {};
+        const bool produced = sch.processBlock(
+            invalidPool, invalidBuffers, 0.0, true, l, rr, 16u);
+
+        CHECK(!produced);
+        for (float x : l) CHECK(x == 0.0f);
+        for (float x : rr) CHECK(x == 0.0f);
+    }
+
     return 0;
 }
