@@ -20,6 +20,10 @@ PatternFragmentSnapshot snapshotPatternFragments(
     const Pattern& pattern,
     const SourcePool& pool) noexcept;
 
+PatternFragmentSnapshot snapshotPatternFragmentsFromSourceCounts(
+    const Pattern& pattern,
+    const std::array<std::uint16_t, kMaxSources>& sourceSliceCounts) noexcept;
+
 bool restorePatternFragments(
     Pattern& pattern,
     const PatternFragmentSnapshot& snapshot,

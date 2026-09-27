@@ -63,6 +63,28 @@ int main() {
     CHECK(compacted[1].active);
     CHECK(compacted[1].fragment == 1u); // source 1 / slice 1 preserved
 
+    // Project recall can reconstruct the same identity snapshot from stored
+    // per-source slice counts even when the realtime pool starts empty.
+    std::array<std::uint16_t, kMaxSources> savedCounts {};
+    savedCounts[0] = 1u;
+    savedCounts[1] = 3u;
+
+    const auto recallSnapshot =
+        snapshotPatternFragmentsFromSourceCounts(pattern, savedCounts);
+
+    CHECK(recallSnapshot[0].valid);
+    CHECK(recallSnapshot[0].fragment.sourceIndex == 0u);
+    CHECK(recallSnapshot[0].fragment.sliceIndex == 0u);
+    CHECK(recallSnapshot[1].valid);
+    CHECK(recallSnapshot[1].fragment.sourceIndex == 1u);
+    CHECK(recallSnapshot[1].fragment.sliceIndex == 1u);
+
+    Pattern partialRecall = pattern;
+    CHECK(restorePatternFragments(partialRecall, recallSnapshot, clearedPool));
+    CHECK(!partialRecall[0].active);
+    CHECK(partialRecall[1].active);
+    CHECK(partialRecall[1].fragment == 1u);
+
     // Replacing the same slot with fewer slices deactivates only steps whose
     // specific slice no longer exists.
     SourcePool shorterPool;
