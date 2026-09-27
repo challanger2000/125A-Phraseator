@@ -80,3 +80,21 @@ State format begins with:
 The component state includes generation macros, key/scale state, pattern lock state and the current 16-step pattern.
 
 No project reload generates a fresh pattern automatically.
+
+
+## MIDI phrase control
+
+- MIDI note-on is consumed by the processor at the host-provided sample offset.
+- If loaded material exists and the phrase pattern is still empty, the first note-on generates a phrase automatically.
+- MIDI note 60 is the neutral transpose reference; incoming notes transpose phrase playback within a conservative +/-24 semitone input range.
+- Overlapping notes are tracked without allocation; on note release, another held note remains in control.
+- MIDI transpose is playback-only and does not rewrite the stored/generated base pattern.
+- Processor deactivate/stop clears held-note state and returns transpose to neutral.
+
+## AUTO source classification
+
+AUTO classification is intentionally conservative:
+- multiple transient divisions alone are not sufficient for LOOP;
+- candidate loop events must be distributed into the later part of the file;
+- strongly decaying energy profiles are treated as ONE even when reverb reflections create additional transient-like peaks;
+- manual ONE/LOOP loading remains authoritative.
