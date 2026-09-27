@@ -19,6 +19,8 @@ struct VoiceState {
     std::uint32_t startFrame {0};
     std::uint32_t endFrame {0};
     double fadeFrames {0.0};
+    std::uint32_t releaseSamplesRemaining {0};
+    std::uint32_t releaseSamplesTotal {0};
 };
 
 struct StereoFrame {
@@ -44,6 +46,7 @@ public:
                               const std::array<AudioBufferView, kMaxSources>& buffers) noexcept;
 
     std::size_t activeVoiceCount() const noexcept;
+    void chokeAll(std::uint32_t releaseSamples = 96u) noexcept;
 
 private:
     static float clamp(float v, float lo, float hi) noexcept;
