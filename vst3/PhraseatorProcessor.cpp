@@ -345,6 +345,13 @@ void Processor::applyNormalizedParameter(ParamID id, double rawValue) noexcept {
         case static_cast<ParamID>(ParameterId::Groove):
             state_.groove = static_cast<float>(value);
             break;
+        case static_cast<ParamID>(ParameterId::Velocity):
+            state_.velocity = static_cast<float>(value);
+            break;
+        case static_cast<ParamID>(ParameterId::OctaveMode):
+            state_.octaveMode = std::clamp(
+                static_cast<int>(std::lround(value * 3.0)), 0, 3);
+            break;
         case static_cast<ParamID>(ParameterId::KeyRoot):
             state_.keyRoot = std::clamp(static_cast<int>(std::lround(value * 11.0)), 0, 11);
             break;
@@ -424,6 +431,8 @@ GenerationSettings Processor::currentGenerationSettings() const noexcept {
     settings.pitch = state_.pitch;
     settings.pan = state_.pan;
     settings.groove = state_.groove;
+    settings.velocity = state_.velocity;
+    settings.octaveMode = state_.octaveMode;
 
     const auto& pool = sampleBanks_.activeBank().sourcePool();
     const auto fragments = pool.fragmentCount();
@@ -1030,7 +1039,8 @@ bool Processor::writeProjectState(IBStream* state) const noexcept {
         state_.delayAmount,
         state_.reverbAmount,
         state_.driveAmount,
-        state_.filterAmount
+        state_.filterAmount,
+        state_.velocity
     };
 
     for (const auto value : scalars) {
@@ -1044,7 +1054,8 @@ bool Processor::writeProjectState(IBStream* state) const noexcept {
         !stream.writeInt32(state_.lockPattern ? 1 : 0) ||
         !stream.writeInt32(state_.restartOnNote ? 1 : 0) ||
         !stream.writeInt32(state_.delayDivision) ||
-        !stream.writeInt32(state_.filterMode)) {
+        !stream.writeInt32(state_.filterMode) ||
+        !stream.writeInt32(state_.octaveMode)) {
         return false;
     }
 
@@ -1144,6 +1155,16 @@ bool Processor::readProjectState(IBStream* state) noexcept {
     candidate.driveAmount = static_cast<float>(values[8]);
     candidate.filterAmount = static_cast<float>(values[9]);
 
+    // V1-v8 always generated velocity in the full historical range.
+    candidate.velocity = 1.0f;
+    if (version >= 9) {
+        double velocityDepth = 0.0;
+        if (!stream.readDouble(velocityDepth) || !std::isfinite(velocityDepth))
+            return false;
+        candidate.velocity =
+            static_cast<float>(std::clamp(velocityDepth, 0.0, 1.0));
+    }
+
     int32 keyRoot = 0;
     int32 scaleMode = 0;
     int32 pitchToKey = 0;
@@ -1151,6 +1172,7 @@ bool Processor::readProjectState(IBStream* state) noexcept {
     int32 restartOnNote = 1;
     int32 delayDivision = 1;
     int32 filterMode = 1;
+    int32 octaveMode = 0;
     std::array<int32, kSourceMuteCount> sourceMuted {};
 
     if (!stream.readInt32(keyRoot) ||
@@ -1159,7 +1181,8 @@ bool Processor::readProjectState(IBStream* state) noexcept {
         !stream.readInt32(lockPattern) ||
         (version >= 5 && !stream.readInt32(restartOnNote)) ||
         (version >= 6 && !stream.readInt32(delayDivision)) ||
-        (version >= 6 && !stream.readInt32(filterMode))) {
+        (version >= 6 && !stream.readInt32(filterMode)) ||
+        (version >= 9 && !stream.readInt32(octaveMode))) {
         return false;
     }
 
@@ -1179,6 +1202,7 @@ bool Processor::readProjectState(IBStream* state) noexcept {
         ? std::clamp(delayDivision, 0, 7)
         : (version >= 6 ? std::clamp(delayDivision, 0, 6) + 1 : 2);
     candidate.filterMode = version >= 6 ? (filterMode != 0 ? 1 : 0) : 1;
+    candidate.octaveMode = version >= 9 ? std::clamp<int32>(octaveMode, 0, 3) : 0;
     for (std::size_t i = 0; i < kSourceMuteCount; ++i)
         candidate.sources[i].muted =
             version >= 8 && sourceMuted[i] != 0;
