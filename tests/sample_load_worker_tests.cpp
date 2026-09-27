@@ -251,6 +251,39 @@ int main() {
     CHECK(source3->slices[1].startFrame == 10000u);
     CHECK(source3->slices[1].endFrame == 48000u);
 
+    // AUTO mode must keep ordinary short material as a one-shot.
+    SampleLoadRequest autoDropOne;
+    autoDropOne.sourceIndex = 6u;
+    autoDropOne.sourceId = 700u;
+    autoDropOne.path = path;
+    autoDropOne.mode = SampleLoadMode::Auto;
+    autoDropOne.equalDivisions = 16u;
+
+    std::atomic<int> autoOneMode {-1};
+    const auto autoOneId = worker.requestLoad(
+        autoDropOne,
+        true,
+        [&](const SampleLoadWorkerResult& completed,
+            const std::vector<SampleLoadRequest>& resolved) {
+            if (completed.ok() && resolved.size() == 1u)
+                autoOneMode.store(
+                    static_cast<int>(resolved.front().mode),
+                    std::memory_order_release);
+        });
+
+    CHECK(autoOneId != 0u);
+    CHECK(worker.waitForResult(autoOneId, result, std::chrono::seconds(2)));
+    CHECK(result.ok());
+    CHECK(exchange.consumePending());
+    CHECK(autoOneMode.load(std::memory_order_acquire) ==
+          static_cast<int>(SampleLoadMode::OneShot));
+
+    const auto* autoOneSource =
+        exchange.activeBank().sourcePool().source(6u);
+    CHECK(autoOneSource != nullptr);
+    CHECK(autoOneSource->type == SourceType::OneShot);
+    CHECK(autoOneSource->sliceCount == 1u);
+
     // AUTO mode used by drag-and-drop should classify clear repeated
     // transients as a loop and publish the resolved mode to the callback.
     SampleLoadRequest autoDropLoop;
