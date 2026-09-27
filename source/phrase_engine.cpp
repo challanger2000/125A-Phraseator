@@ -254,77 +254,82 @@ Pattern PhraseEngine::generate(const GenerationSettings& settings) {
 Pattern PhraseEngine::vary(const Pattern& input, const GenerationSettings& raw) {
     Pattern output = input;
     const float amount = clamp01(raw.variation);
-    bool changed = false;
+    if (amount <= 0.0f)
+        return output;
 
-    const auto differs = [](const Step& a, const Step& b) noexcept {
-        return a.active != b.active ||
-               a.fragment != b.fragment ||
-               std::fabs(a.velocity - b.velocity) > 1.0e-6f ||
-               std::fabs(a.pitchSemitones - b.pitchSemitones) > 1.0e-6f ||
-               std::fabs(a.pan - b.pan) > 1.0e-6f ||
-               std::fabs(a.gate - b.gate) > 1.0e-6f ||
-               a.repeats != b.repeats ||
-               std::fabs(a.timingOffset - b.timingOffset) > 1.0e-6f;
-    };
+    std::array<std::size_t, kStepCount> activeIndices {};
+    std::size_t activeCount = 0u;
+    for (std::size_t i = 0; i < input.size(); ++i) {
+        if (input[i].active)
+            activeIndices[activeCount++] = i;
+    }
 
-    for (std::size_t i = 0; i < output.size(); ++i) {
-        if (randomUnit() >= amount)
-            continue;
+    if (activeCount == 0u)
+        return output;
 
-        if (input[i].active) {
-            auto candidate = makeStep(i, raw);
+    // VARIATE DEPTH controls how many existing phrase events are deliberately
+    // mutated. This avoids the old failure mode where random no-op mutations
+    // fell through to a fallback that changed only the first active step.
+    const auto desiredMutations = std::clamp<std::size_t>(
+        static_cast<std::size_t>(std::ceil(amount * static_cast<float>(activeCount))),
+        1u, activeCount);
 
-            // VARIATE preserves phrase identity in the normal range: keep the
-            // rhythmic gate active and mutate musical/detail parameters.
-            candidate.active = true;
-            candidate.fragment = chooseVariedFragment(input, output, i, raw);
-            output[i] = candidate;
+    // Partial Fisher-Yates shuffle: choose distinct active steps without heap
+    // allocation and without biasing variation toward the first phrase step.
+    for (std::size_t i = 0; i < desiredMutations; ++i) {
+        std::uniform_int_distribution<std::size_t> d(i, activeCount - 1u);
+        const auto pick = d(rng_);
+        std::swap(activeIndices[i], activeIndices[pick]);
 
-            // Only the top creative quarter may remove existing hits.
-            if (amount > 0.75f) {
-                const float structuralChance = (amount - 0.75f) * 1.6f;
-                if (randomUnit() < structuralChance)
-                    output[i].active = false;
+        const auto stepIndex = activeIndices[i];
+        auto& step = output[stepIndex];
+        const auto& original = input[stepIndex];
+
+        const auto candidateFragment =
+            chooseVariedFragment(input, output, stepIndex, raw);
+
+        if (raw.fragmentCount > 1u) {
+            if (candidateFragment != original.fragment) {
+                step.fragment = candidateFragment;
+            } else {
+                // Guarantee a different valid fragment/source identity for
+                // this selected mutation rather than silently doing nothing.
+                step.fragment = static_cast<std::uint16_t>(
+                    (original.fragment + 1u +
+                     static_cast<std::uint16_t>(
+                         std::uniform_int_distribution<std::uint16_t>(
+                             0u,
+                             static_cast<std::uint16_t>(
+                                 std::max<std::uint16_t>(raw.fragmentCount - 1u, 1u) - 1u))(rng_))) %
+                    std::max<std::uint16_t>(raw.fragmentCount, 1u));
+                if (step.fragment == original.fragment)
+                    step.fragment = static_cast<std::uint16_t>(
+                        (original.fragment + 1u) %
+                        std::max<std::uint16_t>(raw.fragmentCount, 1u));
             }
+        } else {
+            // With only one source available, ratchet count is the remaining
+            // audible phrase-level detail that can be varied without touching
+            // the live-shape layer.
+            step.repeats = original.repeats == 1u ? 2u : 1u;
+        }
+    }
 
-            changed = changed || differs(output[i], input[i]);
-        } else if (amount > 0.75f) {
-            // Likewise, only strong variation may introduce new hits.
-            const float structuralChance = (amount - 0.75f) * 1.6f;
-            if (randomUnit() < structuralChance) {
+    // Only the top creative quarter may alter the on/off rhythm structure.
+    if (amount > 0.75f) {
+        const float structuralChance = (amount - 0.75f) * 1.6f;
+        for (std::size_t i = 0; i < output.size(); ++i) {
+            if (randomUnit() >= structuralChance)
+                continue;
+
+            if (input[i].active) {
+                output[i].active = false;
+            } else {
                 auto candidate = makeStep(i, raw);
                 candidate.active = true;
                 candidate.fragment = chooseVariedFragment(input, output, i, raw);
                 output[i] = candidate;
-                changed = true;
             }
-        }
-    }
-
-    // A VARIATE click must always do something audible on a non-empty phrase.
-    // Prefer a fragment/source change; if only one fragment exists, make a
-    // deterministic velocity change while preserving the rhythm structure.
-    if (!changed && amount > 0.0f) {
-        for (std::size_t i = 0; i < output.size(); ++i) {
-            if (!input[i].active)
-                continue;
-
-            if (raw.fragmentCount > 1u) {
-                output[i].fragment = static_cast<std::uint16_t>(
-                    (input[i].fragment + 1u) %
-                    std::max<std::uint16_t>(raw.fragmentCount, 1u));
-            }
-
-            if (output[i].fragment == input[i].fragment) {
-                // Live-shape parameters (velocity/pan/pitch/groove) are
-                // playback controls and must not be used as the sole VARIATE
-                // fallback. Change an audible structural detail instead.
-                output[i].repeats = input[i].repeats == 1u ? 2u : 1u;
-            }
-
-            changed = differs(output[i], input[i]);
-            if (changed)
-                break;
         }
     }
 
