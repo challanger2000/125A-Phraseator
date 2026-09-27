@@ -28,6 +28,17 @@ void FragmentPlayer::chokeAll() noexcept {
     }
 }
 
+void FragmentPlayer::chokeSource(std::uint16_t sourceIndex) noexcept {
+    const auto safeRelease = static_cast<std::uint32_t>(
+        std::max(1.0, std::round(outputSampleRate_ * 0.002)));
+    for (auto& voice : voices_) {
+        if (!voice.active || voice.fragment.sourceIndex != sourceIndex)
+            continue;
+        voice.releaseSamplesRemaining = safeRelease;
+        voice.releaseSamplesTotal = safeRelease;
+    }
+}
+
 float FragmentPlayer::clamp(float v, float lo, float hi) noexcept {
     return std::clamp(v, lo, hi);
 }
