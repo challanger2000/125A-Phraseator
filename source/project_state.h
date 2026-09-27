@@ -18,7 +18,7 @@ struct SourceState {
 };
 
 struct ProjectState {
-    static constexpr std::uint32_t kCurrentVersion = 8u;
+    static constexpr std::uint32_t kCurrentVersion = 9u;
 
     std::uint32_t version {kCurrentVersion};
     std::uint32_t randomSeed {0x125A0001u};
@@ -29,6 +29,8 @@ struct ProjectState {
     float pitch {0.0f};
     float pan {0.0f};
     float groove {0.0f};
+    float velocity {0.50f};
+    std::int32_t octaveMode {0};
 
     std::int32_t keyRoot {0};
     std::int32_t scaleMode {0};
