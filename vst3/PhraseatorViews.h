@@ -36,6 +36,18 @@ private:
     Controller* controller_ {nullptr};
 };
 
+class RatchetView final : public VSTGUI::CControl {
+public:
+    RatchetView(const VSTGUI::CRect& size,
+                VSTGUI::IControlListener* listener,
+                std::int32_t tag);
+    void draw(VSTGUI::CDrawContext* context) override;
+    VSTGUI::CMouseEventResult onMouseDown(
+        VSTGUI::CPoint& where,
+        const VSTGUI::CButtonState& buttons) override;
+    CLASS_METHODS(RatchetView, VSTGUI::CControl)
+};
+
 class SourceSlotView final :
     public VSTGUI::CControl,
     public VSTGUI::IDropTarget {
