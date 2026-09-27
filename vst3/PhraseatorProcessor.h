@@ -63,8 +63,7 @@ private:
                                     Steinberg::int32 sampleOffset) noexcept;
     bool patternHasActiveSteps() const noexcept;
     void refreshSchedulerPattern() noexcept;
-    void handleMidiEvent(const Steinberg::Vst::Event& event,
-                         double absoluteProjectSample) noexcept;
+    void handleMidiEvent(const Steinberg::Vst::Event& event) noexcept;
 
     struct SourceRecallEntry {
         bool occupied {false};
@@ -101,7 +100,9 @@ private:
     std::array<bool, 128> heldMidiNotes_ {};
     int activeMidiNote_ {-1};
     float midiTransposeSemitones_ {0.0f};
-    double midiPhraseStartProjectSample_ {0.0};
+    double midiPhraseTimeSamples_ {0.0};
+    std::atomic<bool> generateCommandPending_ {false};
+    std::atomic<bool> variateCommandPending_ {false};
 };
 
 } // namespace phraseator::vst3
