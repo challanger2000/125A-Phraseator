@@ -56,5 +56,28 @@ int main() {
     CHECK(exchange.consumePending());
     CHECK(exchange.activeBank().sourcePool().fragmentCount() == 2u);
 
+    {
+        // Copying a bank must rebind AudioBufferView pointers to the copied
+        // OwnedAudioSource storage. Otherwise loading source 2 can leave
+        // source 1's view pointing at the previous bank.
+        SampleBank original;
+        auto first = makeMono();
+        CHECK(original.setOneShot(0, 301u, std::move(first)));
+
+        SampleBank copied = original;
+        CHECK(copied.sourcePool().fragmentCount() == 1u);
+        CHECK(copied.buffers()[0].valid());
+        CHECK(copied.buffers()[0].left != original.buffers()[0].left);
+        CHECK(copied.buffers()[0].left[0] == 1.0f);
+
+        auto second = makeMono();
+        CHECK(copied.setOneShot(1, 302u, std::move(second)));
+        CHECK(copied.sourcePool().fragmentCount() == 2u);
+        CHECK(copied.buffers()[0].valid());
+        CHECK(copied.buffers()[1].valid());
+        CHECK(copied.buffers()[0].left[0] == 1.0f);
+        CHECK(copied.buffers()[1].left[0] == 1.0f);
+    }
+
     return 0;
 }
