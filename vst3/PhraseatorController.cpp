@@ -41,7 +41,7 @@ tresult PLUGIN_API Controller::initialize(FUnknown* context) {
 
     parameters.addParameter(STR16("Density"), STR16("%"), 0, ParameterDefaults::density,
                             ParameterInfo::kCanAutomate, pid(ParameterId::Density));
-    parameters.addParameter(STR16("Variation"), STR16("%"), 0, ParameterDefaults::variation,
+    parameters.addParameter(STR16("Variate Depth"), STR16("%"), 0, ParameterDefaults::variation,
                             ParameterInfo::kCanAutomate, pid(ParameterId::Variation));
     parameters.addParameter(STR16("Repeat"), STR16("%"), 0, ParameterDefaults::repeat,
                             ParameterInfo::kCanAutomate, pid(ParameterId::Repeat));
@@ -51,6 +51,17 @@ tresult PLUGIN_API Controller::initialize(FUnknown* context) {
                             ParameterInfo::kCanAutomate, pid(ParameterId::Pan));
     parameters.addParameter(STR16("Groove"), STR16("%"), 0, ParameterDefaults::groove,
                             ParameterInfo::kCanAutomate, pid(ParameterId::Groove));
+    parameters.addParameter(STR16("Velocity"), STR16("%"), 0, ParameterDefaults::velocity,
+                            ParameterInfo::kCanAutomate, pid(ParameterId::Velocity));
+    {
+        auto* octave = new StringListParameter(
+            STR16("Octave"), pid(ParameterId::OctaveMode));
+        octave->appendString(STR16("OFF"));
+        octave->appendString(STR16("+1"));
+        octave->appendString(STR16("-1"));
+        octave->appendString(STR16("+/-1"));
+        parameters.addParameter(octave);
+    }
 
     {
         auto* root = new StringListParameter(
@@ -238,8 +249,6 @@ void Controller::valueChanged(VSTGUI::CControl* control) {
         sendActionCommand(kMsgVariate);
     } else if (tag >= kLoadOneBase && tag < kLoadOneBase + 8) {
         openSampleSelector(tag - kLoadOneBase, false);
-    } else if (tag >= kLoadLoopBase && tag < kLoadLoopBase + 8) {
-        openSampleSelector(tag - kLoadLoopBase, true);
     } else if (tag >= kClearBase && tag < kClearBase + 8) {
         sendClearSample(tag - kClearBase);
     }
@@ -335,6 +344,13 @@ tresult PLUGIN_API Controller::setComponentState(IBStream* state) {
         value = clamp01(value);
     }
 
+    double velocityDepth = version >= 9 ? 0.0 : 1.0;
+    if (version >= 9) {
+        if (!stream.readDouble(velocityDepth) || !std::isfinite(velocityDepth))
+            return kResultFalse;
+        velocityDepth = clamp01(velocityDepth);
+    }
+
     int32 keyRoot = 0;
     int32 scaleMode = 0;
     int32 pitchToKey = 0;
@@ -342,6 +358,7 @@ tresult PLUGIN_API Controller::setComponentState(IBStream* state) {
     int32 restartOnNote = 1;
     int32 delayDivision = 1;
     int32 filterMode = 1;
+    int32 octaveMode = 0;
     std::array<int32, kSourceMuteCount> sourceMuted {};
 
     if (!stream.readInt32(keyRoot) ||
@@ -350,7 +367,8 @@ tresult PLUGIN_API Controller::setComponentState(IBStream* state) {
         !stream.readInt32(lockPattern) ||
         (version >= 5 && !stream.readInt32(restartOnNote)) ||
         (version >= 6 && !stream.readInt32(delayDivision)) ||
-        (version >= 6 && !stream.readInt32(filterMode))) {
+        (version >= 6 && !stream.readInt32(filterMode)) ||
+        (version >= 9 && !stream.readInt32(octaveMode))) {
         return kResultFalse;
     }
 
@@ -367,6 +385,9 @@ tresult PLUGIN_API Controller::setComponentState(IBStream* state) {
     setParamNormalized(pid(ParameterId::Pitch), values[3]);
     setParamNormalized(pid(ParameterId::Pan), values[4]);
     setParamNormalized(pid(ParameterId::Groove), values[5]);
+    setParamNormalized(pid(ParameterId::Velocity), velocityDepth);
+    setParamNormalized(pid(ParameterId::OctaveMode),
+        static_cast<double>(std::clamp<int32>(octaveMode, 0, 3)) / 3.0);
     setParamNormalized(pid(ParameterId::DelayAmount), values[6]);
     setParamNormalized(pid(ParameterId::ReverbAmount), values[7]);
     setParamNormalized(pid(ParameterId::DriveAmount), values[8]);
@@ -416,15 +437,12 @@ tresult PLUGIN_API Controller::setComponentState(IBStream* state) {
             return kResultFalse;
         }
 
-        const auto safeFragment = std::clamp<int32>(
-            fragment, 0, kPatternViewStepCount - 1);
-        const ParamValue viewValue = active != 0
-            ? static_cast<ParamValue>(safeFragment + 1) /
-                  static_cast<ParamValue>(kPatternViewStepCount)
-            : 0.0;
-
+        // The serialized fragment is a flat internal fragment index, not
+        // necessarily a visible source number. Do not display a false source
+        // during recall; the processor emits the correct source mapping after
+        // the source bank has been restored.
         setParamNormalized(
-            static_cast<ParamID>(kPatternViewBase + i), viewValue);
+            static_cast<ParamID>(kPatternViewBase + i), 0.0);
     }
 
     return kResultOk;
@@ -499,8 +517,8 @@ bool Controller::loadDroppedSample(const std::string& utf8Path,
         path.text(),
         sourceIndex,
         static_cast<Steinberg::uint32>(sourceIndex + 1),
-        2,
-        16,
+        0,
+        0,
         false,
         -1.0) == Steinberg::kResultTrue;
 }
