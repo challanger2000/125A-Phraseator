@@ -18,6 +18,7 @@ public:
 
     void prepare(double sampleRate, double tempoBpm) noexcept;
     void setPanAmount(float amount) noexcept { player_.setPanAmount(amount); }
+    void chokeSource(std::uint16_t sourceIndex) noexcept { player_.chokeSource(sourceIndex); }
 
     bool processBlock(const SourcePool& pool,
                       const std::array<AudioBufferView, kMaxSources>& buffers,
