@@ -381,5 +381,75 @@ int main() {
         CHECK(highNonZeroTiming > 0);
     }
 
+
+    {
+        // VELOCITY is a depth macro: zero must be uniform, while 100% must
+        // introduce measurable hit-level variation without exceeding unity.
+        GenerationSettings flat;
+        flat.density = 1.0f;
+        flat.fragmentCount = 4u;
+        flat.velocity = 0.0f;
+
+        PhraseEngine flatEngine(0x7E11u);
+        const auto flatPattern = flatEngine.generate(flat);
+        for (const auto& step : flatPattern) {
+            if (step.active)
+                CHECK(std::fabs(step.velocity - 1.0f) < 1.0e-6f);
+        }
+
+        GenerationSettings dynamic = flat;
+        dynamic.velocity = 1.0f;
+        PhraseEngine dynamicEngine(0x7E10u);
+        bool sawBelowUnity = false;
+        for (int n = 0; n < 64; ++n) {
+            const auto pattern = dynamicEngine.generate(dynamic);
+            for (const auto& step : pattern) {
+                if (!step.active)
+                    continue;
+                CHECK(step.velocity <= 1.0f);
+                CHECK(step.velocity >= 0.72f);
+                sawBelowUnity = sawBelowUnity || step.velocity < 0.99f;
+            }
+        }
+        CHECK(sawBelowUnity);
+    }
+
+    {
+        // OCTAVE selector is discrete: +1/-1 are deterministic register
+        // shifts, +/-1 chooses only those two octave offsets per active hit.
+        GenerationSettings up;
+        up.density = 1.0f;
+        up.fragmentCount = 2u;
+        up.pitch = 0.0f;
+        up.octaveMode = 1;
+        PhraseEngine upEngine(0x0C71u);
+        const auto upPattern = upEngine.generate(up);
+        for (const auto& step : upPattern)
+            if (step.active) CHECK(step.pitchSemitones == 12.0f);
+
+        GenerationSettings down = up;
+        down.octaveMode = 2;
+        PhraseEngine downEngine(0x0C72u);
+        const auto downPattern = downEngine.generate(down);
+        for (const auto& step : downPattern)
+            if (step.active) CHECK(step.pitchSemitones == -12.0f);
+
+        GenerationSettings both = up;
+        both.octaveMode = 3;
+        PhraseEngine bothEngine(0x0C73u);
+        bool sawUp = false;
+        bool sawDown = false;
+        for (int n = 0; n < 64; ++n) {
+            const auto pattern = bothEngine.generate(both);
+            for (const auto& step : pattern) {
+                if (!step.active) continue;
+                CHECK(step.pitchSemitones == 12.0f || step.pitchSemitones == -12.0f);
+                sawUp = sawUp || step.pitchSemitones > 0.0f;
+                sawDown = sawDown || step.pitchSemitones < 0.0f;
+            }
+        }
+        CHECK(sawUp && sawDown);
+    }
+
     return 0;
 }
