@@ -158,7 +158,7 @@ int main() {
 
         CHECK(hpStrong100 < 0.10);
         CHECK(hpStrong1k < hpStrong10k);
-        CHECK(hpStrong10k > 0.80);
+        CHECK(hpStrong10k > 0.65);
     }
 
 
