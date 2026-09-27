@@ -387,28 +387,36 @@ void Processor::applyNormalizedParameter(ParamID id, double rawValue) noexcept {
             break;
         case static_cast<ParamID>(ParameterId::Pitch):
             state_.pitch = static_cast<float>(value);
+            refreshSchedulerPattern();
             break;
         case static_cast<ParamID>(ParameterId::Pan):
             state_.pan = static_cast<float>(value);
+            refreshSchedulerPattern();
             break;
         case static_cast<ParamID>(ParameterId::Groove):
             state_.groove = static_cast<float>(value);
+            refreshSchedulerPattern();
             break;
         case static_cast<ParamID>(ParameterId::Velocity):
             state_.velocity = static_cast<float>(value);
+            refreshSchedulerPattern();
             break;
         case static_cast<ParamID>(ParameterId::OctaveMode):
             state_.octaveMode = std::clamp(
                 static_cast<int>(std::lround(value * 3.0)), 0, 3);
+            refreshSchedulerPattern();
             break;
         case static_cast<ParamID>(ParameterId::KeyRoot):
             state_.keyRoot = std::clamp(static_cast<int>(std::lround(value * 11.0)), 0, 11);
+            refreshSchedulerPattern();
             break;
         case static_cast<ParamID>(ParameterId::ScaleMode):
             state_.scaleMode = std::clamp(static_cast<int>(std::lround(value * 2.0)), 0, 2);
+            refreshSchedulerPattern();
             break;
         case static_cast<ParamID>(ParameterId::PitchToKey):
             state_.pitchToKey = value >= 0.5;
+            refreshSchedulerPattern();
             break;
         case static_cast<ParamID>(ParameterId::DelayAmount):
             state_.delayAmount = static_cast<float>(value);
