@@ -47,6 +47,7 @@ public:
 
     std::size_t activeVoiceCount() const noexcept;
     void chokeAll() noexcept;
+    void chokeSource(std::uint16_t sourceIndex) noexcept;
     void setPanAmount(float amount) noexcept;
 
 private:
