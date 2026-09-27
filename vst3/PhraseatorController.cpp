@@ -90,6 +90,7 @@ tresult PLUGIN_API Controller::initialize(FUnknown* context) {
     {
         auto* division = new StringListParameter(
             STR16("Delay Division"), pid(ParameterId::DelayDivision));
+        division->appendString(STR16("OFF"));
         division->appendString(STR16("1/4"));
         division->appendString(STR16("1/8"));
         division->appendString(STR16("1/8D"));
@@ -97,7 +98,7 @@ tresult PLUGIN_API Controller::initialize(FUnknown* context) {
         division->appendString(STR16("1/16"));
         division->appendString(STR16("1/16D"));
         division->appendString(STR16("1/16T"));
-        division->setNormalized(1.0 / 6.0);
+        division->setNormalized(2.0 / 7.0);
         parameters.addParameter(division);
     }
     parameters.addParameter(STR16("Filter"), STR16("%"), 0, ParameterDefaults::filterAmount,
@@ -354,8 +355,11 @@ tresult PLUGIN_API Controller::setComponentState(IBStream* state) {
     setParamNormalized(pid(ParameterId::LockPattern), lockPattern != 0 ? 1.0 : 0.0);
     setParamNormalized(pid(ParameterId::RestartMode),
         version >= 5 ? (restartOnNote != 0 ? 1.0 : 0.0) : 1.0);
+    const int restoredDelayDivision = version >= 7
+        ? std::clamp(delayDivision, 0, 7)
+        : (version >= 6 ? std::clamp(delayDivision, 0, 6) + 1 : 2);
     setParamNormalized(pid(ParameterId::DelayDivision),
-        static_cast<double>(version >= 6 ? std::clamp(delayDivision, 0, 6) : 1) / 6.0);
+        static_cast<double>(restoredDelayDivision) / 7.0);
     setParamNormalized(pid(ParameterId::FilterMode),
         version >= 6 && filterMode != 0 ? 1.0 : 0.0);
 
