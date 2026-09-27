@@ -13,11 +13,12 @@ struct SourceState {
     std::uint32_t sourceId {0};
     std::uint16_t sliceCount {0};
     bool tonal {false};
+    bool muted {false};
     float detectedRootMidi {-1.0f};
 };
 
 struct ProjectState {
-    static constexpr std::uint32_t kCurrentVersion = 7u;
+    static constexpr std::uint32_t kCurrentVersion = 8u;
 
     std::uint32_t version {kCurrentVersion};
     std::uint32_t randomSeed {0x125A0001u};
