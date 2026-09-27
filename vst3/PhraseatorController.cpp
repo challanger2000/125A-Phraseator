@@ -168,6 +168,22 @@ tresult PLUGIN_API Controller::initialize(FUnknown* context) {
         parameters.addParameter(status);
     }
 
+    static const TChar* kSourceMuteTitles[kSourceMuteCount] {
+        STR16("Source 01 Mute"), STR16("Source 02 Mute"),
+        STR16("Source 03 Mute"), STR16("Source 04 Mute"),
+        STR16("Source 05 Mute"), STR16("Source 06 Mute"),
+        STR16("Source 07 Mute"), STR16("Source 08 Mute")
+    };
+
+    for (int32 i = 0; i < kSourceMuteCount; ++i) {
+        auto* mute = new StringListParameter(
+            kSourceMuteTitles[i],
+            static_cast<ParamID>(kSourceMuteBase + i));
+        mute->appendString(STR16("UNMUTE"));
+        mute->appendString(STR16("MUTE"));
+        parameters.addParameter(mute);
+    }
+
     return kResultOk;
 }
 
@@ -326,6 +342,7 @@ tresult PLUGIN_API Controller::setComponentState(IBStream* state) {
     int32 restartOnNote = 1;
     int32 delayDivision = 1;
     int32 filterMode = 1;
+    std::array<int32, kSourceMuteCount> sourceMuted {};
 
     if (!stream.readInt32(keyRoot) ||
         !stream.readInt32(scaleMode) ||
@@ -335,6 +352,13 @@ tresult PLUGIN_API Controller::setComponentState(IBStream* state) {
         (version >= 6 && !stream.readInt32(delayDivision)) ||
         (version >= 6 && !stream.readInt32(filterMode))) {
         return kResultFalse;
+    }
+
+    if (version >= 8) {
+        for (auto& muted : sourceMuted) {
+            if (!stream.readInt32(muted))
+                return kResultFalse;
+        }
     }
 
     setParamNormalized(pid(ParameterId::Density), values[0]);
@@ -363,6 +387,13 @@ tresult PLUGIN_API Controller::setComponentState(IBStream* state) {
         static_cast<double>(restoredDelayDivision) / 7.0);
     setParamNormalized(pid(ParameterId::FilterMode),
         version >= 6 ? (filterMode != 0 ? 1.0 : 0.0) : 1.0);
+
+    for (int32 i = 0; i < kSourceMuteCount; ++i) {
+        setParamNormalized(
+            static_cast<ParamID>(kSourceMuteBase + i),
+            version >= 8 && sourceMuted[static_cast<std::size_t>(i)] != 0
+                ? 1.0 : 0.0);
+    }
 
     for (int32 i = 0; i < kPatternViewCount; ++i) {
         int32 active = 0;
