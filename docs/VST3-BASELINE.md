@@ -144,3 +144,15 @@ AUTO classification is intentionally conservative:
 - Manual selection of a loop source targets that source's first slice; generated/varied patterns may still use any valid slice internally.
 - Pattern display maps internal fragments back to their owning source before showing the step number.
 - Core regression verifies source-to-flat-fragment and flat-fragment-to-source mapping when earlier sources contain multiple slices.
+
+
+## 2026-09-27 phrase control and finish update
+
+- PHRASE MODE is explicitly labelled and uses CONTINUE / RETRIGGER terminology instead of an ambiguous boolean presentation.
+- DELAY now provides seven tempo-synced divisions: 1/4, 1/8, 1/8D, 1/8T, 1/16, 1/16D, 1/16T.
+- Delay timing regression coverage verifies the expected sample positions at 120 BPM / 48 kHz after the click-free time smoother has settled.
+- FILTER now has explicit LP / HP modes instead of an undefined one-direction macro.
+- LP and HP response are regression-measured at low, mid, and high frequencies.
+- VARIATE preserves the active/inactive step structure throughout the normal 0-75% variation range and mutates musical details instead; only the top creative range may add/remove hits.
+- Manual pattern editing displays source numbers 1-8 and cycles through loaded sources with left click; right click clears a step.
+- State version 6 persists delay division and filter mode while older projects restore with 1/8 delay and LP defaults.
