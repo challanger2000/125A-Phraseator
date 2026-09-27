@@ -100,6 +100,8 @@ tresult PLUGIN_API Controller::initialize(FUnknown* context) {
                             ParameterInfo::kCanAutomate, pid(ParameterId::GenerateTrigger));
     parameters.addParameter(STR16("Variate"), nullptr, 1, 0.0,
                             ParameterInfo::kCanAutomate, pid(ParameterId::VariateTrigger));
+    parameters.addParameter(STR16("Phrase Restart"), nullptr, 1, 1.0,
+                            ParameterInfo::kCanAutomate, pid(ParameterId::RestartMode));
 
     static const TChar* kPatternStepTitles[kPatternViewCount] {
         STR16("Pattern Step 01"), STR16("Pattern Step 02"),
@@ -263,11 +265,13 @@ tresult PLUGIN_API Controller::setComponentState(IBStream* state) {
     int32 scaleMode = 0;
     int32 pitchToKey = 0;
     int32 lockPattern = 0;
+    int32 restartOnNote = 1;
 
     if (!stream.readInt32(keyRoot) ||
         !stream.readInt32(scaleMode) ||
         !stream.readInt32(pitchToKey) ||
-        !stream.readInt32(lockPattern)) {
+        !stream.readInt32(lockPattern) ||
+        (version >= 5 && !stream.readInt32(restartOnNote))) {
         return kResultFalse;
     }
 
@@ -288,6 +292,8 @@ tresult PLUGIN_API Controller::setComponentState(IBStream* state) {
         static_cast<double>(std::clamp<int32>(scaleMode, 0, 2)) / 2.0);
     setParamNormalized(pid(ParameterId::PitchToKey), pitchToKey != 0 ? 1.0 : 0.0);
     setParamNormalized(pid(ParameterId::LockPattern), lockPattern != 0 ? 1.0 : 0.0);
+    setParamNormalized(pid(ParameterId::RestartMode),
+        version >= 5 ? (restartOnNote != 0 ? 1.0 : 0.0) : 1.0);
 
     for (int32 i = 0; i < kPatternViewCount; ++i) {
         int32 active = 0;
