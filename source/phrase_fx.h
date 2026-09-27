@@ -37,7 +37,7 @@ private:
 
     float delayTarget_ {0.0f};
     float delayCurrent_ {0.0f};
-    std::int32_t delayDivision_ {1};
+    std::int32_t delayDivision_ {2};
     double delaySamplesCurrent_ {12000.0};
 
     float filterTarget_ {0.0f};
