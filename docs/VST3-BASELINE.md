@@ -156,3 +156,14 @@ AUTO classification is intentionally conservative:
 - VARIATE preserves the active/inactive step structure throughout the normal 0-75% variation range and mutates musical details instead; only the top creative range may add/remove hits.
 - Manual pattern editing displays source numbers 1-8 and cycles through loaded sources with left click; right click clears a step.
 - State version 6 persists delay division and filter mode while older projects restore with 1/8 delay and LP defaults.
+
+
+## 2026-09-27 source mute, delay off, cut and Variate usability update
+
+- DELAY division menu now includes OFF before the musical divisions. OFF bypasses the delay while preserving the wet amount, so switching back restores the previous mix setting.
+- State v7 delay-division values migrate to v8 without changing their musical time; legacy 1/8 remains 1/8.
+- FILTER wording is replaced by CUT with explicit LP / HP modes. HP (low-cut) is the default for new state because phrase material often needs low-end cleanup; 0% remains neutral.
+- Every source slot has UNMUTE / MUTE separate from X. MUTE preserves the loaded WAV, slices and recall identity while suppressing that source in playback and excluding it from fresh Generate source selection. X still removes the source.
+- Source mute state is persisted in state v8 and older projects restore all sources unmuted.
+- Manual step editing no longer depends on right-click: ordinary left-click cycles forward through loaded/unmuted sources and then to EMPTY. The next click restarts at the first available source.
+- VARIATE at any non-zero variation amount is guaranteed to make at least one audible/detail change on a non-empty pattern. In the normal range it still preserves the active/inactive rhythm structure.
