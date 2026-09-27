@@ -65,6 +65,53 @@ std::vector<std::uint8_t> makePulseMono16(std::uint32_t frames) {
     return out;
 }
 
+std::vector<std::uint8_t> makePluckWithReverbMono16(std::uint32_t frames) {
+    std::vector<double> samples(frames, 0.0);
+    constexpr double twoPi = 6.28318530717958647692;
+
+    const auto addPluck = [&](std::uint32_t start, double amplitude) {
+        for (std::uint32_t i = 0; start + i < frames; ++i) {
+            const double t = static_cast<double>(i) / 48000.0;
+            const double env = std::exp(-t * 7.0);
+            if (env < 1.0e-4)
+                break;
+            samples[start + i] +=
+                amplitude * env * std::sin(twoPi * 440.0 * t);
+        }
+    };
+
+    addPluck(0u, 0.85);
+    addPluck(9000u, 0.22);
+    addPluck(19000u, 0.11);
+    addPluck(30000u, 0.055);
+
+    std::vector<std::uint8_t> out;
+    const std::uint32_t dataBytes = frames * 2u;
+
+    appendId(out, "RIFF");
+    appendU32(out, 36u + dataBytes);
+    appendId(out, "WAVE");
+    appendId(out, "fmt ");
+    appendU32(out, 16u);
+    appendU16(out, 1u);
+    appendU16(out, 1u);
+    appendU32(out, 48000u);
+    appendU32(out, 96000u);
+    appendU16(out, 2u);
+    appendU16(out, 16u);
+    appendId(out, "data");
+    appendU32(out, dataBytes);
+
+    for (const auto sample : samples) {
+        const auto clamped = std::clamp(sample, -0.999, 0.999);
+        const auto pcm = static_cast<std::int16_t>(
+            std::lround(clamped * 32767.0));
+        appendU16(out, static_cast<std::uint16_t>(pcm));
+    }
+
+    return out;
+}
+
 std::vector<std::uint8_t> makeMono16(std::uint32_t frames) {
     std::vector<std::uint8_t> out;
     const std::uint32_t dataBytes = frames * 2u;
@@ -318,6 +365,46 @@ int main() {
     CHECK(autoLoopSource->type == SourceType::Loop);
     CHECK(autoLoopSource->sliceCount >= 2u);
 
+    // A pluck with a decaying reverb tail can contain several transient-like
+    // reflections. AUTO must still classify it as ONE, not LOOP.
+    const auto pluckReverbPath = std::filesystem::temp_directory_path() /
+                                 "125A_Phraseator_PluckReverb_Test.wav";
+    std::filesystem::remove(pluckReverbPath, ec);
+    ec.clear();
+    CHECK(writeBytes(pluckReverbPath, makePluckWithReverbMono16(48000u)));
+
+    SampleLoadRequest autoPluck;
+    autoPluck.sourceIndex = 5u;
+    autoPluck.sourceId = 600u;
+    autoPluck.path = pluckReverbPath;
+    autoPluck.mode = SampleLoadMode::Auto;
+    autoPluck.equalDivisions = 16u;
+
+    std::atomic<int> autoPluckMode {-1};
+    const auto autoPluckId = worker.requestLoad(
+        autoPluck,
+        true,
+        [&](const SampleLoadWorkerResult& completed,
+            const std::vector<SampleLoadRequest>& resolved) {
+            if (completed.ok() && resolved.size() == 1u)
+                autoPluckMode.store(
+                    static_cast<int>(resolved.front().mode),
+                    std::memory_order_release);
+        });
+
+    CHECK(autoPluckId != 0u);
+    CHECK(worker.waitForResult(autoPluckId, result, std::chrono::seconds(2)));
+    CHECK(result.ok());
+    CHECK(exchange.consumePending());
+    CHECK(autoPluckMode.load(std::memory_order_acquire) ==
+          static_cast<int>(SampleLoadMode::OneShot));
+
+    const auto* autoPluckSource =
+        exchange.activeBank().sourcePool().source(5u);
+    CHECK(autoPluckSource != nullptr);
+    CHECK(autoPluckSource->type == SourceType::OneShot);
+    CHECK(autoPluckSource->sliceCount == 1u);
+
     // Clearing a slot must remove both its audio and all fragments from the
     // published bank, without requiring a file path.
     const auto beforeClearFragments =
@@ -342,6 +429,9 @@ int main() {
     CHECK(!ec);
     ec.clear();
     std::filesystem::remove(transientPath, ec);
+    CHECK(!ec);
+    ec.clear();
+    std::filesystem::remove(pluckReverbPath, ec);
     CHECK(!ec);
 
     return 0;
