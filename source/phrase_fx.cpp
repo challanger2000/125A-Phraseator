@@ -7,6 +7,19 @@ namespace phraseator {
 
 namespace {
 constexpr double kPi = 3.14159265358979323846;
+
+double musicalFilterCutoff(double amount, double sampleRate) noexcept {
+    amount = std::clamp(amount, 0.0, 1.0);
+    const double maxCutoff = std::min(20000.0, sampleRate * 0.45);
+
+    // 125A macro scaling:
+    // 0% bypass
+    // 25% ~14 kHz: subtle
+    // 50% ~8 kHz: musical
+    // 75% ~3.5 kHz: obvious
+    // 100% ~1.2 kHz: strong creative darkening
+    constexpr double minCutoff = 1200.0;
+    return maxCutoff * std::pow(minCutoff / maxCutoff, amount);
 }
 
 float PhraseFx::clamp01(float value) noexcept {
@@ -139,19 +152,18 @@ bool PhraseFx::processBlock(float* left,
             delayRight_[writeIndex_] = inR + delayedL * feedback;
             delayGenerations_[writeIndex_] = delayGeneration_;
 
-            const float wet = delayCurrent_ * 0.70f;
-            inL += delayedL * wet;
-            inR += delayedR * wet;
+            const float mix = std::clamp(delayCurrent_, 0.0f, 1.0f);
+            const float dryGain = 1.0f - mix;
+            const float wetGain = mix;
+            inL = inL * dryGain + delayedL * wetGain;
+            inR = inR * dryGain + delayedR * wetGain;
 
             writeIndex_ = (writeIndex_ + 1u) % delayLeft_.size();
         }
 
         if (filterCurrent_ > 0.000001f) {
-            const double minCutoff = 800.0;
-            const double maxCutoff = std::min(20000.0, sampleRate_ * 0.45);
-            const double amount = static_cast<double>(filterCurrent_);
-            const double cutoff = maxCutoff *
-                std::pow(minCutoff / maxCutoff, amount);
+            const double cutoff =
+                musicalFilterCutoff(static_cast<double>(filterCurrent_), sampleRate_);
 
             const double a = std::exp(-2.0 * kPi * cutoff / sampleRate_);
             const float oneMinusA = static_cast<float>(1.0 - a);
