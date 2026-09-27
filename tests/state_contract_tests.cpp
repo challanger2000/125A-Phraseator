@@ -10,10 +10,12 @@ int main() {
     static_assert(static_cast<std::uint32_t>(ParameterId::Density) == 1000u);
     static_assert(static_cast<std::uint32_t>(ParameterId::GenerateTrigger) == 1300u);
     static_assert(static_cast<std::uint32_t>(ParameterId::RestartMode) == 1303u);
-    static_assert(ProjectState::kCurrentVersion == 5u);
+    static_assert(static_cast<std::uint32_t>(ParameterId::DelayDivision) == 1201u);
+    static_assert(static_cast<std::uint32_t>(ParameterId::FilterMode) == 1205u);
+    static_assert(ProjectState::kCurrentVersion == 6u);
 
     ProjectState state;
-    CHECK(state.version == 5u);
+    CHECK(state.version == 6u);
     CHECK(state.randomSeed == 0x125A0001u);
     CHECK(state.density == ParameterDefaults::density);
     CHECK(state.variation == ParameterDefaults::variation);
@@ -22,6 +24,8 @@ int main() {
     CHECK(!state.pitchToKey);
     CHECK(!state.lockPattern);
     CHECK(state.restartOnNote);
+    CHECK(state.delayDivision == 1);
+    CHECK(state.filterMode == 0);
 
     return 0;
 }
