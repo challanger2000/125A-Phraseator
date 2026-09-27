@@ -223,6 +223,34 @@ int main() {
     CHECK(source2->sliceCount == 4u);
     CHECK(resolvedSlices.load(std::memory_order_acquire) == 4u);
 
+    // Exact recall must be able to bypass transient analysis and reuse stored
+    // boundaries verbatim, even when transient preference is also enabled.
+    SampleLoadRequest recalledLoop;
+    recalledLoop.sourceIndex = 3u;
+    recalledLoop.sourceId = 400u;
+    recalledLoop.path = transientPath;
+    recalledLoop.mode = SampleLoadMode::EqualSlices;
+    recalledLoop.equalDivisions = 16u;
+    recalledLoop.preferTransient = true;
+    recalledLoop.useStoredSlices = true;
+    recalledLoop.resolvedSliceCount = 2u;
+    recalledLoop.resolvedSlices[0] = {0u, 10000u};
+    recalledLoop.resolvedSlices[1] = {10000u, 48000u};
+
+    const auto recalledId = worker.requestLoad(recalledLoop, true);
+    CHECK(recalledId != 0u);
+    CHECK(worker.waitForResult(recalledId, result, std::chrono::seconds(2)));
+    CHECK(result.ok());
+    CHECK(exchange.consumePending());
+
+    const auto* source3 = exchange.activeBank().sourcePool().source(3u);
+    CHECK(source3 != nullptr);
+    CHECK(source3->sliceCount == 2u);
+    CHECK(source3->slices[0].startFrame == 0u);
+    CHECK(source3->slices[0].endFrame == 10000u);
+    CHECK(source3->slices[1].startFrame == 10000u);
+    CHECK(source3->slices[1].endFrame == 48000u);
+
     std::filesystem::remove(path, ec);
     CHECK(!ec);
     ec.clear();

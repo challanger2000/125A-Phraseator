@@ -2,6 +2,7 @@
 
 #include "sample_bank.h"
 
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -37,7 +38,9 @@ struct SampleLoadRequest {
     SampleLoadMode mode {SampleLoadMode::OneShot};
     std::size_t equalDivisions {0};
     bool preferTransient {false};
+    bool useStoredSlices {false};
     std::uint16_t resolvedSliceCount {0};
+    std::array<SliceRegion, kMaxSlicesPerSource> resolvedSlices {};
     bool tonal {false};
     float detectedRootMidi {-1.0f};
 };

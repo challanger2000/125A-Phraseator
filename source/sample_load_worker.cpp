@@ -37,9 +37,28 @@ bool SampleLoadWorker::validRequest(const SampleLoadRequest& request) noexcept {
     if (request.sourceIndex >= kMaxSources || request.path.empty())
         return false;
 
-    if (request.mode == SampleLoadMode::EqualSlices &&
-        (request.equalDivisions == 0 || request.equalDivisions > kMaxSlicesPerSource)) {
-        return false;
+    if (request.mode == SampleLoadMode::EqualSlices) {
+        if (request.equalDivisions == 0 ||
+            request.equalDivisions > kMaxSlicesPerSource) {
+            return false;
+        }
+
+        if (request.useStoredSlices) {
+            if (request.resolvedSliceCount == 0 ||
+                request.resolvedSliceCount > kMaxSlicesPerSource) {
+                return false;
+            }
+
+            std::uint32_t previousEnd = 0u;
+            for (std::size_t i = 0; i < request.resolvedSliceCount; ++i) {
+                const auto region = request.resolvedSlices[i];
+                if (!region.valid() ||
+                    (i > 0u && region.startFrame < previousEnd)) {
+                    return false;
+                }
+                previousEnd = region.endFrame;
+            }
+        }
     }
 
     return true;
@@ -166,7 +185,21 @@ SampleLoadWorkerResult SampleLoadWorker::execute(WorkItem& item) {
         }
 
         if (request.mode == SampleLoadMode::EqualSlices) {
-            if (request.preferTransient) {
+            if (request.useStoredSlices) {
+                for (std::size_t i = 0; i < request.resolvedSliceCount; ++i) {
+                    const auto region = request.resolvedSlices[i];
+                    if (!region.valid() ||
+                        region.endFrame > source.audio.frames() ||
+                        (i > 0u &&
+                         region.startFrame < source.slices.regions[i - 1u].endFrame)) {
+                        result.status = SampleLoadWorkerStatus::SliceFailed;
+                        return result;
+                    }
+
+                    source.slices.regions[i] = region;
+                }
+                source.slices.count = request.resolvedSliceCount;
+            } else if (request.preferTransient) {
                 source.slices = Slicer::transientDivisions(
                     source.audio.view(),
                     static_cast<double>(source.audio.sampleRate),
@@ -185,10 +218,14 @@ SampleLoadWorkerResult SampleLoadWorker::execute(WorkItem& item) {
 
             request.resolvedSliceCount =
                 static_cast<std::uint16_t>(source.slices.count);
+            request.resolvedSlices = source.slices.regions;
             source.request.resolvedSliceCount = request.resolvedSliceCount;
+            source.request.resolvedSlices = request.resolvedSlices;
         } else {
             request.resolvedSliceCount = 1u;
+            request.resolvedSlices[0] = {0u, source.audio.frames()};
             source.request.resolvedSliceCount = 1u;
+            source.request.resolvedSlices = request.resolvedSlices;
         }
 
         prepared.push_back(std::move(source));

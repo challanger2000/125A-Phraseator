@@ -135,6 +135,8 @@ tresult PLUGIN_API Processor::notify(IMessage* message) {
 
             auto resolvedRecall = recallCandidate;
             const auto& resolved = resolvedRequests.front();
+            resolvedRecall.resolvedSliceCount = resolved.resolvedSliceCount;
+            resolvedRecall.resolvedSlices = resolved.resolvedSlices;
             resolvedRecall.tonal = resolved.tonal;
             resolvedRecall.detectedRootMidi = resolved.detectedRootMidi;
 
@@ -694,6 +696,16 @@ bool Processor::writeProjectState(IBStream* state) const noexcept {
             stream.writeRaw(recall.utf8Path.data(), pathSize) != pathSize) {
             return false;
         }
+
+        if (!stream.writeInt32(static_cast<int32>(recall.resolvedSliceCount)))
+            return false;
+
+        for (const auto& region : recall.resolvedSlices) {
+            if (!stream.writeInt32u(region.startFrame) ||
+                !stream.writeInt32u(region.endFrame)) {
+                return false;
+            }
+        }
     }
 
     return true;
@@ -836,12 +848,50 @@ bool Processor::readProjectState(IBStream* state) noexcept {
                 return false;
             }
 
+            std::uint16_t resolvedSliceCount = 0u;
+            std::array<SliceRegion, kMaxSlicesPerSource> resolvedSlices {};
+
+            if (version >= 4) {
+                int32 storedCount = 0;
+                if (!stream.readInt32(storedCount) ||
+                    storedCount < 0 ||
+                    storedCount > static_cast<int32>(kMaxSlicesPerSource)) {
+                    return false;
+                }
+
+                resolvedSliceCount = static_cast<std::uint16_t>(storedCount);
+                std::uint32_t previousEnd = 0u;
+
+                for (std::size_t slice = 0; slice < kMaxSlicesPerSource; ++slice) {
+                    uint32 startFrame = 0u;
+                    uint32 endFrame = 0u;
+
+                    if (!stream.readInt32u(startFrame) ||
+                        !stream.readInt32u(endFrame)) {
+                        return false;
+                    }
+
+                    resolvedSlices[slice] = {startFrame, endFrame};
+
+                    if (slice < resolvedSliceCount) {
+                        const auto region = resolvedSlices[slice];
+                        if (!region.valid() ||
+                            (slice > 0u && region.startFrame < previousEnd)) {
+                            return false;
+                        }
+                        previousEnd = region.endFrame;
+                    }
+                }
+            }
+
             auto& recall = recallEntries[i];
             recall.occupied = occupied != 0;
             recall.sourceId = sourceId;
             recall.mode = mode == 0 ? SampleLoadMode::OneShot : SampleLoadMode::EqualSlices;
             recall.divisions = static_cast<std::uint16_t>(divisions);
             recall.preferTransient = version >= 3 && preferTransient != 0;
+            recall.resolvedSliceCount = resolvedSliceCount;
+            recall.resolvedSlices = resolvedSlices;
             recall.tonal = tonal != 0;
             recall.detectedRootMidi = static_cast<float>(detectedRootMidi);
             recall.utf8Path = std::move(path);
@@ -896,6 +946,11 @@ void Processor::queueRecallLoads() noexcept {
                     ? 0u
                     : static_cast<std::size_t>(recall.divisions);
                 request.preferTransient = recall.preferTransient;
+                request.useStoredSlices =
+                    recall.mode == SampleLoadMode::EqualSlices &&
+                    recall.resolvedSliceCount > 0u;
+                request.resolvedSliceCount = recall.resolvedSliceCount;
+                request.resolvedSlices = recall.resolvedSlices;
                 request.tonal = recall.tonal;
                 request.detectedRootMidi = recall.detectedRootMidi;
                 requests.push_back(std::move(request));

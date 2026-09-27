@@ -65,6 +65,8 @@ private:
         SampleLoadMode mode {SampleLoadMode::OneShot};
         std::uint16_t divisions {0};
         bool preferTransient {false};
+        std::uint16_t resolvedSliceCount {0};
+        std::array<SliceRegion, kMaxSlicesPerSource> resolvedSlices {};
         bool tonal {false};
         float detectedRootMidi {-1.0f};
         std::string utf8Path;
