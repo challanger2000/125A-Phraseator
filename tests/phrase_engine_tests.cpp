@@ -300,5 +300,50 @@ int main() {
         CHECK(highRatio > lowRatio);
     }
 
+    {
+        // Measured macro effect: a macro change followed by GENERATE must
+        // produce a materially different deterministic pattern population.
+        GenerationSettings low;
+        low.density = 0.20f;
+        low.fragmentCount = 2u;
+        low.pitch = 0.0f;
+        low.pan = 0.0f;
+        low.groove = 0.0f;
+
+        GenerationSettings high = low;
+        high.density = 0.80f;
+        high.pitch = 0.75f;
+        high.pan = 0.75f;
+        high.groove = 0.75f;
+
+        PhraseEngine lowEngine(0x4D414352u);
+        PhraseEngine highEngine(0x4D414352u);
+
+        int lowActive = 0;
+        int highActive = 0;
+        int highNonZeroPitch = 0;
+        int highNonZeroPan = 0;
+        int highNonZeroTiming = 0;
+
+        for (int n = 0; n < 256; ++n) {
+            const auto a = lowEngine.generate(low);
+            const auto b = highEngine.generate(high);
+            for (std::size_t i = 0; i < kStepCount; ++i) {
+                lowActive += a[i].active ? 1 : 0;
+                highActive += b[i].active ? 1 : 0;
+                if (!b[i].active)
+                    continue;
+                highNonZeroPitch += std::fabs(b[i].pitchSemitones) > 1.0e-6f ? 1 : 0;
+                highNonZeroPan += std::fabs(b[i].pan) > 1.0e-6f ? 1 : 0;
+                highNonZeroTiming += std::fabs(b[i].timingOffset) > 1.0e-6f ? 1 : 0;
+            }
+        }
+
+        CHECK(highActive > lowActive * 2);
+        CHECK(highNonZeroPitch > 0);
+        CHECK(highNonZeroPan > 0);
+        CHECK(highNonZeroTiming > 0);
+    }
+
     return 0;
 }
