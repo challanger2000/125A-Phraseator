@@ -1,6 +1,8 @@
 #include "source_pool.h"
 #include "test_common.h"
 
+#include <limits>
+
 
 using namespace phraseator;
 
@@ -66,6 +68,22 @@ int main() {
         CHECK(mapped.fragmentAt(flat, back));
         CHECK(back.sourceIndex == 1u);
         CHECK(back.sliceIndex == 0u);
+    }
+
+
+    {
+        SourcePool numeric;
+        CHECK(!numeric.setOneShot(
+            0u, 1u, 100u,
+            std::numeric_limits<double>::quiet_NaN(), false));
+
+        CHECK(numeric.setOneShot(
+            0u, 2u, 100u, 48000.0, false,
+            true, std::numeric_limits<float>::quiet_NaN()));
+        const auto* source = numeric.source(0u);
+        CHECK(source != nullptr);
+        CHECK(!source->tonal);
+        CHECK(source->detectedRootMidi < 0.0f);
     }
 
     return 0;
