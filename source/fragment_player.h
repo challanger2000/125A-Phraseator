@@ -46,7 +46,7 @@ public:
                               const std::array<AudioBufferView, kMaxSources>& buffers) noexcept;
 
     std::size_t activeVoiceCount() const noexcept;
-    void chokeAll(std::uint32_t releaseSamples = 96u) noexcept;
+    void chokeAll() noexcept;
 
 private:
     static float clamp(float v, float lo, float hi) noexcept;
