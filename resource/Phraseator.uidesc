@@ -120,7 +120,7 @@
     <view class="CTextLabel" origin="826,536" size="66,14" title="DELAY" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
     <view class="COptionMenu" origin="824,554" size="70,20" control-tag="1201" back-color="ValueBack" frame-color="Line" frame-width="1" font-color="Text" font="Small"/>
     <view class="CView" custom-view-name="PhraseKnob" control-tag="1204" origin="922,478" size="66,60"/>
-    <view class="CTextLabel" origin="922,536" size="66,14" title="FILTER" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
+    <view class="CTextLabel" origin="922,536" size="66,14" title="CUT" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
     <view class="CSegmentButton" origin="914,554" size="84,20" control-tag="1205" style="horizontal" segment-names="LP,HP" font="Small"/>
 
     <view class="CTextLabel" origin="320,588" size="700,18" title="LOAD MATERIAL · SHAPE · GENERATE · VARIATE · LOCK · FINISH" transparent="true" font-color="Muted" font="Small" text-alignment="center"/>
