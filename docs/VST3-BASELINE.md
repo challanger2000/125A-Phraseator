@@ -118,3 +118,19 @@ AUTO classification is intentionally conservative:
 - Regression coverage verifies copied multi-source banks keep both source views valid and independent.
 - Generation macro regression coverage verifies high Density produces more than twice the active-step population of low Density across deterministic fixtures, and Pitch/Pan/Groove produce measurable non-zero effects after generation.
 - Existing source-balanced generation regression continues to verify comparable source-level use of a one-shot versus a 16-slice loop.
+
+
+## 2026-09-27 measured FX and pattern-edit update
+
+- DELAY is a true dry/wet crossfade: 0% = dry, 100% = wet after the existing click-free 20 ms smoothing settles.
+- Regression coverage verifies settled 100% DELAY suppresses the dry impulse and produces the tempo-synced delayed response.
+- FILTER uses a musical macro mapping rather than the previous overly dark 800 Hz endpoint:
+  - 0% bypass
+  - 25% approximately 14 kHz
+  - 50% approximately 8 kHz
+  - 75% approximately 3.5 kHz
+  - 100% approximately 1.2 kHz
+- Filter regression coverage measures response at 1 kHz and 10 kHz and verifies strong high-frequency attenuation while retaining useful midrange.
+- The 16 visible pattern steps are directly editable by left click. A click toggles the step on/off while retaining its current fragment assignment; activating an empty step starts with fragment 1.
+- Pattern edits are sent as direct controller-to-processor messages and applied through fixed-size atomic pending state on the audio thread.
+- Existing pitch-to-key regression tests verify deterministic quantization to the selected root/scale.
