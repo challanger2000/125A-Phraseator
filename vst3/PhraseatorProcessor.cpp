@@ -561,8 +561,7 @@ void Processor::applyPitchToKey(Pattern& pattern) noexcept {
             continue;
 
         FragmentRef ref {};
-        const auto flatIndex = static_cast<std::size_t>(step.fragment) % pool.fragmentCount();
-        if (!pool.fragmentAt(flatIndex, ref))
+        if (!pool.fragmentAt(static_cast<std::size_t>(step.fragment), ref))
             continue;
 
         const auto* source = pool.source(ref.sourceIndex);
