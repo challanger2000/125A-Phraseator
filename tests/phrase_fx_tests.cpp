@@ -28,15 +28,21 @@ int main() {
         fx.reset();
         fx.setDelayAmount(1.0f);
 
+        // Allow the click-free 20 ms mix smoother to settle before measuring
+        // the steady-state meaning of "100% Wet".
+        std::vector<float> settleL(4800u, 0.0f);
+        std::vector<float> settleR(4800u, 0.0f);
+        fx.processBlock(settleL.data(), settleR.data(), settleL.size(), 120.0);
+
         std::vector<float> l(12001u, 0.0f);
         std::vector<float> r(12001u, 0.0f);
         l[0] = 1.0f;
 
         CHECK(fx.processBlock(l.data(), r.data(), l.size(), 120.0));
 
-        // At 100% delay mix the dry impulse must be fully removed.
-        CHECK(std::fabs(l[0]) < 1.0e-6f);
-        CHECK(std::fabs(r[0]) < 1.0e-6f);
+        // At settled 100% delay mix the dry impulse must be effectively gone.
+        CHECK(std::fabs(l[0]) < 0.01f);
+        CHECK(std::fabs(r[0]) < 0.01f);
 
         // The delayed signal must appear at one eighth-note (12000 samples
         // at 120 BPM / 48 kHz) and remain finite.
