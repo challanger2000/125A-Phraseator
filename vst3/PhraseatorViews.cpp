@@ -97,9 +97,11 @@ void LogoView::draw(VSTGUI::CDrawContext* context) {
 
 StepIndicator::StepIndicator(const VSTGUI::CRect& size,
                              VSTGUI::IControlListener* listener,
-                             std::int32_t tag)
-: VSTGUI::CControl(size, listener, tag) {
-    setMouseEnabled(false);
+                             std::int32_t tag,
+                             Controller* controller)
+: VSTGUI::CControl(size, listener, tag),
+  controller_(controller) {
+    setMouseEnabled(true);
     setTransparency(true);
 }
 
@@ -136,6 +138,33 @@ void StepIndicator::draw(VSTGUI::CDrawContext* context) {
     }
 
     setDirty(false);
+}
+
+VSTGUI::CMouseEventResult StepIndicator::onMouseDown(
+    VSTGUI::CPoint&,
+    const VSTGUI::CButtonState& buttons) {
+
+    if (!buttons.isLeftButton() || !controller_)
+        return VSTGUI::kMouseEventNotHandled;
+
+    const double normalized =
+        std::clamp(static_cast<double>(getValueNormalized()), 0.0, 1.0);
+    const bool currentlyActive = normalized > 0.0;
+    const int currentFragment = currentlyActive
+        ? std::clamp(
+            static_cast<int>(std::lround(normalized * kPatternViewStepCount)) - 1,
+            0, kPatternViewStepCount - 1)
+        : 0;
+
+    const auto stepIndex = getTag() -
+        static_cast<std::int32_t>(kPatternViewBase);
+
+    controller_->sendPatternStepEdit(
+        stepIndex,
+        !currentlyActive,
+        currentFragment);
+
+    return VSTGUI::kMouseDownEventHandledButDontNeedMovedOrUpEvents;
 }
 
 SourceSlotView::SourceSlotView(const VSTGUI::CRect& size,
@@ -431,7 +460,7 @@ VSTGUI::CView* createCustomView(VSTGUI::UTF8StringPtr name,
     if(std::strcmp(name,"PhraseStep")==0 &&
        tag >= static_cast<Steinberg::int32>(kPatternViewBase) &&
        tag < static_cast<Steinberg::int32>(kPatternViewBase + kPatternViewCount))
-        return new StepIndicator(rect,editor,tag);
+        return new StepIndicator(rect,editor,tag,controller);
 
     if(std::strcmp(name,"PhraseSourceSlot")==0 &&
        tag >= static_cast<Steinberg::int32>(kSourceStatusBase) &&
