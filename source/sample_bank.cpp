@@ -103,7 +103,6 @@ bool SampleBank::setOneShot(std::size_t sourceIndex,
         return false;
 
     applyConservativeAutoLevel(audio);
-    applyConservativeAutoLevel(audio);
     const auto frames = audio.frames();
     const auto rate = static_cast<double>(audio.sampleRate);
     const auto stereo = audio.stereo;
