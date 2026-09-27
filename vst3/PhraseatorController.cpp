@@ -160,6 +160,27 @@ tresult PLUGIN_API Controller::initialize(FUnknown* context) {
             static_cast<ParamID>(kPatternViewBase + i));
     }
 
+    static const TChar* kStepRatchetTitles[kStepRatchetCount] {
+        STR16("Step 01 Ratchet"), STR16("Step 02 Ratchet"),
+        STR16("Step 03 Ratchet"), STR16("Step 04 Ratchet"),
+        STR16("Step 05 Ratchet"), STR16("Step 06 Ratchet"),
+        STR16("Step 07 Ratchet"), STR16("Step 08 Ratchet"),
+        STR16("Step 09 Ratchet"), STR16("Step 10 Ratchet"),
+        STR16("Step 11 Ratchet"), STR16("Step 12 Ratchet"),
+        STR16("Step 13 Ratchet"), STR16("Step 14 Ratchet"),
+        STR16("Step 15 Ratchet"), STR16("Step 16 Ratchet")
+    };
+    for (int32 i = 0; i < kStepRatchetCount; ++i) {
+        auto* ratchet = new StringListParameter(
+            kStepRatchetTitles[i],
+            static_cast<ParamID>(kStepRatchetBase + i));
+        ratchet->appendString(STR16("1x"));
+        ratchet->appendString(STR16("2x"));
+        ratchet->appendString(STR16("3x"));
+        ratchet->appendString(STR16("4x"));
+        parameters.addParameter(ratchet);
+    }
+
     static const TChar* kSourceStatusTitles[kSourceStatusCount] {
         STR16("Source Status 01"), STR16("Source Status 02"),
         STR16("Source Status 03"), STR16("Source Status 04"),
@@ -443,6 +464,9 @@ tresult PLUGIN_API Controller::setComponentState(IBStream* state) {
         // the source bank has been restored.
         setParamNormalized(
             static_cast<ParamID>(kPatternViewBase + i), 0.0);
+        setParamNormalized(
+            static_cast<ParamID>(kStepRatchetBase + i),
+            static_cast<double>(std::clamp<int32>(repeats, 1, 4) - 1) / 3.0);
     }
 
     return kResultOk;
