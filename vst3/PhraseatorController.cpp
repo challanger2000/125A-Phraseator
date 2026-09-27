@@ -101,13 +101,14 @@ tresult PLUGIN_API Controller::initialize(FUnknown* context) {
         division->setNormalized(2.0 / 7.0);
         parameters.addParameter(division);
     }
-    parameters.addParameter(STR16("Filter"), STR16("%"), 0, ParameterDefaults::filterAmount,
+    parameters.addParameter(STR16("Cut"), STR16("%"), 0, ParameterDefaults::filterAmount,
                             ParameterInfo::kCanAutomate, pid(ParameterId::FilterAmount));
     {
         auto* filterMode = new StringListParameter(
-            STR16("Filter Mode"), pid(ParameterId::FilterMode));
+            STR16("Cut Mode"), pid(ParameterId::FilterMode));
         filterMode->appendString(STR16("Low Pass"));
         filterMode->appendString(STR16("High Pass"));
+        filterMode->setNormalized(1.0);
         parameters.addParameter(filterMode);
     }
     {
@@ -324,7 +325,7 @@ tresult PLUGIN_API Controller::setComponentState(IBStream* state) {
     int32 lockPattern = 0;
     int32 restartOnNote = 1;
     int32 delayDivision = 1;
-    int32 filterMode = 0;
+    int32 filterMode = 1;
 
     if (!stream.readInt32(keyRoot) ||
         !stream.readInt32(scaleMode) ||
@@ -361,7 +362,7 @@ tresult PLUGIN_API Controller::setComponentState(IBStream* state) {
     setParamNormalized(pid(ParameterId::DelayDivision),
         static_cast<double>(restoredDelayDivision) / 7.0);
     setParamNormalized(pid(ParameterId::FilterMode),
-        version >= 6 && filterMode != 0 ? 1.0 : 0.0);
+        version >= 6 ? (filterMode != 0 ? 1.0 : 0.0) : 1.0);
 
     for (int32 i = 0; i < kPatternViewCount; ++i) {
         int32 active = 0;
