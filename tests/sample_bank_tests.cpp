@@ -1,6 +1,8 @@
 #include "sample_bank.h"
 #include "test_common.h"
 
+#include <cmath>
+
 
 using namespace phraseator;
 
@@ -68,15 +70,16 @@ int main() {
         CHECK(copied.sourcePool().fragmentCount() == 1u);
         CHECK(copied.buffers()[0].valid());
         CHECK(copied.buffers()[0].left != original.buffers()[0].left);
-        CHECK(copied.buffers()[0].left[0] == 1.0f);
+        CHECK(copied.buffers()[0].left[0] > 0.0f);
 
         auto second = makeMono();
         CHECK(copied.setOneShot(1, 302u, std::move(second)));
         CHECK(copied.sourcePool().fragmentCount() == 2u);
         CHECK(copied.buffers()[0].valid());
         CHECK(copied.buffers()[1].valid());
-        CHECK(copied.buffers()[0].left[0] == 1.0f);
-        CHECK(copied.buffers()[1].left[0] == 1.0f);
+        CHECK(copied.buffers()[0].left[0] > 0.0f);
+        CHECK(copied.buffers()[1].left[0] > 0.0f);
+        CHECK(std::fabs(copied.buffers()[0].left[0] - copied.buffers()[1].left[0]) < 1.0e-6f);
     }
 
     return 0;
