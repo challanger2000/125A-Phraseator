@@ -90,7 +90,7 @@
     <view class="CSegmentButton" origin="780,216" size="212,54" control-tag="1302" style="horizontal" segment-names="UNLOCKED,LOCKED" font="Label"/>
 
     <view class="CViewContainer" origin="320,310" size="470,250" transparent="false" background-color="Panel2"/>
-    <view class="CTextLabel" origin="338,324" size="200,18" title="MUSICAL MACROS" transparent="true" font-color="Muted" font="Section"/>
+    <view class="CTextLabel" origin="338,324" size="200,18" title="GENERATION MACROS" transparent="true" font-color="Muted" font="Section"/>
     <view class="CView" custom-view-name="PhraseKnob" control-tag="1000" origin="342,354" size="92,82"/>
     <view class="CTextLabel" origin="342,432" size="92,18" title="DENSITY" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
     <view class="CView" custom-view-name="PhraseKnob" control-tag="1001" origin="492,354" size="92,82"/>
@@ -119,6 +119,6 @@
     <view class="CView" custom-view-name="PhraseKnob" control-tag="1204" origin="926,480" size="72,66"/>
     <view class="CTextLabel" origin="926,540" size="72,16" title="FILTER" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
 
-    <view class="CTextLabel" origin="320,588" size="700,18" title="LOAD MATERIAL · GENERATE · SHAPE · LOCK · FINISH" transparent="true" font-color="Muted" font="Small" text-alignment="center"/>
+    <view class="CTextLabel" origin="320,588" size="700,18" title="LOAD MATERIAL · SHAPE · GENERATE · VARIATE · LOCK · FINISH" transparent="true" font-color="Muted" font="Small" text-alignment="center"/>
   </template>
 </vstgui-ui-description>
