@@ -41,7 +41,7 @@ struct ProjectState {
     float reverbAmount {0.0f};
     float driveAmount {0.0f};
     float filterAmount {0.0f};
-    std::int32_t filterMode {0};
+    std::int32_t filterMode {1};
 
     Pattern pattern {};
     std::array<SourceState, kMaxSources> sources {};
