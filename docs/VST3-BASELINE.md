@@ -49,7 +49,7 @@ The processor currently advertises 32-bit sample processing only. 64-bit audio p
 The VST3 layer now includes:
 - a functional VSTGUI editor;
 - explicit ONE / LOOP WAV loading for eight V0.1 source slots;
-- WAV file-path drag-and-drop on every source status field, with conservative AUTO one-shot/loop classification;
+- WAV drag-and-drop on every source status field, accepting both VSTGUI file-path payloads and host-browser text/file-URL payloads on Windows, with conservative AUTO one-shot/loop classification;
 - per-slot clear action that removes the source from the published bank and fragment pool;
 - asynchronous non-realtime sample decoding and bank publication;
 - transient-preferred LOOP slicing with equal-grid fallback;
