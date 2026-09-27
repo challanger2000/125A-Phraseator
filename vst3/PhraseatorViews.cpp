@@ -442,9 +442,9 @@ VSTGUI::CView* createCustomView(VSTGUI::UTF8StringPtr name,
         return new MacroKnob(rect,editor,tag);
 
     if(std::strcmp(name,"PhraseGenerate")==0 && tag>=0)
-        return new VSTGUI::CTextButton(rect,editor,tag,"GENERATE");
+        return new VSTGUI::CTextButton(rect,controller,tag,"GENERATE");
     if(std::strcmp(name,"PhraseVariate")==0 && tag>=0)
-        return new VSTGUI::CTextButton(rect,editor,tag,"VARIATE");
+        return new VSTGUI::CTextButton(rect,controller,tag,"VARIATE");
     if(std::strcmp(name,"PhraseLoadOne")==0 && tag>=0)
         return new VSTGUI::CTextButton(rect,controller,tag,"ONE");
     if(std::strcmp(name,"PhraseLoadLoop")==0 && tag>=0)
