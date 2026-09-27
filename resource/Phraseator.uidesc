@@ -83,6 +83,23 @@
     <view class="CView" custom-view-name="PhraseStep" control-tag="1413" origin="858,128" size="32,34"/>
     <view class="CView" custom-view-name="PhraseStep" control-tag="1414" origin="898,128" size="32,34"/>
     <view class="CView" custom-view-name="PhraseStep" control-tag="1415" origin="938,128" size="32,34"/>
+    <view class="CTextLabel" origin="800,98" size="170,18" title="RATCHET · HITS / STEP" transparent="true" font-color="Muted" font="Small" text-alignment="right"/>
+    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1700" origin="338,164" size="32,16"/>
+    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1701" origin="378,164" size="32,16"/>
+    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1702" origin="418,164" size="32,16"/>
+    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1703" origin="458,164" size="32,16"/>
+    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1704" origin="498,164" size="32,16"/>
+    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1705" origin="538,164" size="32,16"/>
+    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1706" origin="578,164" size="32,16"/>
+    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1707" origin="618,164" size="32,16"/>
+    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1708" origin="658,164" size="32,16"/>
+    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1709" origin="698,164" size="32,16"/>
+    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1710" origin="738,164" size="32,16"/>
+    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1711" origin="778,164" size="32,16"/>
+    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1712" origin="818,164" size="32,16"/>
+    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1713" origin="858,164" size="32,16"/>
+    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1714" origin="898,164" size="32,16"/>
+    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1715" origin="938,164" size="32,16"/>
 
     <view class="CViewContainer" origin="320,198" size="700,92" transparent="false" background-color="Panel"/>
     <view class="CView" custom-view-name="PhraseGenerate" control-tag="1300" origin="346,216" size="250,54"/>
@@ -99,7 +116,7 @@
     <view class="CView" custom-view-name="PhraseKnob" control-tag="1001" origin="508,344" size="66,58"/>
     <view class="CTextLabel" origin="488,396" size="106,16" title="VARIATE DEPTH" transparent="true" font-color="Text" font="Small" text-alignment="center"/>
     <view class="CView" custom-view-name="PhraseKnob" control-tag="1002" origin="664,344" size="66,58"/>
-    <view class="CTextLabel" origin="656,396" size="82,16" title="REPEAT" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
+    <view class="CTextLabel" origin="656,396" size="82,16" title="MOTIF REUSE" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
 
     <view class="CViewContainer" origin="320,434" size="470,126" transparent="false" background-color="Panel"/>
     <view class="CTextLabel" origin="338,446" size="190,18" title="2 · LIVE SHAPE" transparent="true" font-color="Accent" font="Section"/>
