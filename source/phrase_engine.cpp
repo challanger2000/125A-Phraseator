@@ -76,6 +76,35 @@ float PhraseEngine::choosePitchSemitones(float amount) {
     return static_cast<float>(wide[d(rng_)]);
 }
 
+bool PhraseEngine::fragmentSelectable(
+    std::uint16_t fragment,
+    const GenerationSettings& settings) noexcept {
+
+    const auto totalFragments = std::clamp<std::uint16_t>(
+        settings.fragmentCount, 1, static_cast<std::uint16_t>(kMaxFragments));
+
+    if (fragment >= totalFragments)
+        return false;
+
+    if (!settings.sourceSpansAuthoritative)
+        return true;
+
+    const auto spanCount = std::min<std::size_t>(
+        settings.sourceSpanCount, settings.sourceSpans.size());
+
+    for (std::size_t i = 0; i < spanCount; ++i) {
+        const auto& span = settings.sourceSpans[i];
+        const auto begin = static_cast<std::size_t>(span.firstFragment);
+        const auto end = begin + static_cast<std::size_t>(span.fragmentCount);
+        if (static_cast<std::size_t>(fragment) >= begin &&
+            static_cast<std::size_t>(fragment) < end) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 std::uint16_t PhraseEngine::chooseFragment(const GenerationSettings& settings) {
     const auto totalFragments = std::clamp<std::uint16_t>(
         settings.fragmentCount, 1, static_cast<std::uint16_t>(kMaxFragments));
@@ -113,6 +142,9 @@ std::uint16_t PhraseEngine::chooseFragment(const GenerationSettings& settings) {
                 span.firstFragment + sliceDistribution(rng_));
         }
     }
+
+    if (settings.sourceSpansAuthoritative)
+        return 0u;
 
     std::uniform_int_distribution<std::uint16_t> distribution(
         0u, static_cast<std::uint16_t>(totalFragments - 1u));
@@ -214,17 +246,22 @@ std::uint16_t PhraseEngine::chooseVariedFragment(
     const auto fragmentCount = std::clamp<std::uint16_t>(
         raw.fragmentCount, 1, static_cast<std::uint16_t>(kMaxFragments));
 
-    // Preserve phrase identity when mutating an already active step.
-    if (input[stepIndex].active && randomUnit() < 0.55f)
-        return static_cast<std::uint16_t>(input[stepIndex].fragment % fragmentCount);
+    // Preserve phrase identity only when the fragment is still selectable.
+    if (input[stepIndex].active &&
+        fragmentSelectable(input[stepIndex].fragment, raw) &&
+        randomUnit() < 0.55f) {
+        return input[stepIndex].fragment;
+    }
 
     // Prefer local continuity over a completely unrelated fragment.
     for (std::size_t back = stepIndex; back > 0; --back) {
         const auto& previous = output[back - 1u];
         if (previous.active) {
             const float continuity = 0.25f + 0.35f * clamp01(raw.repeat);
-            if (randomUnit() < continuity)
-                return static_cast<std::uint16_t>(previous.fragment % fragmentCount);
+            if (fragmentSelectable(previous.fragment, raw) &&
+                randomUnit() < continuity) {
+                return previous.fragment;
+            }
             break;
         }
     }
@@ -234,6 +271,8 @@ std::uint16_t PhraseEngine::chooseVariedFragment(
 
 Pattern PhraseEngine::generate(const GenerationSettings& settings) {
     Pattern pattern {};
+    if (settings.sourceSpansAuthoritative && settings.sourceSpanCount == 0u)
+        return pattern;
     for (std::size_t i = 0; i < pattern.size(); ++i)
         pattern[i] = makeStep(i, settings);
 
@@ -249,6 +288,8 @@ Pattern PhraseEngine::generate(const GenerationSettings& settings) {
 
 Pattern PhraseEngine::vary(const Pattern& input, const GenerationSettings& raw) {
     Pattern output = input;
+    if (raw.sourceSpansAuthoritative && raw.sourceSpanCount == 0u)
+        return output;
     const float amount = clamp01(raw.variation);
     if (amount <= 0.0f)
         return output;
