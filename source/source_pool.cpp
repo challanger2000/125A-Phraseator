@@ -113,4 +113,23 @@ bool SourcePool::fragmentAt(std::size_t flatIndex, FragmentRef& out) const noexc
     return false;
 }
 
+bool SourcePool::flatIndexOf(const FragmentRef& fragment,
+                             std::size_t& out) const noexcept {
+    if (fragment.sourceIndex >= sources_.size())
+        return false;
+
+    const auto& target = sources_[fragment.sourceIndex];
+    if (target.type == SourceType::Empty ||
+        fragment.sliceIndex >= target.sliceCount) {
+        return false;
+    }
+
+    std::size_t cursor = 0;
+    for (std::size_t i = 0; i < fragment.sourceIndex; ++i)
+        cursor += sources_[i].sliceCount;
+
+    out = cursor + fragment.sliceIndex;
+    return true;
+}
+
 } // namespace phraseator

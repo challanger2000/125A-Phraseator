@@ -3,6 +3,7 @@
 #include "PhraseatorIDs.h"
 #include "../source/parameters.h"
 #include "../source/pitch_mapper.h"
+#include "../source/pattern_fragment_remap.h"
 
 #include "base/source/fstreamer.h"
 #include "base/source/fstring.h"
@@ -540,8 +541,25 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
         playing = playing && ((ctx.state & ProcessContext::kPlaying) != 0);
     }
 
-    if (sampleBanks_.consumePending())
+    PatternFragmentSnapshot patternSnapshot {};
+    const auto& oldPool = sampleBanks_.activeBank().sourcePool();
+    const bool hadOldFragments = oldPool.fragmentCount() > 0u;
+
+    if (hadOldFragments)
+        patternSnapshot = snapshotPatternFragments(state_.pattern, oldPool);
+
+    if (sampleBanks_.consumePending()) {
         sourceStatusDirty_ = true;
+
+        if (hadOldFragments) {
+            const auto& newPool = sampleBanks_.activeBank().sourcePool();
+            if (restorePatternFragments(state_.pattern, patternSnapshot, newPool)) {
+                scheduler_.setPattern(state_.pattern);
+                patternViewDirty_ = true;
+            }
+        }
+    }
+
     const auto& bank = sampleBanks_.activeBank();
 
     scheduler_.prepare(sampleRate_, tempo);

@@ -74,6 +74,7 @@ public:
 
     std::size_t fragmentCount() const noexcept;
     bool fragmentAt(std::size_t flatIndex, FragmentRef& out) const noexcept;
+    bool flatIndexOf(const FragmentRef& fragment, std::size_t& out) const noexcept;
 
 private:
     std::array<SourceDescriptor, kMaxSources> sources_ {};

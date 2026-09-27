@@ -20,6 +20,8 @@ set(PHRASEATOR_CORE_SOURCES
     source/step_clock.h
     source/phrase_scheduler.cpp
     source/phrase_scheduler.h
+    source/pattern_fragment_remap.cpp
+    source/pattern_fragment_remap.h
     source/slicer.cpp
     source/slicer.h
     source/pitch_mapper.cpp
@@ -50,6 +52,9 @@ target_link_libraries(PhraseatorEngineTests PRIVATE PhraseatorCore)
 
 add_executable(PhraseatorSourcePoolTests tests/source_pool_tests.cpp)
 target_link_libraries(PhraseatorSourcePoolTests PRIVATE PhraseatorCore)
+
+add_executable(PhraseatorPatternRemapTests tests/pattern_fragment_remap_tests.cpp)
+target_link_libraries(PhraseatorPatternRemapTests PRIVATE PhraseatorCore)
 
 add_executable(PhraseatorPlaybackTests tests/fragment_player_tests.cpp)
 target_link_libraries(PhraseatorPlaybackTests PRIVATE PhraseatorCore)
@@ -90,6 +95,7 @@ target_link_libraries(PhraseatorFxTests PRIVATE PhraseatorCore)
 enable_testing()
 add_test(NAME PhraseatorEngineTests COMMAND PhraseatorEngineTests)
 add_test(NAME PhraseatorSourcePoolTests COMMAND PhraseatorSourcePoolTests)
+add_test(NAME PhraseatorPatternRemapTests COMMAND PhraseatorPatternRemapTests)
 add_test(NAME PhraseatorPlaybackTests COMMAND PhraseatorPlaybackTests)
 add_test(NAME PhraseatorStepClockTests COMMAND PhraseatorStepClockTests)
 add_test(NAME PhraseatorSchedulerTests COMMAND PhraseatorSchedulerTests)
