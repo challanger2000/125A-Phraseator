@@ -193,6 +193,59 @@ VSTGUI::CMouseEventResult StepIndicator::onMouseDown(
     return VSTGUI::kMouseDownEventHandledButDontNeedMovedOrUpEvents;
 }
 
+RatchetView::RatchetView(const VSTGUI::CRect& size,
+                         VSTGUI::IControlListener* listener,
+                         std::int32_t tag)
+: VSTGUI::CControl(size, listener, tag) {
+    setMouseEnabled(true);
+    setTransparency(true);
+}
+
+void RatchetView::draw(VSTGUI::CDrawContext* context) {
+    const auto r = getViewSize();
+    const int hits = std::clamp(
+        static_cast<int>(std::lround(getValueNormalized() * 3.0)) + 1,
+        1, 4);
+
+    context->setDrawMode(VSTGUI::kAntiAliasing);
+    context->setFillColor(hits > 1
+        ? VSTGUI::CColor{36, 73, 107, 255}
+        : VSTGUI::CColor{10, 15, 21, 255});
+    context->setFrameColor(hits > 1
+        ? VSTGUI::CColor{86, 154, 220, 255}
+        : VSTGUI::CColor{52, 65, 79, 255});
+    context->setLineWidth(1.0);
+    context->drawRect(r, VSTGUI::kDrawFilledAndStroked);
+
+    char label[8] {};
+    std::snprintf(label, sizeof(label), "%dx", hits);
+    context->setFont(VSTGUI::kNormalFontSmall);
+    context->setFontColor(kText);
+    context->drawString(label, r, VSTGUI::kCenterText);
+    setDirty(false);
+}
+
+VSTGUI::CMouseEventResult RatchetView::onMouseDown(
+    VSTGUI::CPoint&,
+    const VSTGUI::CButtonState& buttons) {
+
+    if (!buttons.isLeftButton())
+        return VSTGUI::kMouseEventNotHandled;
+
+    const int current = std::clamp(
+        static_cast<int>(std::lround(getValueNormalized() * 3.0)) + 1,
+        1, 4);
+    const int next = current >= 4 ? 1 : current + 1;
+
+    beginEdit();
+    setValueNormalized(static_cast<float>(next - 1) / 3.0f);
+    valueChanged();
+    endEdit();
+    invalid();
+
+    return VSTGUI::kMouseDownEventHandledButDontNeedMovedOrUpEvents;
+}
+
 SourceSlotView::SourceSlotView(const VSTGUI::CRect& size,
                                VSTGUI::IControlListener* listener,
                                std::int32_t tag,
@@ -483,6 +536,11 @@ VSTGUI::CView* createCustomView(VSTGUI::UTF8StringPtr name,
        tag >= static_cast<Steinberg::int32>(kPatternViewBase) &&
        tag < static_cast<Steinberg::int32>(kPatternViewBase + kPatternViewCount))
         return new StepIndicator(rect,editor,tag,controller);
+
+    if(std::strcmp(name,"PhraseRatchet")==0 &&
+       tag >= static_cast<Steinberg::int32>(kStepRatchetBase) &&
+       tag < static_cast<Steinberg::int32>(kStepRatchetBase + kStepRatchetCount))
+        return new RatchetView(rect, editor, tag);
 
     if(std::strcmp(name,"PhraseSourceSlot")==0 &&
        tag >= static_cast<Steinberg::int32>(kSourceStatusBase) &&
