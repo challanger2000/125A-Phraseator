@@ -4,6 +4,8 @@
 #include "pitch_detector.h"
 #include "slicer.h"
 
+#include <algorithm>
+#include <cmath>
 #include <utility>
 
 namespace phraseator {
@@ -15,6 +17,68 @@ struct PreparedSource {
     OwnedAudioSource audio;
     SliceSet slices;
 };
+
+double monoSampleAt(const OwnedAudioSource& audio, std::size_t frame) noexcept {
+    const double left = static_cast<double>(audio.left[frame]);
+    const double right = audio.stereo && frame < audio.right.size()
+        ? static_cast<double>(audio.right[frame])
+        : left;
+    return 0.5 * (left + right);
+}
+
+double regionRms(const OwnedAudioSource& audio,
+                 std::size_t begin,
+                 std::size_t end) noexcept {
+    if (begin >= end || end > audio.frames())
+        return 0.0;
+
+    double sum = 0.0;
+    for (std::size_t i = begin; i < end; ++i) {
+        const double x = monoSampleAt(audio, i);
+        sum += x * x;
+    }
+
+    return std::sqrt(sum / static_cast<double>(end - begin));
+}
+
+bool autoLooksLikeLoop(const OwnedAudioSource& audio,
+                       const SliceSet& slices) noexcept {
+    const auto frames = static_cast<std::size_t>(audio.frames());
+    if (!audio.valid() || frames < 1024u || slices.count < 3u)
+        return false;
+
+    // A real rhythmic loop should contain useful event structure across the
+    // file, not only a strong onset followed by reverb reflections.
+    bool middleBoundary = false;
+    bool lateBoundary = false;
+    for (std::size_t i = 0; i + 1u < slices.count; ++i) {
+        const double position =
+            static_cast<double>(slices.regions[i].endFrame) /
+            static_cast<double>(frames);
+        middleBoundary = middleBoundary || position >= 0.30;
+        lateBoundary = lateBoundary || position >= 0.60;
+    }
+
+    if (!middleBoundary || !lateBoundary)
+        return false;
+
+    const std::size_t quarter = std::max<std::size_t>(1u, frames / 4u);
+    const double earlyRms = regionRms(audio, 0u, quarter);
+    const double lateRms = regionRms(audio, frames - quarter, frames);
+
+    if (!std::isfinite(earlyRms) || !std::isfinite(lateRms) ||
+        earlyRms < 1.0e-6) {
+        return false;
+    }
+
+    // EMPIRICALLY TUNED classification guard:
+    // pronounced decay across the file is one-shot behaviour even if a
+    // reverb tail contains additional flux peaks.
+    if (lateRms < earlyRms * 0.28)
+        return false;
+
+    return true;
+}
 
 } // namespace
 
@@ -203,10 +267,10 @@ SampleLoadWorkerResult SampleLoadWorker::execute(WorkItem& item) {
                 static_cast<double>(source.audio.sampleRate),
                 request.equalDivisions);
 
-            // AUTO stays conservative: only classify as a loop when analysis
-            // found at least two usable fragments. Otherwise retain the
-            // complete file as a one-shot.
-            if (source.slices.count >= 2u) {
+            // AUTO stays conservative. Multiple transient divisions alone
+            // are not enough: a pluck with reverb can contain several flux
+            // peaks while still being a decaying one-shot.
+            if (autoLooksLikeLoop(source.audio, source.slices)) {
                 request.mode = SampleLoadMode::EqualSlices;
                 source.request.mode = SampleLoadMode::EqualSlices;
                 request.preferTransient = true;
