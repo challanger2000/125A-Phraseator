@@ -176,7 +176,6 @@ tresult PLUGIN_API Processor::notify(IMessage* message) {
 
                 std::lock_guard<std::mutex> lock(sourceRecallMutex_);
                 sourceRecall_[targetIndex] = {};
-                state_.sources[targetIndex] = {};
             });
 
         return requestId != 0u ? kResultTrue : kResultFalse;
@@ -278,13 +277,6 @@ tresult PLUGIN_API Processor::notify(IMessage* message) {
 
             std::lock_guard<std::mutex> lock(sourceRecallMutex_);
             sourceRecall_[targetIndex] = resolvedRecall;
-
-            auto& meta = state_.sources[targetIndex];
-            meta.occupied = true;
-            meta.sourceId = resolvedRecall.sourceId;
-            meta.sliceCount = resolved.resolvedSliceCount;
-            meta.tonal = resolvedRecall.tonal;
-            meta.detectedRootMidi = resolvedRecall.detectedRootMidi;
         });
 
     if (requestId == 0u)
@@ -869,6 +861,25 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
     if (sampleBanks_.consumePending()) {
         sourceStatusDirty_ = true;
         const auto& newPool = sampleBanks_.activeBank().sourcePool();
+
+        // Runtime source metadata belongs to the audio thread. The loader
+        // publishes only a completed bank; after the atomic swap we rebuild
+        // metadata from that bank while preserving the user's mute state.
+        for (std::size_t i = 0; i < state_.sources.size(); ++i) {
+            const bool muted = state_.sources[i].muted;
+            SourceState meta {};
+            meta.muted = muted;
+
+            if (const auto* source = newPool.source(i)) {
+                meta.occupied = true;
+                meta.sourceId = source->sourceId;
+                meta.sliceCount = source->sliceCount;
+                meta.tonal = source->tonal;
+                meta.detectedRootMidi = source->detectedRootMidi;
+            }
+
+            state_.sources[i] = meta;
+        }
 
         bool patternChanged = false;
 
