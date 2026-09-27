@@ -15,6 +15,8 @@ constexpr Steinberg::Vst::ParamID kSourceStatusBase = 1500;
 constexpr Steinberg::int32 kSourceStatusCount = 8;
 constexpr Steinberg::Vst::ParamID kSourceMuteBase = 1600;
 constexpr Steinberg::int32 kSourceMuteCount = 8;
+constexpr Steinberg::Vst::ParamID kStepRatchetBase = 1700;
+constexpr Steinberg::int32 kStepRatchetCount = 16;
 
 constexpr Steinberg::Vst::ParamID kPatternViewBase = 1400;
 constexpr Steinberg::int32 kPatternViewCount = 16;
