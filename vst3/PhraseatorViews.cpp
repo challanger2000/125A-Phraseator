@@ -127,11 +127,11 @@ void StepIndicator::draw(VSTGUI::CDrawContext* context) {
     context->drawRect(r, VSTGUI::kDrawFilledAndStroked);
 
     if (active) {
-        const int fragment = std::clamp(
+        const int sourceIndex = std::clamp(
             static_cast<int>(std::lround(normalized * kPatternViewStepCount)) - 1,
             0, kPatternViewStepCount - 1);
         char text[8] {};
-        std::snprintf(text, sizeof(text), "%d", fragment + 1);
+        std::snprintf(text, sizeof(text), "%d", sourceIndex + 1);
         context->setFont(VSTGUI::kNormalFontSmall);
         context->setFontColor({240, 245, 250, 255});
         context->drawString(text, r, VSTGUI::kCenterText);
@@ -144,25 +144,48 @@ VSTGUI::CMouseEventResult StepIndicator::onMouseDown(
     VSTGUI::CPoint&,
     const VSTGUI::CButtonState& buttons) {
 
-    if (!buttons.isLeftButton() || !controller_)
+    if (!controller_)
         return VSTGUI::kMouseEventNotHandled;
-
-    const double normalized =
-        std::clamp(static_cast<double>(getValueNormalized()), 0.0, 1.0);
-    const bool currentlyActive = normalized > 0.0;
-    const int currentFragment = currentlyActive
-        ? std::clamp(
-            static_cast<int>(std::lround(normalized * kPatternViewStepCount)) - 1,
-            0, kPatternViewStepCount - 1)
-        : 0;
 
     const auto stepIndex = getTag() -
         static_cast<std::int32_t>(kPatternViewBase);
 
-    controller_->sendPatternStepEdit(
-        stepIndex,
-        !currentlyActive,
-        currentFragment);
+    if (buttons.isRightButton()) {
+        controller_->sendPatternStepEdit(stepIndex, false, 0);
+        return VSTGUI::kMouseDownEventHandledButDontNeedMovedOrUpEvents;
+    }
+
+    if (!buttons.isLeftButton())
+        return VSTGUI::kMouseEventNotHandled;
+
+    const double normalized =
+        std::clamp(static_cast<double>(getValueNormalized()), 0.0, 1.0);
+    const int currentSource = normalized > 0.0
+        ? std::clamp(
+            static_cast<int>(std::lround(normalized * kPatternViewStepCount)) - 1,
+            0, kPatternViewStepCount - 1)
+        : -1;
+
+    int nextSource = -1;
+    for (int pass = 0; pass < 2 && nextSource < 0; ++pass) {
+        const int begin = pass == 0 ? currentSource + 1 : 0;
+        const int end = pass == 0 ? kSourceStatusCount : currentSource + 1;
+
+        for (int source = begin; source < end; ++source) {
+            if (source < 0 || source >= kSourceStatusCount)
+                continue;
+
+            const auto status = controller_->getParamNormalized(
+                static_cast<Steinberg::Vst::ParamID>(kSourceStatusBase + source));
+            if (status > 0.0) {
+                nextSource = source;
+                break;
+            }
+        }
+    }
+
+    if (nextSource >= 0)
+        controller_->sendPatternStepEdit(stepIndex, true, nextSource);
 
     return VSTGUI::kMouseDownEventHandledButDontNeedMovedOrUpEvents;
 }
