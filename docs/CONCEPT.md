@@ -44,7 +44,6 @@ Primary actions:
 - GENERATE
 - VARIATE
 - LOCK PATTERN
-- Per-source lock
 
 ## Pitch behavior
 
@@ -70,9 +69,9 @@ The slices become ordinary phrase fragments for the generator.
 
 Keep deliberately simple:
 - tempo-synced Delay,
-- Reverb,
-- Drive,
 - Filter.
+
+Reverb and Drive remain reserved research items until separately validated.
 
 These are finishing tools, not a second product inside the product.
 
