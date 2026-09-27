@@ -242,10 +242,33 @@ Pattern PhraseEngine::vary(const Pattern& input, const GenerationSettings& raw) 
     const float amount = clamp01(raw.variation);
 
     for (std::size_t i = 0; i < output.size(); ++i) {
-        if (randomUnit() < amount) {
-            output[i] = makeStep(i, raw);
-            if (output[i].active)
-                output[i].fragment = chooseVariedFragment(input, output, i, raw);
+        if (randomUnit() >= amount)
+            continue;
+
+        if (input[i].active) {
+            auto candidate = makeStep(i, raw);
+
+            // VARIATE preserves phrase identity in the normal range: keep the
+            // rhythmic gate active and mutate musical/detail parameters.
+            candidate.active = true;
+            candidate.fragment = chooseVariedFragment(input, output, i, raw);
+            output[i] = candidate;
+
+            // Only the top creative quarter may remove existing hits.
+            if (amount > 0.75f) {
+                const float structuralChance = (amount - 0.75f) * 1.6f;
+                if (randomUnit() < structuralChance)
+                    output[i].active = false;
+            }
+        } else if (amount > 0.75f) {
+            // Likewise, only strong variation may introduce new hits.
+            const float structuralChance = (amount - 0.75f) * 1.6f;
+            if (randomUnit() < structuralChance) {
+                auto candidate = makeStep(i, raw);
+                candidate.active = true;
+                candidate.fragment = chooseVariedFragment(input, output, i, raw);
+                output[i] = candidate;
+            }
         }
     }
 
