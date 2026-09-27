@@ -45,5 +45,28 @@ int main() {
     pool.clear();
     CHECK(pool.fragmentCount() == 0);
 
+    {
+        // Source selection used by the manual pattern editor must map to the
+        // first fragment of that source independent of how many slices earlier
+        // sources contain.
+        SourcePool mapped;
+        SliceRegion loopSlices[3] {{0u, 10u}, {10u, 20u}, {20u, 30u}};
+        CHECK(mapped.setLoopSlices(0, 10u, 30u, 48000.0, false,
+                                   loopSlices, 3u));
+        CHECK(mapped.setOneShot(1, 11u, 20u, 48000.0, false));
+
+        std::size_t flat = 999u;
+        CHECK(mapped.flatIndexOf({0u, 0u}, flat));
+        CHECK(flat == 0u);
+
+        CHECK(mapped.flatIndexOf({1u, 0u}, flat));
+        CHECK(flat == 3u);
+
+        FragmentRef back {};
+        CHECK(mapped.fragmentAt(flat, back));
+        CHECK(back.sourceIndex == 1u);
+        CHECK(back.sliceIndex == 0u);
+    }
+
     return 0;
 }
