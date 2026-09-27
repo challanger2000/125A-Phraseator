@@ -106,5 +106,51 @@ int main() {
         CHECK(std::fabs(jumpedR[0]) < 1.0e-8f);
     }
 
+
+    {
+        // Long one-shots are phrase-monophonic: an empty step lets the current
+        // voice continue, but the next active step from any source chokes it.
+        SourcePool chokePool;
+        constexpr std::uint32_t frames = 7000u;
+        CHECK(chokePool.setOneShot(0, 10u, frames, 48000.0, false));
+        CHECK(chokePool.setOneShot(1, 11u, frames, 48000.0, false));
+
+        static float a[frames];
+        static float b[frames];
+        for (std::uint32_t i = 0; i < frames; ++i) {
+            a[i] = 0.5f;
+            b[i] = 0.25f;
+        }
+
+        std::array<AudioBufferView, kMaxSources> chokeBuffers {};
+        chokeBuffers[0] = {a, nullptr, frames, false};
+        chokeBuffers[1] = {b, nullptr, frames, false};
+
+        Pattern chokePattern {};
+        chokePattern[0].active = true;
+        chokePattern[0].fragment = 0;
+        chokePattern[0].velocity = 1.0f;
+        chokePattern[0].pan = 0.0f;
+        // Step 1 is empty: source 0 must keep sounding.
+        chokePattern[2].active = true;
+        chokePattern[2].fragment = 1;
+        chokePattern[2].velocity = 1.0f;
+        chokePattern[2].pan = 0.0f;
+
+        PhraseScheduler chokeScheduler;
+        chokeScheduler.setPattern(chokePattern);
+        chokeScheduler.prepare(48000.0, 120.0);
+
+        std::vector<float> l(12120u);
+        std::vector<float> r(12120u);
+        CHECK(chokeScheduler.processBlock(
+            chokePool, chokeBuffers, 0.0, true, l.data(), r.data(), l.size()));
+
+        CHECK(l[6000] > 0.30f); // empty step: original long sample continues
+        // Step 2 begins at sample 12000. After the short de-click release,
+        // only source 1 should remain.
+        CHECK(std::fabs(l[12110] - 0.25f * centerGain) < 1.0e-4f);
+    }
+
     return 0;
 }
