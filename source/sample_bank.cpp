@@ -2,6 +2,24 @@
 
 namespace phraseator {
 
+SampleBank::SampleBank(const SampleBank& other)
+: pool_(other.pool_),
+  audio_(other.audio_) {
+    for (std::size_t i = 0; i < kMaxSources; ++i)
+        refreshView(i);
+}
+
+SampleBank& SampleBank::operator=(const SampleBank& other) {
+    if (this == &other)
+        return *this;
+
+    pool_ = other.pool_;
+    audio_ = other.audio_;
+    for (std::size_t i = 0; i < kMaxSources; ++i)
+        refreshView(i);
+    return *this;
+}
+
 void SampleBank::clear() noexcept {
     pool_.clear();
     views_ = {};
