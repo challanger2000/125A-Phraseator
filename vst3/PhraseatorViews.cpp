@@ -167,25 +167,28 @@ VSTGUI::CMouseEventResult StepIndicator::onMouseDown(
         : -1;
 
     int nextSource = -1;
-    for (int pass = 0; pass < 2 && nextSource < 0; ++pass) {
-        const int begin = pass == 0 ? currentSource + 1 : 0;
-        const int end = pass == 0 ? kSourceStatusCount : currentSource + 1;
 
-        for (int source = begin; source < end; ++source) {
-            if (source < 0 || source >= kSourceStatusCount)
-                continue;
+    // Cycle forward only. Reaching the end clears the step; the next click
+    // starts again at the first loaded/unmuted source. This makes deletion
+    // available with ordinary left-click and avoids host-specific right-click
+    // interception by VST3Editor context menus.
+    const int begin = currentSource >= 0 ? currentSource + 1 : 0;
+    for (int source = begin; source < kSourceStatusCount; ++source) {
+        const auto status = controller_->getParamNormalized(
+            static_cast<Steinberg::Vst::ParamID>(kSourceStatusBase + source));
+        const auto muted = controller_->getParamNormalized(
+            static_cast<Steinberg::Vst::ParamID>(kSourceMuteBase + source));
 
-            const auto status = controller_->getParamNormalized(
-                static_cast<Steinberg::Vst::ParamID>(kSourceStatusBase + source));
-            if (status > 0.0) {
-                nextSource = source;
-                break;
-            }
+        if (status > 0.0 && muted < 0.5) {
+            nextSource = source;
+            break;
         }
     }
 
     if (nextSource >= 0)
         controller_->sendPatternStepEdit(stepIndex, true, nextSource);
+    else
+        controller_->sendPatternStepEdit(stepIndex, false, 0);
 
     return VSTGUI::kMouseDownEventHandledButDontNeedMovedOrUpEvents;
 }
