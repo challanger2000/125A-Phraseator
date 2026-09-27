@@ -17,6 +17,7 @@ public:
     void setPattern(const Pattern& pattern) noexcept { pattern_ = pattern; }
 
     void prepare(double sampleRate, double tempoBpm) noexcept;
+    void setPanAmount(float amount) noexcept { player_.setPanAmount(amount); }
 
     bool processBlock(const SourcePool& pool,
                       const std::array<AudioBufferView, kMaxSources>& buffers,
