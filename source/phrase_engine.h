@@ -35,6 +35,8 @@ struct GenerationSettings {
     float pitch {0.0f};
     float pan {0.0f};
     float groove {0.0f};
+    float velocity {0.50f};
+    std::int32_t octaveMode {0};
     std::uint16_t fragmentCount {1};
     std::array<FragmentSourceSpan, kMaxGenerationSources> sourceSpans {};
     std::uint8_t sourceSpanCount {0};
