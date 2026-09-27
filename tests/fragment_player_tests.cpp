@@ -128,5 +128,38 @@ int main() {
         CHECK(middle.left > 0.95f);
     }
 
+
+    {
+        // Choke release is time-based: ~2 ms at both 48 and 96 kHz.
+        SourcePool chokePool;
+        constexpr std::uint32_t frames = 512u;
+        CHECK(chokePool.setOneShot(0, 9u, frames, 48000.0, false));
+
+        float constant[frames] {};
+        for (auto& x : constant) x = 1.0f;
+        std::array<AudioBufferView, kMaxSources> chokeBuffers {};
+        chokeBuffers[0] = {constant, nullptr, frames, false};
+
+        FragmentPlayer p48;
+        p48.prepare(48000.0);
+        CHECK(p48.trigger(chokePool, chokeBuffers, ref, 1.0f, 0.0f, 0.0f));
+        p48.chokeAll();
+        for (int i = 0; i < 95; ++i)
+            p48.processSample(chokePool, chokeBuffers);
+        CHECK(p48.activeVoiceCount() == 1u);
+        p48.processSample(chokePool, chokeBuffers);
+        CHECK(p48.activeVoiceCount() == 0u);
+
+        FragmentPlayer p96;
+        p96.prepare(96000.0);
+        CHECK(p96.trigger(chokePool, chokeBuffers, ref, 1.0f, 0.0f, 0.0f));
+        p96.chokeAll();
+        for (int i = 0; i < 191; ++i)
+            p96.processSample(chokePool, chokeBuffers);
+        CHECK(p96.activeVoiceCount() == 1u);
+        p96.processSample(chokePool, chokeBuffers);
+        CHECK(p96.activeVoiceCount() == 0u);
+    }
+
     return 0;
 }
