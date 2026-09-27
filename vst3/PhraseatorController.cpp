@@ -43,7 +43,7 @@ tresult PLUGIN_API Controller::initialize(FUnknown* context) {
                             ParameterInfo::kCanAutomate, pid(ParameterId::Density));
     parameters.addParameter(STR16("Variate Depth"), STR16("%"), 0, ParameterDefaults::variation,
                             ParameterInfo::kCanAutomate, pid(ParameterId::Variation));
-    parameters.addParameter(STR16("Repeat"), STR16("%"), 0, ParameterDefaults::repeat,
+    parameters.addParameter(STR16("Motif Reuse"), STR16("%"), 0, ParameterDefaults::repeat,
                             ParameterInfo::kCanAutomate, pid(ParameterId::Repeat));
     parameters.addParameter(STR16("Pitch"), STR16("%"), 0, ParameterDefaults::pitch,
                             ParameterInfo::kCanAutomate, pid(ParameterId::Pitch));
