@@ -153,10 +153,6 @@ Step PhraseEngine::makeStep(std::size_t stepIndex, const GenerationSettings& raw
         step.pitchSemitones += randomUnit() < 0.5f ? -12.0f : 12.0f;
     }
 
-    if (settings.repeat > 0.0f && randomUnit() < settings.repeat * 0.35f) {
-        step.repeats = randomUnit() < 0.75f ? 2 : 3;
-    }
-
     // Groove currently shifts weak 16ths only. Later versions can use swing templates.
     if ((stepIndex & 1u) != 0u) {
         step.timingOffset = settings.groove * 0.20f;
