@@ -41,6 +41,7 @@ struct GenerationSettings {
     std::uint16_t fragmentCount {1};
     std::array<FragmentSourceSpan, kMaxGenerationSources> sourceSpans {};
     std::uint8_t sourceSpanCount {0};
+    bool sourceSpansAuthoritative {false};
 };
 
 class PhraseEngine {
@@ -58,6 +59,8 @@ private:
     Step makeStep(std::size_t stepIndex, const GenerationSettings& settings);
     bool shouldActivate(std::size_t stepIndex, float density);
     std::uint16_t chooseFragment(const GenerationSettings& settings);
+    static bool fragmentSelectable(std::uint16_t fragment,
+                                   const GenerationSettings& settings) noexcept;
     float choosePitchSemitones(float amount);
     void assignMusicalFragments(Pattern& pattern, const GenerationSettings& settings);
     std::uint16_t chooseVariedFragment(const Pattern& input,
