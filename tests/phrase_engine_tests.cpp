@@ -489,5 +489,61 @@ int main() {
         CHECK(changedBeyondFirst);
     }
 
+
+    {
+        // Runtime source spans are authoritative. With every source muted,
+        // GENERATE must produce silence and VARIATE must leave an existing
+        // pattern untouched rather than falling back to flat fragment choice.
+        GenerationSettings muted;
+        muted.density = 1.0f;
+        muted.variation = 1.0f;
+        muted.fragmentCount = 4u;
+        muted.sourceSpansAuthoritative = true;
+        muted.sourceSpanCount = 0u;
+
+        PhraseEngine engine(0xA11M0u);
+        const auto generated = engine.generate(muted);
+        for (const auto& step : generated)
+            CHECK(!step.active);
+
+        Pattern base {};
+        base[0].active = true;
+        base[0].fragment = 2u;
+        base[4].active = true;
+        base[4].fragment = 3u;
+
+        const auto varied = engine.vary(base, muted);
+        for (std::size_t i = 0; i < base.size(); ++i) {
+            CHECK(varied[i].active == base[i].active);
+            CHECK(varied[i].fragment == base[i].fragment);
+            CHECK(varied[i].repeats == base[i].repeats);
+        }
+    }
+
+    {
+        // Continuity/preservation paths in VARIATE must not select fragments
+        // outside authoritative spans. Fragment 0 is excluded; only 3 is live.
+        Pattern base {};
+        for (std::size_t i = 0; i < base.size(); ++i) {
+            base[i].active = true;
+            base[i].fragment = (i & 1u) ? 0u : 3u;
+        }
+
+        GenerationSettings settings;
+        settings.variation = 1.0f;
+        settings.fragmentCount = 4u;
+        settings.sourceSpansAuthoritative = true;
+        settings.sourceSpanCount = 1u;
+        settings.sourceSpans[0] = {3u, 1u};
+
+        PhraseEngine engine(0xA11C0DEu);
+        const auto varied = engine.vary(base, settings);
+        for (const auto& step : varied) {
+            if (!step.active)
+                continue;
+            CHECK(step.fragment == 3u);
+        }
+    }
+
     return 0;
 }
