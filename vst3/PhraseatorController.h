@@ -49,7 +49,7 @@ public:
                            Steinberg::int32 sourceIndex);
     Steinberg::tresult sendPatternStepEdit(Steinberg::int32 stepIndex,
                                            bool active,
-                                           Steinberg::int32 fragment);
+                                           Steinberg::int32 sourceIndex);
 
 private:
     void openSampleSelector(int sourceIndex, bool asLoop);
