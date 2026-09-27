@@ -55,6 +55,7 @@ private:
     Step makeStep(std::size_t stepIndex, const GenerationSettings& settings);
     bool shouldActivate(std::size_t stepIndex, float density);
     std::uint16_t chooseFragment(const GenerationSettings& settings);
+    float choosePitchSemitones(float amount);
     void assignMusicalFragments(Pattern& pattern, const GenerationSettings& settings);
     std::uint16_t chooseVariedFragment(const Pattern& input,
                                        const Pattern& output,
