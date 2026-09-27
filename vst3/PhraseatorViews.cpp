@@ -13,6 +13,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cstdio>
+#include <filesystem>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -151,22 +152,77 @@ bool SourceSlotView::extractWavePath(VSTGUI::IDataPackage* drag,
     if (!drag)
         return false;
 
-    const auto count = drag->getCount();
-    for (std::uint32_t i = 0; i < count; ++i) {
-        if (drag->getDataType(i) != VSTGUI::IDataPackage::kFilePath)
-            continue;
-
-        const void* buffer = nullptr;
-        VSTGUI::IDataPackage::Type type {};
-        const auto size = drag->getData(i, buffer, type);
-        if (size == 0 || buffer == nullptr)
-            continue;
-
-        std::string candidate(
-            reinterpret_cast<const char*>(buffer),
-            static_cast<std::size_t>(size));
-        while (!candidate.empty() && candidate.back() == '\0')
+    const auto normalizeCandidate = [](std::string candidate) -> std::string {
+        while (!candidate.empty() &&
+               (candidate.back() == '\0' ||
+                candidate.back() == '\r' ||
+                candidate.back() == '\n')) {
             candidate.pop_back();
+        }
+
+        const auto first = candidate.find_first_not_of(" \t\r\n");
+        const auto last = candidate.find_last_not_of(" \t\r\n");
+        if (first == std::string::npos)
+            return {};
+        candidate = candidate.substr(first, last - first + 1u);
+
+        if (candidate.size() >= 2u &&
+            ((candidate.front() == '"' && candidate.back() == '"') ||
+             (candidate.front() == '\'' && candidate.back() == '\''))) {
+            candidate = candidate.substr(1u, candidate.size() - 2u);
+        }
+
+        constexpr std::string_view filePrefix = "file:///";
+        if (candidate.size() >= filePrefix.size()) {
+            bool hasFilePrefix = true;
+            for (std::size_t i = 0; i < filePrefix.size(); ++i) {
+                if (std::tolower(static_cast<unsigned char>(candidate[i])) !=
+                    filePrefix[i]) {
+                    hasFilePrefix = false;
+                    break;
+                }
+            }
+
+            if (hasFilePrefix) {
+                candidate.erase(0u, filePrefix.size());
+                std::replace(candidate.begin(), candidate.end(), '/', '\\');
+
+                // Decode the small set of URL escapes commonly produced by
+                // Windows/host browser file URLs. Unknown escapes are kept.
+                std::string decoded;
+                decoded.reserve(candidate.size());
+
+                const auto hexValue = [](char ch) noexcept -> int {
+                    if (ch >= '0' && ch <= '9') return ch - '0';
+                    if (ch >= 'a' && ch <= 'f') return 10 + ch - 'a';
+                    if (ch >= 'A' && ch <= 'F') return 10 + ch - 'A';
+                    return -1;
+                };
+
+                for (std::size_t i = 0; i < candidate.size(); ++i) {
+                    if (candidate[i] == '%' && i + 2u < candidate.size()) {
+                        const int hi = hexValue(candidate[i + 1u]);
+                        const int lo = hexValue(candidate[i + 2u]);
+                        if (hi >= 0 && lo >= 0) {
+                            decoded.push_back(
+                                static_cast<char>((hi << 4) | lo));
+                            i += 2u;
+                            continue;
+                        }
+                    }
+                    decoded.push_back(candidate[i]);
+                }
+
+                candidate = std::move(decoded);
+            }
+        }
+
+        return candidate;
+    };
+
+    const auto isWavePath = [](const std::string& candidate) {
+        if (candidate.empty())
+            return false;
 
         std::string lower = candidate;
         std::transform(lower.begin(), lower.end(), lower.begin(),
@@ -174,10 +230,64 @@ bool SourceSlotView::extractWavePath(VSTGUI::IDataPackage* drag,
                            return static_cast<char>(std::tolower(ch));
                        });
 
-        if (lower.size() >= 4u &&
-            lower.compare(lower.size() - 4u, 4u, ".wav") == 0) {
-            path = std::move(candidate);
-            return true;
+        if (lower.size() < 4u ||
+            lower.compare(lower.size() - 4u, 4u, ".wav") != 0) {
+            return false;
+        }
+
+        std::error_code ec;
+        const auto fsPath = std::filesystem::u8path(candidate);
+        return std::filesystem::is_regular_file(fsPath, ec) && !ec;
+    };
+
+    const auto count = drag->getCount();
+    for (std::uint32_t i = 0; i < count; ++i) {
+        const auto advertisedType = drag->getDataType(i);
+        if (advertisedType != VSTGUI::IDataPackage::kFilePath &&
+            advertisedType != VSTGUI::IDataPackage::kText) {
+            continue;
+        }
+
+        const void* buffer = nullptr;
+        VSTGUI::IDataPackage::Type type {};
+        const auto size = drag->getData(i, buffer, type);
+        if (size == 0 || buffer == nullptr)
+            continue;
+
+        if (type != VSTGUI::IDataPackage::kFilePath &&
+            type != VSTGUI::IDataPackage::kText) {
+            continue;
+        }
+
+        std::string raw(
+            reinterpret_cast<const char*>(buffer),
+            static_cast<std::size_t>(size));
+
+        // Some hosts expose CF_UNICODETEXT before CF_HDROP. VSTGUI maps that
+        // to kText, so consider each text line as a possible file path instead
+        // of rejecting the package solely because it is not kFilePath.
+        std::size_t start = 0u;
+        while (start <= raw.size()) {
+            const auto end = raw.find_first_of("\r\n", start);
+            auto candidate = normalizeCandidate(
+                raw.substr(start,
+                           end == std::string::npos
+                               ? std::string::npos
+                               : end - start));
+
+            if (isWavePath(candidate)) {
+                path = std::move(candidate);
+                return true;
+            }
+
+            if (end == std::string::npos)
+                break;
+
+            start = end + 1u;
+            while (start < raw.size() &&
+                   (raw[start] == '\r' || raw[start] == '\n')) {
+                ++start;
+            }
         }
     }
 
