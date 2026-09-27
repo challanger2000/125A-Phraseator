@@ -126,6 +126,13 @@ if(PHRASEATOR_BUILD_VST3)
     )
     FetchContent_MakeAvailable(vst3sdk)
 
+    if(WIN32)
+        include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/PatchVstguiWin32Drop.cmake")
+        phraseator_patch_vstgui_windows_drop(
+            "${vst3sdk_SOURCE_DIR}/vstgui4/vstgui/lib/platform/win32/win32datapackage.cpp"
+        )
+    endif()
+
     set(PHRASEATOR_VST3_SOURCES
         vst3/PhraseatorIDs.h
         vst3/PhraseatorProcessor.h
