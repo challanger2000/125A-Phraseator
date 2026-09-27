@@ -53,6 +53,37 @@ int main() {
     }
 
     {
+        // Exact tempo-sync regression at 120 BPM / 48 kHz.
+        // Quarter note = 24000 samples.
+        const int expected[7] {24000, 12000, 18000, 8000, 6000, 9000, 4000};
+
+        for (int division = 0; division < 7; ++division) {
+            PhraseFx measured;
+            measured.prepare(48000.0);
+            measured.setDelayAmount(1.0f);
+            measured.setDelayDivision(division);
+
+            std::vector<float> settleL(4800u, 0.0f);
+            std::vector<float> settleR(4800u, 0.0f);
+            measured.processBlock(
+                settleL.data(), settleR.data(), settleL.size(), 120.0);
+
+            const std::size_t count =
+                static_cast<std::size_t>(expected[division] + 2);
+            std::vector<float> l(count, 0.0f);
+            std::vector<float> r(count, 0.0f);
+            l[0] = 1.0f;
+
+            CHECK(measured.processBlock(
+                l.data(), r.data(), l.size(), 120.0));
+
+            const int target = expected[division];
+            CHECK(std::fabs(l[static_cast<std::size_t>(target)]) > 0.001f ||
+                  std::fabs(r[static_cast<std::size_t>(target)]) > 0.001f);
+        }
+    }
+
+    {
         fx.reset();
         fx.setDelayAmount(0.0f);
         fx.setFilterAmount(1.0f);
@@ -72,9 +103,10 @@ int main() {
     {
         // Measure the filter macro at multiple frequencies. 25% should leave
         // the mid band largely intact; 100% should clearly attenuate highs.
-        const auto measureGain = [&](float amount, double frequency) {
+        const auto measureGain = [&](float amount, double frequency, int mode) {
             PhraseFx measured;
             measured.prepare(48000.0);
+            measured.setFilterMode(mode);
             measured.setFilterAmount(amount);
 
             constexpr std::size_t count = 48000u;
@@ -105,15 +137,23 @@ int main() {
             return std::sqrt(outSq / inSq);
         };
 
-        const double subtle1k = measureGain(0.25f, 1000.0);
-        const double strong1k = measureGain(1.0f, 1000.0);
-        const double subtle10k = measureGain(0.25f, 10000.0);
-        const double strong10k = measureGain(1.0f, 10000.0);
+        const double lpSubtle1k = measureGain(0.25f, 1000.0, 0);
+        const double lpStrong1k = measureGain(1.0f, 1000.0, 0);
+        const double lpSubtle10k = measureGain(0.25f, 10000.0, 0);
+        const double lpStrong10k = measureGain(1.0f, 10000.0, 0);
 
-        CHECK(subtle1k > 0.90);
-        CHECK(strong1k > 0.60);
-        CHECK(subtle10k > strong10k);
-        CHECK(strong10k < 0.20);
+        CHECK(lpSubtle1k > 0.90);
+        CHECK(lpStrong1k > 0.60);
+        CHECK(lpSubtle10k > lpStrong10k);
+        CHECK(lpStrong10k < 0.20);
+
+        const double hpStrong100 = measureGain(1.0f, 100.0, 1);
+        const double hpStrong1k = measureGain(1.0f, 1000.0, 1);
+        const double hpStrong10k = measureGain(1.0f, 10000.0, 1);
+
+        CHECK(hpStrong100 < 0.10);
+        CHECK(hpStrong1k < hpStrong10k);
+        CHECK(hpStrong10k > 0.80);
     }
 
 
