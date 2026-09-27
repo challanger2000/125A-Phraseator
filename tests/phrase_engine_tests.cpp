@@ -117,12 +117,16 @@ int main() {
 
         int changedSteps = 0;
         int preservedSteps = 0;
+        int structuralChanges = 0;
 
         PhraseEngine variationEngine(0xB4531u);
         for (int n = 0; n < 256; ++n) {
             const auto varied = variationEngine.vary(base, moderate);
 
             for (std::size_t i = 0; i < kStepCount; ++i) {
+                if (varied[i].active != base[i].active)
+                    ++structuralChanges;
+
                 const bool same =
                     varied[i].active == base[i].active &&
                     varied[i].fragment == base[i].fragment &&
@@ -140,6 +144,7 @@ int main() {
 
         CHECK(changedSteps > 0);
         CHECK(preservedSteps > changedSteps);
+        CHECK(structuralChanges == 0);
     }
 
     {
