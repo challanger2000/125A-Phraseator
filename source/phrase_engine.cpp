@@ -126,18 +126,32 @@ Step PhraseEngine::makeStep(std::size_t stepIndex, const GenerationSettings& raw
     settings.pitch = clamp01(settings.pitch);
     settings.pan = clamp01(settings.pan);
     settings.groove = clamp01(settings.groove);
+    settings.velocity = clamp01(settings.velocity);
+    settings.octaveMode = std::clamp(settings.octaveMode, 0, 3);
 
     Step step;
     step.active = shouldActivate(stepIndex, settings.density);
     if (!step.active)
         return step;
 
-    step.velocity = 0.72f + randomUnit() * 0.28f;
+    // VELOCITY is a depth control: 0% keeps every generated hit at unity,
+    // higher values progressively introduce musical level variation.
+    step.velocity = 1.0f - randomUnit() * (0.28f * settings.velocity);
 
     const float signedRandom = randomUnit() * 2.0f - 1.0f;
     step.pan = signedRandom * settings.pan;
 
     step.pitchSemitones = choosePitchSemitones(settings.pitch);
+
+    // OCTAVE is deliberately discrete and predictable. +1/-1 transpose the
+    // generated phrase by one octave; +/-1 chooses the octave direction per hit.
+    if (settings.octaveMode == 1) {
+        step.pitchSemitones += 12.0f;
+    } else if (settings.octaveMode == 2) {
+        step.pitchSemitones -= 12.0f;
+    } else if (settings.octaveMode == 3) {
+        step.pitchSemitones += randomUnit() < 0.5f ? -12.0f : 12.0f;
+    }
 
     if (settings.repeat > 0.0f && randomUnit() < settings.repeat * 0.35f) {
         step.repeats = randomUnit() < 0.75f ? 2 : 3;
