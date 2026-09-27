@@ -220,6 +220,34 @@ Steinberg::tresult Controller::sendActionCommand(const char* messageId) {
     return sendMessage(message);
 }
 
+Steinberg::tresult Controller::sendPatternStepEdit(
+    Steinberg::int32 stepIndex,
+    bool active,
+    Steinberg::int32 fragment) {
+
+    if (stepIndex < 0 || stepIndex >= kPatternViewCount ||
+        fragment < 0 || fragment >= kPatternViewStepCount) {
+        return Steinberg::kInvalidArgument;
+    }
+
+    auto message = Steinberg::owned(allocateMessage());
+    if (!message)
+        return Steinberg::kResultFalse;
+
+    message->setMessageID(kMsgPatternStep);
+    auto* attributes = message->getAttributes();
+    if (!attributes)
+        return Steinberg::kResultFalse;
+
+    if (attributes->setInt(kAttrStepIndex, stepIndex) != Steinberg::kResultTrue ||
+        attributes->setInt(kAttrStepActive, active ? 1 : 0) != Steinberg::kResultTrue ||
+        attributes->setInt(kAttrStepFragment, fragment) != Steinberg::kResultTrue) {
+        return Steinberg::kResultFalse;
+    }
+
+    return sendMessage(message);
+}
+
 void Controller::openSampleSelector(int sourceIndex, bool asLoop) {
     if (!editor_ || sourceIndex < 0 || sourceIndex >= 8) return;
     auto* selector = VSTGUI::CNewFileSelector::create(editor_->getFrame(), VSTGUI::CNewFileSelector::kSelectFile);
