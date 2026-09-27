@@ -11,6 +11,8 @@ enum class ParameterId : std::uint32_t {
     Pitch = 1003,
     Pan = 1004,
     Groove = 1005,
+    Velocity = 1006,
+    OctaveMode = 1007,
 
     KeyRoot = 1100,
     ScaleMode = 1101,
@@ -36,6 +38,8 @@ struct ParameterDefaults {
     static constexpr float pitch = 0.0f;
     static constexpr float pan = 0.0f;
     static constexpr float groove = 0.0f;
+    static constexpr float velocity = 0.50f;
+    static constexpr std::int32_t octaveMode = 0; // OFF
 
     static constexpr float delayAmount = 0.0f;
     static constexpr std::int32_t delayDivision = 2; // 1/8 (0=OFF)
