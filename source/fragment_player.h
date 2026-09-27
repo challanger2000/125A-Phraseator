@@ -15,7 +15,7 @@ struct VoiceState {
     double position {0.0};
     double increment {1.0};
     float gain {1.0f};
-    float pan {0.0f};
+    float panShape {0.0f};
     std::uint32_t startFrame {0};
     std::uint32_t endFrame {0};
     double fadeFrames {0.0};
@@ -47,6 +47,7 @@ public:
 
     std::size_t activeVoiceCount() const noexcept;
     void chokeAll() noexcept;
+    void setPanAmount(float amount) noexcept;
 
 private:
     static float clamp(float v, float lo, float hi) noexcept;
@@ -55,6 +56,7 @@ private:
 
     std::array<VoiceState, kMaxVoices> voices_ {};
     double outputSampleRate_ {48000.0};
+    float panAmount_ {1.0f};
 };
 
 } // namespace phraseator
