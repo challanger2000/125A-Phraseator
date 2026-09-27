@@ -397,7 +397,7 @@ void Processor::applyNormalizedParameter(ParamID id, double rawValue) noexcept {
             break;
         case static_cast<ParamID>(ParameterId::Pan):
             state_.pan = static_cast<float>(value);
-            refreshSchedulerPattern();
+            scheduler_.setPanAmount(state_.pan);
             break;
         case static_cast<ParamID>(ParameterId::Groove):
             state_.groove = static_cast<float>(value);
@@ -636,7 +636,10 @@ void Processor::refreshSchedulerPattern() noexcept {
 
         const float panDraw =
             liveUnit(liveHash(base, 0u, 0u, 0x2202u)) * 2.0f - 1.0f;
-        step.pan = panDraw * state_.pan;
+        // Store the per-step pan tendency unscaled. The global PAN macro is
+        // applied continuously in the player so already-running long voices
+        // can move immediately without retriggering.
+        step.pan = panDraw;
 
         step.timingOffset = (i & 1u) != 0u
             ? state_.groove * 0.20f
@@ -656,15 +659,24 @@ void Processor::refreshSchedulerPattern() noexcept {
         }
     }
 
-    applyPitchToKey(playback);
-
+    // MIDI transpose belongs before scale quantization. With Pitch To Key
+    // enabled, Root/Scale are the final musical authority.
     for (auto& step : playback) {
         step.pitchSemitones = std::clamp(
             step.pitchSemitones + midiTransposeSemitones_,
             -48.0f, 48.0f);
     }
 
+    applyPitchToKey(playback);
+
+    for (auto& step : playback) {
+        step.pitchSemitones = std::clamp(
+            step.pitchSemitones,
+            -48.0f, 48.0f);
+    }
+
     scheduler_.setPattern(playback);
+    scheduler_.setPanAmount(state_.pan);
 }
 
 void Processor::handleMidiEvent(const Event& event) noexcept {
