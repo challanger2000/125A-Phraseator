@@ -88,7 +88,8 @@
     <view class="CView" custom-view-name="PhraseGenerate" control-tag="1300" origin="346,216" size="250,54"/>
     <view class="CView" custom-view-name="PhraseVariate" control-tag="1301" origin="612,216" size="150,54"/>
     <view class="CSegmentButton" origin="780,216" size="212,24" control-tag="1302" style="horizontal" segment-names="UNLOCKED,LOCKED" font="Label"/>
-    <view class="CSegmentButton" origin="780,246" size="212,24" control-tag="1303" style="horizontal" segment-names="CONTINUE,RESTART" font="Small"/>
+    <view class="CTextLabel" origin="780,242" size="212,12" title="PHRASE MODE" transparent="true" font-color="Muted" font="Small" text-alignment="center"/>
+    <view class="CSegmentButton" origin="780,254" size="212,24" control-tag="1303" style="horizontal" segment-names="CONTINUE,RETRIGGER" font="Small"/>
 
     <view class="CViewContainer" origin="320,310" size="470,250" transparent="false" background-color="Panel2"/>
     <view class="CTextLabel" origin="338,324" size="200,18" title="GENERATION MACROS" transparent="true" font-color="Muted" font="Section"/>
