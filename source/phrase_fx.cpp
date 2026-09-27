@@ -97,7 +97,14 @@ void PhraseFx::setDelayAmount(float amount) noexcept {
 }
 
 void PhraseFx::setDelayDivision(std::int32_t division) noexcept {
-    delayDivision_ = std::clamp<std::int32_t>(division, 0, 7);
+    const auto next = std::clamp<std::int32_t>(division, 0, 7);
+    if (next == 0 && delayDivision_ != 0) {
+        ++delayGeneration_;
+        if (delayGeneration_ == 0u)
+            delayGeneration_ = 1u;
+        writeIndex_ = 0u;
+    }
+    delayDivision_ = next;
 }
 
 void PhraseFx::setFilterAmount(float amount) noexcept {
@@ -174,26 +181,30 @@ bool PhraseFx::processBlock(float* left,
         float inR = right[i];
 
         if (!delayLeft_.empty()) {
-            const double readPos =
-                static_cast<double>(writeIndex_) - delaySamplesCurrent_;
+            const bool delayActive =
+                delayEnabled &&
+                (delayTarget_ > 0.0f || delayCurrent_ > 0.000001f);
 
-            const float delayedL = readDelay(delayLeft_, delayGenerations_, readPos);
-            const float delayedR = readDelay(delayRight_, delayGenerations_, readPos);
+            if (delayActive) {
+                const double readPos =
+                    static_cast<double>(writeIndex_) - delaySamplesCurrent_;
 
-            constexpr float feedback = 0.34f;
-            delayLeft_[writeIndex_] = inL + delayedR * feedback;
-            delayRight_[writeIndex_] = inR + delayedL * feedback;
-            delayGenerations_[writeIndex_] = delayGeneration_;
+                const float delayedL = readDelay(delayLeft_, delayGenerations_, readPos);
+                const float delayedR = readDelay(delayRight_, delayGenerations_, readPos);
 
-            const float mix = delayEnabled
-                ? std::clamp(delayCurrent_, 0.0f, 1.0f)
-                : 0.0f;
-            const float dryGain = 1.0f - mix;
-            const float wetGain = mix;
-            inL = inL * dryGain + delayedL * wetGain;
-            inR = inR * dryGain + delayedR * wetGain;
+                constexpr float feedback = 0.34f;
+                delayLeft_[writeIndex_] = inL + delayedR * feedback;
+                delayRight_[writeIndex_] = inR + delayedL * feedback;
+                delayGenerations_[writeIndex_] = delayGeneration_;
 
-            writeIndex_ = (writeIndex_ + 1u) % delayLeft_.size();
+                const float mix = std::clamp(delayCurrent_, 0.0f, 1.0f);
+                const float dryGain = 1.0f - mix;
+                const float wetGain = mix;
+                inL = inL * dryGain + delayedL * wetGain;
+                inR = inR * dryGain + delayedR * wetGain;
+
+                writeIndex_ = (writeIndex_ + 1u) % delayLeft_.size();
+            }
         }
 
         if (filterCurrent_ > 0.000001f) {
