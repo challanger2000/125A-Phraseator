@@ -50,6 +50,7 @@ struct FragmentRef {
 class SourcePool {
 public:
     void clear() noexcept;
+    bool clearSource(std::size_t sourceIndex) noexcept;
 
     bool setOneShot(std::size_t sourceIndex,
                     std::uint32_t sourceId,

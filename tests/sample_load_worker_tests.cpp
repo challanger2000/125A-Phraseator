@@ -251,6 +251,26 @@ int main() {
     CHECK(source3->slices[1].startFrame == 10000u);
     CHECK(source3->slices[1].endFrame == 48000u);
 
+    // Clearing a slot must remove both its audio and all fragments from the
+    // published bank, without requiring a file path.
+    const auto beforeClearFragments =
+        exchange.activeBank().sourcePool().fragmentCount();
+
+    SampleLoadRequest clearSlot;
+    clearSlot.sourceIndex = 1u;
+    clearSlot.mode = SampleLoadMode::Clear;
+
+    const auto clearId = worker.requestLoad(clearSlot, true);
+    CHECK(clearId != 0u);
+    CHECK(worker.waitForResult(clearId, result, std::chrono::seconds(2)));
+    CHECK(result.ok());
+    CHECK(exchange.consumePending());
+
+    CHECK(exchange.activeBank().sourcePool().source(1u) == nullptr);
+    CHECK(!exchange.activeBank().buffers()[1u].valid());
+    CHECK(exchange.activeBank().sourcePool().fragmentCount() + 4u ==
+          beforeClearFragments);
+
     std::filesystem::remove(path, ec);
     CHECK(!ec);
     ec.clear();

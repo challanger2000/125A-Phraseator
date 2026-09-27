@@ -23,6 +23,7 @@ using namespace Steinberg::Vst;
 namespace {
 constexpr int32 kLoadOneBase = 2000;
 constexpr int32 kLoadLoopBase = 2100;
+constexpr int32 kClearBase = 2200;
 
 ParamID pid(ParameterId id) noexcept {
     return static_cast<ParamID>(id);
@@ -186,6 +187,8 @@ void Controller::valueChanged(VSTGUI::CControl* control) {
         openSampleSelector(tag - kLoadOneBase, false);
     else if (tag >= kLoadLoopBase && tag < kLoadLoopBase + 8)
         openSampleSelector(tag - kLoadLoopBase, true);
+    else if (tag >= kClearBase && tag < kClearBase + 8)
+        sendClearSample(tag - kClearBase);
     control->setValueNormalized(0.0f);
     control->invalid();
 }
@@ -341,6 +344,28 @@ Steinberg::tresult Controller::sendLoadSample(const Steinberg::Vst::TChar* path,
         attributes->setFloat(kAttrDetectedRootMidi, detectedRootMidi) != kResultTrue) {
         return kResultFalse;
     }
+
+    return sendMessage(message);
+}
+
+Steinberg::tresult Controller::sendClearSample(Steinberg::int32 sourceIndex) {
+    using namespace Steinberg;
+    using namespace Steinberg::Vst;
+
+    if (sourceIndex < 0 || sourceIndex >= static_cast<int32>(kMaxSources))
+        return kInvalidArgument;
+
+    auto message = owned(allocateMessage());
+    if (!message)
+        return kResultFalse;
+
+    message->setMessageID(kMsgClearSample);
+    auto* attributes = message->getAttributes();
+    if (!attributes)
+        return kResultFalse;
+
+    if (attributes->setInt(kAttrSourceIndex, sourceIndex) != kResultTrue)
+        return kResultFalse;
 
     return sendMessage(message);
 }

@@ -8,6 +8,14 @@ void SourcePool::clear() noexcept {
     sources_ = {};
 }
 
+bool SourcePool::clearSource(std::size_t sourceIndex) noexcept {
+    if (sourceIndex >= kMaxSources)
+        return false;
+
+    sources_[sourceIndex] = {};
+    return true;
+}
+
 bool SourcePool::setOneShot(std::size_t sourceIndex,
                             std::uint32_t sourceId,
                             std::uint32_t totalFrames,

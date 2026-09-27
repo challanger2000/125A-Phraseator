@@ -9,6 +9,15 @@ void SampleBank::clear() noexcept {
         source.clear();
 }
 
+bool SampleBank::clearSource(std::size_t sourceIndex) noexcept {
+    if (sourceIndex >= kMaxSources)
+        return false;
+
+    audio_[sourceIndex].clear();
+    views_[sourceIndex] = {};
+    return pool_.clearSource(sourceIndex);
+}
+
 void SampleBank::refreshView(std::size_t sourceIndex) noexcept {
     if (sourceIndex >= kMaxSources)
         return;

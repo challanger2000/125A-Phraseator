@@ -43,6 +43,7 @@ public:
                                       Steinberg::int32 divisions,
                                       bool tonal = false,
                                       double detectedRootMidi = -1.0);
+    Steinberg::tresult sendClearSample(Steinberg::int32 sourceIndex);
 
 private:
     void openSampleSelector(int sourceIndex, bool asLoop);

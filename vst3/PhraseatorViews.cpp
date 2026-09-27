@@ -221,6 +221,8 @@ VSTGUI::CView* createCustomView(VSTGUI::UTF8StringPtr name,
         return new VSTGUI::CTextButton(rect,controllerListener,tag,"ONE");
     if(std::strcmp(name,"PhraseLoadLoop")==0 && tag>=0)
         return new VSTGUI::CTextButton(rect,controllerListener,tag,"LOOP");
+    if(std::strcmp(name,"PhraseClear")==0 && tag>=0)
+        return new VSTGUI::CTextButton(rect,controllerListener,tag,"X");
 
     return nullptr;
 }

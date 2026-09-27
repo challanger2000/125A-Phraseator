@@ -34,7 +34,13 @@ SampleLoadWorker::~SampleLoadWorker() {
 }
 
 bool SampleLoadWorker::validRequest(const SampleLoadRequest& request) noexcept {
-    if (request.sourceIndex >= kMaxSources || request.path.empty())
+    if (request.sourceIndex >= kMaxSources)
+        return false;
+
+    if (request.mode == SampleLoadMode::Clear)
+        return true;
+
+    if (request.path.empty())
         return false;
 
     if (request.mode == SampleLoadMode::EqualSlices) {
@@ -167,6 +173,11 @@ SampleLoadWorkerResult SampleLoadWorker::execute(WorkItem& item) {
         PreparedSource source;
         source.request = request;
 
+        if (request.mode == SampleLoadMode::Clear) {
+            prepared.push_back(std::move(source));
+            continue;
+        }
+
         const auto loaded = SampleFileLoader::loadWav(request.path, source.audio);
         if (!loaded.ok()) {
             result.status = SampleLoadWorkerStatus::FileLoadFailed;
@@ -243,7 +254,9 @@ SampleLoadWorkerResult SampleLoadWorker::execute(WorkItem& item) {
     for (auto& source : prepared) {
         bool staged = false;
 
-        if (source.request.mode == SampleLoadMode::OneShot) {
+        if (source.request.mode == SampleLoadMode::Clear) {
+            staged = bank->clearSource(source.request.sourceIndex);
+        } else if (source.request.mode == SampleLoadMode::OneShot) {
             staged = bank->setOneShot(
                 source.request.sourceIndex,
                 source.request.sourceId,

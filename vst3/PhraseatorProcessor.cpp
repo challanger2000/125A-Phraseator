@@ -60,6 +60,40 @@ tresult PLUGIN_API Processor::notify(IMessage* message) {
     if (!message)
         return kInvalidArgument;
 
+    if (FIDStringsEqual(message->getMessageID(), kMsgClearSample)) {
+        auto* attributes = message->getAttributes();
+        if (!attributes || !sampleLoader_)
+            return kResultFalse;
+
+        int64 sourceIndex = -1;
+        if (attributes->getInt(kAttrSourceIndex, sourceIndex) != kResultTrue ||
+            sourceIndex < 0 ||
+            sourceIndex >= static_cast<int64>(kMaxSources)) {
+            return kResultFalse;
+        }
+
+        SampleLoadRequest request;
+        request.sourceIndex = static_cast<std::size_t>(sourceIndex);
+        request.mode = SampleLoadMode::Clear;
+
+        const auto targetIndex = static_cast<std::size_t>(sourceIndex);
+        const auto requestId = sampleLoader_->requestLoad(
+            request,
+            false,
+            [this, targetIndex](
+                const SampleLoadWorkerResult& result,
+                const std::vector<SampleLoadRequest>&) {
+                if (!result.ok())
+                    return;
+
+                std::lock_guard<std::mutex> lock(sourceRecallMutex_);
+                sourceRecall_[targetIndex] = {};
+                state_.sources[targetIndex] = {};
+            });
+
+        return requestId != 0u ? kResultTrue : kResultFalse;
+    }
+
     if (!FIDStringsEqual(message->getMessageID(), kMsgLoadSample))
         return AudioEffect::notify(message);
 
