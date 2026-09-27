@@ -100,8 +100,14 @@ tresult PLUGIN_API Controller::initialize(FUnknown* context) {
                             ParameterInfo::kCanAutomate, pid(ParameterId::GenerateTrigger));
     parameters.addParameter(STR16("Variate"), nullptr, 1, 0.0,
                             ParameterInfo::kCanAutomate, pid(ParameterId::VariateTrigger));
-    parameters.addParameter(STR16("Phrase Restart"), nullptr, 1, 1.0,
-                            ParameterInfo::kCanAutomate, pid(ParameterId::RestartMode));
+    {
+        auto* phraseMode = new StringListParameter(
+            STR16("Phrase Mode"), pid(ParameterId::RestartMode));
+        phraseMode->appendString(STR16("Continue"));
+        phraseMode->appendString(STR16("Retrigger"));
+        phraseMode->setNormalized(1.0);
+        parameters.addParameter(phraseMode);
+    }
 
     static const TChar* kPatternStepTitles[kPatternViewCount] {
         STR16("Pattern Step 01"), STR16("Pattern Step 02"),
