@@ -546,6 +546,7 @@ GenerationSettings Processor::currentGenerationSettings() const noexcept {
     }
 
     settings.sourceSpanCount = spanCount;
+    settings.sourceSpansAuthoritative = true;
     return settings;
 }
 
