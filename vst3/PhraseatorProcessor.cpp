@@ -9,6 +9,7 @@
 #include "base/source/fstring.h"
 #include "pluginterfaces/base/fstrdefs.h"
 #include "pluginterfaces/vst/ivstparameterchanges.h"
+#include "pluginterfaces/vst/ivstevents.h"
 #include "pluginterfaces/vst/ivstprocesscontext.h"
 #include "pluginterfaces/vst/vstspeaker.h"
 
@@ -433,7 +434,7 @@ void Processor::generatePattern() noexcept {
     recallPatternRemapPending_.store(false, std::memory_order_release);
     state_.pattern = engine_.generate(currentGenerationSettings());
     applyPitchToKey(state_.pattern);
-    scheduler_.setPattern(state_.pattern);
+    refreshSchedulerPattern();
     patternViewDirty_ = true;
 }
 
@@ -441,14 +442,79 @@ void Processor::varyPattern() noexcept {
     recallPatternRemapPending_.store(false, std::memory_order_release);
     state_.pattern = engine_.vary(state_.pattern, currentGenerationSettings());
     applyPitchToKey(state_.pattern);
-    scheduler_.setPattern(state_.pattern);
+    refreshSchedulerPattern();
     patternViewDirty_ = true;
 }
 
 void Processor::syncEngineFromState() noexcept {
     engine_.setSeed(state_.randomSeed);
-    scheduler_.setPattern(state_.pattern);
+    refreshSchedulerPattern();
     patternViewDirty_ = true;
+}
+
+bool Processor::patternHasActiveSteps() const noexcept {
+    for (const auto& step : state_.pattern) {
+        if (step.active)
+            return true;
+    }
+    return false;
+}
+
+void Processor::refreshSchedulerPattern() noexcept {
+    Pattern playback = state_.pattern;
+    for (auto& step : playback) {
+        step.pitchSemitones = std::clamp(
+            step.pitchSemitones + midiTransposeSemitones_,
+            -48.0f, 48.0f);
+    }
+    scheduler_.setPattern(playback);
+}
+
+void Processor::handleMidiEvent(const Event& event) noexcept {
+    auto applyCurrentNote = [this](int note) noexcept {
+        activeMidiNote_ = note;
+        midiTransposeSemitones_ = note >= 0
+            ? static_cast<float>(std::clamp(note - 60, -24, 24))
+            : 0.0f;
+        refreshSchedulerPattern();
+    };
+
+    if (event.type == Event::kNoteOnEvent) {
+        const int pitch = std::clamp<int>(event.noteOn.pitch, 0, 127);
+
+        if (event.noteOn.velocity <= 0.0f) {
+            heldMidiNotes_[static_cast<std::size_t>(pitch)] = false;
+        } else {
+            heldMidiNotes_[static_cast<std::size_t>(pitch)] = true;
+
+            if (!patternHasActiveSteps() &&
+                sampleBanks_.activeBank().sourcePool().fragmentCount() > 0u) {
+                generatePattern();
+            }
+
+            applyCurrentNote(pitch);
+            return;
+        }
+    } else if (event.type == Event::kNoteOffEvent) {
+        const int pitch = std::clamp<int>(event.noteOff.pitch, 0, 127);
+        heldMidiNotes_[static_cast<std::size_t>(pitch)] = false;
+    } else {
+        return;
+    }
+
+    if (activeMidiNote_ >= 0 &&
+        heldMidiNotes_[static_cast<std::size_t>(activeMidiNote_)]) {
+        return;
+    }
+
+    for (int note = 127; note >= 0; --note) {
+        if (heldMidiNotes_[static_cast<std::size_t>(note)]) {
+            applyCurrentNote(note);
+            return;
+        }
+    }
+
+    applyCurrentNote(-1);
 }
 
 void Processor::emitPatternViewParameters(ProcessData& data,
@@ -591,7 +657,7 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
     const auto& bank = sampleBanks_.activeBank();
 
     scheduler_.prepare(sampleRate_, tempo);
-    scheduler_.setPattern(state_.pattern);
+    refreshSchedulerPattern();
 
     if (data.symbolicSampleSize != kSample32)
         return kResultFalse;
@@ -687,20 +753,57 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
         return next;
     };
 
+    int32 eventIndex = 0;
+    int32 eventCount = data.inputEvents ? data.inputEvents->getEventCount() : 0;
+    Event nextEvent {};
+    bool eventValid = false;
+    int32 nextEventOffset = data.numSamples;
+
+    auto advanceEvent = [&]() noexcept {
+        eventValid = false;
+        while (eventIndex < eventCount) {
+            Event candidate {};
+            if (data.inputEvents->getEvent(eventIndex++, candidate) != kResultTrue)
+                continue;
+
+            nextEvent = candidate;
+            nextEventOffset = std::clamp<int32>(
+                candidate.sampleOffset, 0, data.numSamples - 1);
+            eventValid = true;
+            return;
+        }
+        nextEventOffset = data.numSamples;
+    };
+
+    auto applyEventsAt = [&](int32 sampleOffset) noexcept {
+        while (eventValid && nextEventOffset <= sampleOffset) {
+            handleMidiEvent(nextEvent);
+            advanceEvent();
+        }
+    };
+
+    advanceEvent();
+
     bool producedAudio = false;
     int32 currentOffset = 0;
 
-    // Changes at sample 0 must affect the first rendered sample.
+    // Changes/events at sample 0 must affect the first rendered sample.
     applyChangesAt(0);
+    applyEventsAt(0);
 
     while (currentOffset < data.numSamples) {
-        int32 boundary = nextAutomationOffset(currentOffset);
+        int32 boundary = std::min(
+            nextAutomationOffset(currentOffset),
+            eventValid ? nextEventOffset : data.numSamples);
 
         // If the next pending point is exactly at the current position,
         // consume it first and re-evaluate the following boundary.
         if (boundary == currentOffset) {
             applyChangesAt(currentOffset);
-            boundary = nextAutomationOffset(currentOffset);
+            applyEventsAt(currentOffset);
+            boundary = std::min(
+                nextAutomationOffset(currentOffset),
+                eventValid ? nextEventOffset : data.numSamples);
             if (boundary == currentOffset)
                 boundary = std::min<int32>(data.numSamples, currentOffset + 1);
         }
@@ -730,8 +833,10 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
         producedAudio = producedAudio || schedulerAudio || fxAudio;
         currentOffset = segmentEnd;
 
-        if (currentOffset < data.numSamples)
+        if (currentOffset < data.numSamples) {
             applyChangesAt(currentOffset);
+            applyEventsAt(currentOffset);
+        }
     }
 
     data.outputs[0].silenceFlags = producedAudio ? 0 : 0x3;
