@@ -703,7 +703,7 @@ void Processor::handleMidiEvent(const Event& event) noexcept {
                 generatePattern();
             }
 
-            if (state_.restartOnNote || !hadHeldNote) {
+            if (state_.restartOnNote) {
                 midiPhraseTimeSamples_ = 0.0;
                 scheduler_.reset();
             }
@@ -1098,21 +1098,34 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
             static_cast<std::size_t>(segmentEnd - currentOffset);
 
         const bool midiGateOpen = activeMidiNote_ >= 0;
-        const bool phrasePlaying = playing && midiGateOpen;
+        // RETRIGGER ties scheduler lifetime to the MIDI gate. CONTINUE keeps
+        // the phrase timeline running with the DAW even while no MIDI note is
+        // held; only its direct audio is muted during the gate-off interval.
+        const bool schedulerRunning = playing &&
+            (state_.restartOnNote ? midiGateOpen : true);
         const double absoluteSegmentTime =
             projectTime + static_cast<double>(currentOffset);
         const double phraseTime = state_.restartOnNote
             ? midiPhraseTimeSamples_
             : absoluteSegmentTime;
 
-        const bool schedulerAudio = scheduler_.processBlock(
+        const bool schedulerProduced = scheduler_.processBlock(
             bank.sourcePool(),
             bank.buffers(),
             phraseTime,
-            phrasePlaying,
+            schedulerRunning,
             out[0] + currentOffset,
             out[1] + currentOffset,
             segmentSamples);
+
+        bool schedulerAudio = schedulerProduced;
+        if (!midiGateOpen) {
+            std::fill(out[0] + currentOffset,
+                      out[0] + currentOffset + segmentSamples, 0.0f);
+            std::fill(out[1] + currentOffset,
+                      out[1] + currentOffset + segmentSamples, 0.0f);
+            schedulerAudio = false;
+        }
 
         fx_.setDelayAmount(state_.delayAmount);
         fx_.setDelayDivision(state_.delayDivision);
@@ -1125,7 +1138,7 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
             tempo);
 
         producedAudio = producedAudio || schedulerAudio || fxAudio;
-        if (state_.restartOnNote && phrasePlaying)
+        if (state_.restartOnNote && schedulerRunning)
             midiPhraseTimeSamples_ += static_cast<double>(segmentSamples);
         currentOffset = segmentEnd;
 
