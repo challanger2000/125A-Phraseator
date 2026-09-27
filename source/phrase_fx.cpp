@@ -9,14 +9,15 @@ namespace {
 constexpr double kPi = 3.14159265358979323846;
 
 double delayQuarterMultiplier(std::int32_t division) noexcept {
-    switch (std::clamp(division, 0, 6)) {
-        case 0: return 1.0;        // 1/4
-        case 1: return 0.5;        // 1/8
-        case 2: return 0.75;       // 1/8 dotted
-        case 3: return 1.0 / 3.0;  // 1/8 triplet
-        case 4: return 0.25;       // 1/16
-        case 5: return 0.375;      // 1/16 dotted
-        case 6: return 1.0 / 6.0;  // 1/16 triplet
+    switch (std::clamp(division, 0, 7)) {
+        case 0: return 0.0;        // OFF
+        case 1: return 1.0;        // 1/4
+        case 2: return 0.5;        // 1/8
+        case 3: return 0.75;       // 1/8 dotted
+        case 4: return 1.0 / 3.0;  // 1/8 triplet
+        case 5: return 0.25;       // 1/16
+        case 6: return 0.375;      // 1/16 dotted
+        case 7: return 1.0 / 6.0;  // 1/16 triplet
         default: return 0.5;
     }
 }
@@ -96,7 +97,7 @@ void PhraseFx::setDelayAmount(float amount) noexcept {
 }
 
 void PhraseFx::setDelayDivision(std::int32_t division) noexcept {
-    delayDivision_ = std::clamp<std::int32_t>(division, 0, 6);
+    delayDivision_ = std::clamp<std::int32_t>(division, 0, 7);
 }
 
 void PhraseFx::setFilterAmount(float amount) noexcept {
@@ -146,10 +147,13 @@ bool PhraseFx::processBlock(float* left,
         : 120.0;
 
     const double quarterSamples = sampleRate_ * 60.0 / tempo;
-    const double delaySamplesTarget = std::clamp(
-        quarterSamples * delayQuarterMultiplier(delayDivision_),
-        1.0,
-        static_cast<double>(delayLeft_.empty() ? 1u : delayLeft_.size() - 2u));
+    const bool delayEnabled = delayDivision_ != 0;
+    const double delaySamplesTarget = delayEnabled
+        ? std::clamp(
+            quarterSamples * delayQuarterMultiplier(delayDivision_),
+            1.0,
+            static_cast<double>(delayLeft_.empty() ? 1u : delayLeft_.size() - 2u))
+        : delaySamplesCurrent_;
 
     const double amountCoeff = 1.0 - std::exp(-1.0 / (sampleRate_ * 0.020));
     const double timeCoeff = 1.0 - std::exp(-1.0 / (sampleRate_ * 0.050));
@@ -181,7 +185,9 @@ bool PhraseFx::processBlock(float* left,
             delayRight_[writeIndex_] = inR + delayedL * feedback;
             delayGenerations_[writeIndex_] = delayGeneration_;
 
-            const float mix = std::clamp(delayCurrent_, 0.0f, 1.0f);
+            const float mix = delayEnabled
+                ? std::clamp(delayCurrent_, 0.0f, 1.0f)
+                : 0.0f;
             const float dryGain = 1.0f - mix;
             const float wetGain = mix;
             inL = inL * dryGain + delayedL * wetGain;
