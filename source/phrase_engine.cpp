@@ -36,6 +36,46 @@ bool PhraseEngine::shouldActivate(std::size_t stepIndex, float density) {
     return randomUnit() < probability;
 }
 
+float PhraseEngine::choosePitchSemitones(float amount) {
+    amount = clamp01(amount);
+    if (amount <= 0.0f)
+        return 0.0f;
+
+    // EMPIRICALLY TUNED 125A pitch mapping:
+    // low/mid settings prioritize intervals that tend to remain musically
+    // useful without requiring a known key. The upper creative range opens
+    // into chromatic movement deliberately.
+    static constexpr std::array<int, 5> gentle {0, 2, -2, 3, -3};
+    static constexpr std::array<int, 9> musical {0, 2, -2, 3, -3, 5, -5, 7, -7};
+    static constexpr std::array<int, 11> wide {0, 2, -2, 3, -3, 5, -5, 7, -7, 12, -12};
+
+    if (amount < 0.35f) {
+        std::uniform_int_distribution<std::size_t> d(0u, gentle.size() - 1u);
+        return static_cast<float>(gentle[d(rng_)]);
+    }
+
+    if (amount < 0.60f) {
+        std::uniform_int_distribution<std::size_t> d(0u, musical.size() - 1u);
+        return static_cast<float>(musical[d(rng_)]);
+    }
+
+    if (amount < 0.80f) {
+        std::uniform_int_distribution<std::size_t> d(0u, wide.size() - 1u);
+        return static_cast<float>(wide[d(rng_)]);
+    }
+
+    // 80-100% is intentionally the creative range. Blend wide musical
+    // intervals with a growing chance of chromatic semitone movement.
+    const float chromaticChance = (amount - 0.80f) / 0.20f;
+    if (randomUnit() < chromaticChance) {
+        std::uniform_int_distribution<int> d(-12, 12);
+        return static_cast<float>(d(rng_));
+    }
+
+    std::uniform_int_distribution<std::size_t> d(0u, wide.size() - 1u);
+    return static_cast<float>(wide[d(rng_)]);
+}
+
 std::uint16_t PhraseEngine::chooseFragment(const GenerationSettings& settings) {
     const auto totalFragments = std::clamp<std::uint16_t>(
         settings.fragmentCount, 1, static_cast<std::uint16_t>(kMaxFragments));
@@ -97,9 +137,7 @@ Step PhraseEngine::makeStep(std::size_t stepIndex, const GenerationSettings& raw
     const float signedRandom = randomUnit() * 2.0f - 1.0f;
     step.pan = signedRandom * settings.pan;
 
-    // Initial implementation deliberately stays conservative.
-    const float pitchRange = 12.0f * settings.pitch;
-    step.pitchSemitones = std::round((randomUnit() * 2.0f - 1.0f) * pitchRange);
+    step.pitchSemitones = choosePitchSemitones(settings.pitch);
 
     if (settings.repeat > 0.0f && randomUnit() < settings.repeat * 0.35f) {
         step.repeats = randomUnit() < 0.75f ? 2 : 3;
