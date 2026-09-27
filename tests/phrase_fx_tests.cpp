@@ -316,5 +316,33 @@ int main() {
         CHECK(std::fabs(restartR[0]) > 0.49f);
     }
 
+
+    {
+        // Long realtime tail must settle cleanly without NaN/Inf/denormal
+        // residue after delay feedback and filtering decay into silence.
+        PhraseFx measured;
+        measured.prepare(48000.0);
+        measured.setDelayAmount(0.7f);
+        measured.setDelayDivision(5);
+        measured.setFilterMode(0);
+        measured.setFilterAmount(0.5f);
+
+        std::vector<float> exciteL(1u, 1.0f);
+        std::vector<float> exciteR(1u, 1.0f);
+        CHECK(measured.processBlock(
+            exciteL.data(), exciteR.data(), exciteL.size(), 120.0));
+
+        std::vector<float> tailL(48000u * 8u, 0.0f);
+        std::vector<float> tailR(48000u * 8u, 0.0f);
+        measured.processBlock(
+            tailL.data(), tailR.data(), tailL.size(), 120.0);
+
+        for (float x : tailL) CHECK(std::isfinite(x));
+        for (float x : tailR) CHECK(std::isfinite(x));
+
+        CHECK(std::fabs(tailL.back()) < 1.0e-18f);
+        CHECK(std::fabs(tailR.back()) < 1.0e-18f);
+    }
+
     return 0;
 }
