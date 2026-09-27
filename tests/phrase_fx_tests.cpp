@@ -203,5 +203,59 @@ int main() {
             CHECK(std::isfinite(x));
     }
 
+
+    {
+        // OFF must not secretly keep recording history that reappears when
+        // the delay is enabled later.
+        PhraseFx measured;
+        measured.prepare(48000.0);
+        measured.setDelayAmount(1.0f);
+        measured.setDelayDivision(0);
+
+        std::vector<float> hiddenL(13000u, 0.0f);
+        std::vector<float> hiddenR(13000u, 0.0f);
+        hiddenL[0] = 1.0f;
+        CHECK(measured.processBlock(
+            hiddenL.data(), hiddenR.data(), hiddenL.size(), 120.0));
+
+        measured.setDelayDivision(2); // 1/8 = 12000 samples
+
+        std::vector<float> afterL(13000u, 0.0f);
+        std::vector<float> afterR(13000u, 0.0f);
+        measured.processBlock(
+            afterL.data(), afterR.data(), afterL.size(), 120.0);
+
+        for (float x : afterL)
+            CHECK(std::fabs(x) < 1.0e-6f);
+        for (float x : afterR)
+            CHECK(std::fabs(x) < 1.0e-6f);
+    }
+
+    {
+        // Amount 0 likewise must not accumulate hidden history.
+        PhraseFx measured;
+        measured.prepare(48000.0);
+        measured.setDelayDivision(2);
+        measured.setDelayAmount(0.0f);
+
+        std::vector<float> hiddenL(13000u, 0.0f);
+        std::vector<float> hiddenR(13000u, 0.0f);
+        hiddenL[0] = 1.0f;
+        CHECK(measured.processBlock(
+            hiddenL.data(), hiddenR.data(), hiddenL.size(), 120.0));
+
+        measured.setDelayAmount(1.0f);
+
+        std::vector<float> afterL(13000u, 0.0f);
+        std::vector<float> afterR(13000u, 0.0f);
+        measured.processBlock(
+            afterL.data(), afterR.data(), afterL.size(), 120.0);
+
+        for (float x : afterL)
+            CHECK(std::fabs(x) < 1.0e-6f);
+        for (float x : afterR)
+            CHECK(std::fabs(x) < 1.0e-6f);
+    }
+
     return 0;
 }
