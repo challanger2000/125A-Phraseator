@@ -42,8 +42,7 @@ void PhraseScheduler::triggerStep(
         return;
 
     FragmentRef ref {};
-    const auto flatIndex = static_cast<std::size_t>(step.fragment) % pool.fragmentCount();
-    if (!pool.fragmentAt(flatIndex, ref))
+    if (!pool.fragmentAt(static_cast<std::size_t>(step.fragment), ref))
         return;
 
     // Monophonic phrase articulation: every new active step (and ratchet)
