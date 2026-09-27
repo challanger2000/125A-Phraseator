@@ -39,9 +39,15 @@ jobs:
       - name: Build VST3
         run: cmake --build build-vst3 --config Release --target Phraseator
 
+      - name: Stage Windows VST3 bundle
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifact | Out-Null
+          Copy-Item -Recurse -Force "build-vst3/VST3/Release/125A-Phraseator.vst3" "artifact/125A-Phraseator.vst3"
+
       - name: Upload Windows VST3
         uses: actions/upload-artifact@v4
         with:
           name: 125A-Phraseator-v0.1.0-Windows-x64
-          path: build-vst3/VST3/Release/125A-Phraseator.vst3
+          path: artifact
           if-no-files-found: error
