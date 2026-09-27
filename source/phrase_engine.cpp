@@ -281,32 +281,26 @@ Pattern PhraseEngine::vary(const Pattern& input, const GenerationSettings& raw) 
         auto& step = output[stepIndex];
         const auto& original = input[stepIndex];
 
-        const auto candidateFragment =
+        auto candidateFragment =
             chooseVariedFragment(input, output, stepIndex, raw);
 
-        if (raw.fragmentCount > 1u) {
-            if (candidateFragment != original.fragment) {
-                step.fragment = candidateFragment;
-            } else {
-                // Guarantee a different valid fragment/source identity for
-                // this selected mutation rather than silently doing nothing.
-                step.fragment = static_cast<std::uint16_t>(
-                    (original.fragment + 1u +
-                     static_cast<std::uint16_t>(
-                         std::uniform_int_distribution<std::uint16_t>(
-                             0u,
-                             static_cast<std::uint16_t>(
-                                 std::max<std::uint16_t>(raw.fragmentCount - 1u, 1u) - 1u))(rng_))) %
-                    std::max<std::uint16_t>(raw.fragmentCount, 1u));
-                if (step.fragment == original.fragment)
-                    step.fragment = static_cast<std::uint16_t>(
-                        (original.fragment + 1u) %
-                        std::max<std::uint16_t>(raw.fragmentCount, 1u));
+        bool changedFragment = candidateFragment != original.fragment;
+
+        // A forced VARIATE change must still respect the configured unmuted
+        // source spans. Never fall back to a flat fragment index that may
+        // belong to a muted source.
+        if (!changedFragment && raw.fragmentCount > 1u) {
+            for (int attempt = 0; attempt < 16 && !changedFragment; ++attempt) {
+                candidateFragment = chooseFragment(raw);
+                changedFragment = candidateFragment != original.fragment;
             }
+        }
+
+        if (changedFragment) {
+            step.fragment = candidateFragment;
         } else {
-            // With only one source available, ratchet count is the remaining
-            // audible phrase-level detail that can be varied without touching
-            // the live-shape layer.
+            // If only one audible fragment/source can be selected, vary a
+            // phrase-level articulation detail instead of choosing silence.
             step.repeats = original.repeats == 1u ? 2u : 1u;
         }
     }
