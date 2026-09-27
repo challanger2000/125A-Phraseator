@@ -103,6 +103,7 @@ private:
     double midiPhraseTimeSamples_ {0.0};
     std::atomic<bool> generateCommandPending_ {false};
     std::atomic<bool> variateCommandPending_ {false};
+    std::array<std::atomic<int>, kStepCount> patternEditPending_ {};
 };
 
 } // namespace phraseator::vst3
