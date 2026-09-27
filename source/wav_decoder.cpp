@@ -82,6 +82,7 @@ WavDecodeStatus WavDecoder::decode(const std::uint8_t* bytes,
     bool haveData = false;
 
     std::uint16_t formatTag = 0;
+    std::uint16_t validBitsPerSample = 0;
     std::uint16_t channels = 0;
     std::uint16_t bitsPerSample = 0;
     std::uint16_t blockAlign = 0;
@@ -109,6 +110,37 @@ WavDecodeStatus WavDecoder::decode(const std::uint8_t* bytes,
             sampleRate = readU32(fmt + 4);
             blockAlign = readU16(fmt + 12);
             bitsPerSample = readU16(fmt + 14);
+            validBitsPerSample = bitsPerSample;
+
+            if (formatTag == 0xFFFEu) { // WAVE_FORMAT_EXTENSIBLE
+                if (chunkSize < 40u)
+                    return WavDecodeStatus::InvalidData;
+
+                const auto cbSize = readU16(fmt + 16);
+                if (cbSize < 22u)
+                    return WavDecodeStatus::InvalidData;
+
+                validBitsPerSample = readU16(fmt + 18);
+
+                // KSDATAFORMAT_SUBTYPE_{PCM,IEEE_FLOAT} share this GUID tail:
+                // 0000-0010-8000-00AA00389B71. The first DWORD selects PCM(1)
+                // or IEEE float(3).
+                static constexpr std::uint8_t guidTail[12] {
+                    0x00, 0x00, 0x10, 0x00,
+                    0x80, 0x00, 0x00, 0xAA,
+                    0x00, 0x38, 0x9B, 0x71
+                };
+
+                if (std::memcmp(fmt + 28, guidTail, sizeof(guidTail)) != 0)
+                    return WavDecodeStatus::UnsupportedFormat;
+
+                const auto subFormat = readU32(fmt + 24);
+                if (subFormat != 1u && subFormat != 3u)
+                    return WavDecodeStatus::UnsupportedFormat;
+
+                formatTag = static_cast<std::uint16_t>(subFormat);
+            }
+
             haveFormat = true;
         } else if (idEquals(header, "data")) {
             data = bytes + payload;
@@ -133,6 +165,11 @@ WavDecodeStatus WavDecoder::decode(const std::uint8_t* bytes,
         sampleRate == 0u) {
         return WavDecodeStatus::UnsupportedFormat;
     }
+
+    if (validBitsPerSample == 0u)
+        validBitsPerSample = bitsPerSample;
+    if (validBitsPerSample != bitsPerSample)
+        return WavDecodeStatus::UnsupportedFormat;
 
     std::size_t bytesPerSample = 0;
     if (formatTag == 1u) {
