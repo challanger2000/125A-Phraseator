@@ -12,7 +12,9 @@ public:
     void reset() noexcept;
 
     void setDelayAmount(float amount) noexcept;
+    void setDelayDivision(std::int32_t division) noexcept;
     void setFilterAmount(float amount) noexcept;
+    void setFilterMode(std::int32_t mode) noexcept;
 
     bool processBlock(float* left,
                       float* right,
@@ -35,9 +37,11 @@ private:
 
     float delayTarget_ {0.0f};
     float delayCurrent_ {0.0f};
+    std::int32_t delayDivision_ {1};
     double delaySamplesCurrent_ {12000.0};
 
     float filterTarget_ {0.0f};
+    std::int32_t filterMode_ {0};
     float filterCurrent_ {0.0f};
     float filterStateL_ {0.0f};
     float filterStateR_ {0.0f};
