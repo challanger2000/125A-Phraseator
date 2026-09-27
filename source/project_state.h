@@ -17,7 +17,7 @@ struct SourceState {
 };
 
 struct ProjectState {
-    static constexpr std::uint32_t kCurrentVersion = 4u;
+    static constexpr std::uint32_t kCurrentVersion = 5u;
 
     std::uint32_t version {kCurrentVersion};
     std::uint32_t randomSeed {0x125A0001u};
@@ -33,6 +33,7 @@ struct ProjectState {
     std::int32_t scaleMode {0};
     bool pitchToKey {false};
     bool lockPattern {false};
+    bool restartOnNote {true};
 
     float delayAmount {0.0f};
     float reverbAmount {0.0f};
