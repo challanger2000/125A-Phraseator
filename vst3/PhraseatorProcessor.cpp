@@ -315,6 +315,17 @@ tresult PLUGIN_API Processor::setProcessing(TBool state) {
 void Processor::applyNormalizedParameter(ParamID id, double rawValue) noexcept {
     const double value = clamp01(rawValue);
 
+    if (id >= static_cast<ParamID>(kSourceMuteBase) &&
+        id < static_cast<ParamID>(kSourceMuteBase + kSourceMuteCount)) {
+        const auto sourceIndex = static_cast<std::size_t>(
+            id - static_cast<ParamID>(kSourceMuteBase));
+        if (sourceIndex < state_.sources.size()) {
+            state_.sources[sourceIndex].muted = value >= 0.5;
+            refreshSchedulerPattern();
+        }
+        return;
+    }
+
     switch (id) {
         case static_cast<ParamID>(ParameterId::Density):
             state_.density = static_cast<float>(value);
@@ -432,6 +443,12 @@ GenerationSettings Processor::currentGenerationSettings() const noexcept {
         if (!source)
             continue;
 
+        if (sourceIndex < state_.sources.size() &&
+            state_.sources[sourceIndex].muted) {
+            flatCursor += static_cast<std::size_t>(source->sliceCount);
+            continue;
+        }
+
         const auto sourceFragments =
             static_cast<std::size_t>(source->sliceCount);
 
@@ -518,7 +535,18 @@ bool Processor::patternHasActiveSteps() const noexcept {
 
 void Processor::refreshSchedulerPattern() noexcept {
     Pattern playback = state_.pattern;
+    const auto& pool = sampleBanks_.activeBank().sourcePool();
+
     for (auto& step : playback) {
+        if (step.active) {
+            FragmentRef ref {};
+            if (pool.fragmentAt(step.fragment, ref) &&
+                ref.sourceIndex < state_.sources.size() &&
+                state_.sources[ref.sourceIndex].muted) {
+                step.active = false;
+            }
+        }
+
         step.pitchSemitones = std::clamp(
             step.pitchSemitones + midiTransposeSemitones_,
             -48.0f, 48.0f);
@@ -1020,6 +1048,13 @@ bool Processor::writeProjectState(IBStream* state) const noexcept {
         return false;
     }
 
+    for (std::size_t i = 0; i < kSourceMuteCount; ++i) {
+        if (!stream.writeInt32(
+                state_.sources[i].muted ? 1 : 0)) {
+            return false;
+        }
+    }
+
     for (const auto& step : state_.pattern) {
         if (!stream.writeInt32(step.active ? 1 : 0) ||
             !stream.writeInt32(static_cast<int32>(step.fragment)) ||
@@ -1115,7 +1150,8 @@ bool Processor::readProjectState(IBStream* state) noexcept {
     int32 lockPattern = 0;
     int32 restartOnNote = 1;
     int32 delayDivision = 1;
-    int32 filterMode = 0;
+    int32 filterMode = 1;
+    std::array<int32, kSourceMuteCount> sourceMuted {};
 
     if (!stream.readInt32(keyRoot) ||
         !stream.readInt32(scaleMode) ||
@@ -1127,6 +1163,13 @@ bool Processor::readProjectState(IBStream* state) noexcept {
         return false;
     }
 
+    if (version >= 8) {
+        for (auto& muted : sourceMuted) {
+            if (!stream.readInt32(muted))
+                return false;
+        }
+    }
+
     candidate.keyRoot = std::clamp<int32>(keyRoot, 0, 11);
     candidate.scaleMode = std::clamp<int32>(scaleMode, 0, 2);
     candidate.pitchToKey = pitchToKey != 0;
@@ -1135,7 +1178,10 @@ bool Processor::readProjectState(IBStream* state) noexcept {
     candidate.delayDivision = version >= 7
         ? std::clamp(delayDivision, 0, 7)
         : (version >= 6 ? std::clamp(delayDivision, 0, 6) + 1 : 2);
-    candidate.filterMode = version >= 6 && filterMode != 0 ? 1 : 0;
+    candidate.filterMode = version >= 6 ? (filterMode != 0 ? 1 : 0) : 1;
+    for (std::size_t i = 0; i < kSourceMuteCount; ++i)
+        candidate.sources[i].muted =
+            version >= 8 && sourceMuted[i] != 0;
 
     for (auto& step : candidate.pattern) {
         int32 active = 0;
