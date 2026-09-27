@@ -13,7 +13,7 @@ constexpr Steinberg::int32 kStateVersion = 5;
 
 constexpr Steinberg::Vst::ParamID kPatternViewBase = 1400;
 constexpr Steinberg::int32 kPatternViewCount = 16;
-constexpr Steinberg::int32 kPatternViewStepCount = 128;
+constexpr Steinberg::int32 kPatternViewStepCount = kSourceStatusCount;
 
 constexpr Steinberg::Vst::ParamID kSourceStatusBase = 1500;
 constexpr Steinberg::int32 kSourceStatusCount = 8;
@@ -25,7 +25,7 @@ constexpr const char* kMsgVariate = "Phraseator.Variate";
 constexpr const char* kMsgPatternStep = "Phraseator.PatternStep";
 constexpr const char* kAttrStepIndex = "StepIndex";
 constexpr const char* kAttrStepActive = "StepActive";
-constexpr const char* kAttrStepFragment = "StepFragment";
+constexpr const char* kAttrStepSource = "StepSource";
 constexpr const char* kAttrPath = "Path";
 constexpr const char* kAttrSourceIndex = "SourceIndex";
 constexpr const char* kAttrSourceId = "SourceId";
