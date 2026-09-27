@@ -41,6 +41,35 @@ int main() {
 
 
     {
+        // 125A neutral-at-zero contract for the generation macros.
+        GenerationSettings neutral;
+        neutral.density = 0.0f;
+        neutral.fragmentCount = 8;
+        neutral.repeat = 0.0f;
+        neutral.pitch = 0.0f;
+        neutral.pan = 0.0f;
+        neutral.groove = 0.0f;
+
+        PhraseEngine neutralEngine(0x0A125u);
+        for (int n = 0; n < 128; ++n) {
+            const auto pattern = neutralEngine.generate(neutral);
+            for (const auto& step : pattern)
+                CHECK(!step.active);
+        }
+
+        neutral.density = 0.50f;
+        const auto activePattern = neutralEngine.generate(neutral);
+        for (const auto& step : activePattern) {
+            if (!step.active)
+                continue;
+            CHECK(step.pitchSemitones == 0.0f);
+            CHECK(step.pan == 0.0f);
+            CHECK(step.timingOffset == 0.0f);
+            CHECK(step.repeats == 1u);
+        }
+    }
+
+    {
         // DENSITY should be monotonic in aggregate: a high-density setting
         // must produce clearly more active steps than a low-density setting
         // across a deterministic fixture set.
