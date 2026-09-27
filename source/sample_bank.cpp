@@ -1,6 +1,58 @@
 #include "sample_bank.h"
 
+#include <algorithm>
+#include <cmath>
+
 namespace phraseator {
+
+namespace {
+
+void applyConservativeAutoLevel(OwnedAudioSource& audio) noexcept {
+    if (!audio.valid())
+        return;
+
+    float peak = 0.0f;
+    for (std::size_t i = 0; i < audio.left.size(); ++i) {
+        peak = std::max(peak, std::fabs(audio.left[i]));
+        if (audio.stereo)
+            peak = std::max(peak, std::fabs(audio.right[i]));
+    }
+    if (!std::isfinite(peak) || peak < 1.0e-6f)
+        return;
+
+    const float activityThreshold = peak * 0.02f;
+    double sumSquares = 0.0;
+    std::size_t activeSamples = 0u;
+    for (std::size_t i = 0; i < audio.left.size(); ++i) {
+        const float l = audio.left[i];
+        const float r = audio.stereo ? audio.right[i] : l;
+        const float activity = std::max(std::fabs(l), std::fabs(r));
+        if (activity < activityThreshold)
+            continue;
+        sumSquares += 0.5 * (static_cast<double>(l) * l + static_cast<double>(r) * r);
+        ++activeSamples;
+    }
+    if (activeSamples == 0u)
+        return;
+
+    const double rms = std::sqrt(sumSquares / static_cast<double>(activeSamples));
+    if (!std::isfinite(rms) || rms < 1.0e-8)
+        return;
+
+    constexpr double kTargetActiveRms = 0.18;
+    constexpr double kPeakCeiling = 0.89;
+    double gain = std::min(kTargetActiveRms / rms, kPeakCeiling / peak);
+    gain = std::clamp(gain, 0.25, 4.0);
+
+    for (auto& x : audio.left)
+        x = static_cast<float>(x * gain);
+    if (audio.stereo) {
+        for (auto& x : audio.right)
+            x = static_cast<float>(x * gain);
+    }
+}
+
+} // namespace
 
 SampleBank::SampleBank(const SampleBank& other)
 : pool_(other.pool_),
@@ -50,6 +102,8 @@ bool SampleBank::setOneShot(std::size_t sourceIndex,
     if (sourceIndex >= kMaxSources || !audio.valid())
         return false;
 
+    applyConservativeAutoLevel(audio);
+    applyConservativeAutoLevel(audio);
     const auto frames = audio.frames();
     const auto rate = static_cast<double>(audio.sampleRate);
     const auto stereo = audio.stereo;
