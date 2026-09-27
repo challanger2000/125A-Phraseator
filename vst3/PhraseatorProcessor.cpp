@@ -81,18 +81,18 @@ tresult PLUGIN_API Processor::notify(IMessage* message) {
 
         int64 stepIndex = -1;
         int64 active = 0;
-        int64 fragment = 0;
+        int64 sourceIndex = 0;
 
         if (attributes->getInt(kAttrStepIndex, stepIndex) != kResultTrue ||
             attributes->getInt(kAttrStepActive, active) != kResultTrue ||
-            attributes->getInt(kAttrStepFragment, fragment) != kResultTrue ||
+            attributes->getInt(kAttrStepSource, sourceIndex) != kResultTrue ||
             stepIndex < 0 || stepIndex >= static_cast<int64>(kStepCount) ||
-            fragment < 0 || fragment >= static_cast<int64>(kPatternViewStepCount)) {
+            sourceIndex < 0 || sourceIndex >= static_cast<int64>(kSourceStatusCount)) {
             return kResultFalse;
         }
 
         const int encoded = active != 0
-            ? static_cast<int>(fragment) + 1
+            ? static_cast<int>(sourceIndex) + 1
             : 0;
         patternEditPending_[static_cast<std::size_t>(stepIndex)].store(
             encoded, std::memory_order_release);
@@ -601,10 +601,16 @@ void Processor::emitPatternViewParameters(ProcessData& data,
         }
 
         const auto& step = state_.pattern[static_cast<std::size_t>(i)];
-        const ParamValue value = step.active
-            ? static_cast<ParamValue>(step.fragment + 1u) /
-                  static_cast<ParamValue>(kPatternViewStepCount)
-            : 0.0;
+        ParamValue value = 0.0;
+        if (step.active) {
+            FragmentRef fragment {};
+            if (sampleBanks_.activeBank().sourcePool().fragmentAt(
+                    step.fragment, fragment) &&
+                fragment.sourceIndex < kSourceStatusCount) {
+                value = static_cast<ParamValue>(fragment.sourceIndex + 1u) /
+                        static_cast<ParamValue>(kPatternViewStepCount);
+            }
+        }
 
         int32 pointIndex = 0;
         if (queue->addPoint(safeOffset, value, pointIndex) != kResultTrue)
@@ -740,19 +746,25 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
         auto& step = state_.pattern[i];
         if (encoded == 0) {
             step.active = false;
-        } else {
-            step.active = true;
-            step.fragment = static_cast<std::uint16_t>(
-                std::clamp(encoded - 1, 0, kPatternViewStepCount - 1));
-            step.velocity = std::clamp(step.velocity, 0.0f, 1.0f);
-            if (step.velocity <= 0.0f)
-                step.velocity = 1.0f;
-            step.gate = std::clamp(step.gate, 0.0f, 1.0f);
-            if (step.gate <= 0.0f)
-                step.gate = 1.0f;
-            if (step.repeats == 0u)
-                step.repeats = 1u;
+            patternEdited = true;
+            continue;
         }
+
+        const auto sourceIndex = static_cast<std::uint16_t>(encoded - 1);
+        std::size_t flatIndex = 0u;
+        if (!bank.sourcePool().flatIndexOf({sourceIndex, 0u}, flatIndex))
+            continue;
+
+        step.active = true;
+        step.fragment = static_cast<std::uint16_t>(flatIndex);
+        step.velocity = std::clamp(step.velocity, 0.0f, 1.0f);
+        if (step.velocity <= 0.0f)
+            step.velocity = 1.0f;
+        step.gate = std::clamp(step.gate, 0.0f, 1.0f);
+        if (step.gate <= 0.0f)
+            step.gate = 1.0f;
+        if (step.repeats == 0u)
+            step.repeats = 1u;
         patternEdited = true;
     }
 
