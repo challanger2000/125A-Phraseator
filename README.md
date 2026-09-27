@@ -40,3 +40,5 @@ The UI should remain simple even when the internal rules are sophisticated. Phra
 - **RATCHET · HITS / STEP** is edited independently per step as 1x / 2x / 3x / 4x.
 - Long samples may ring through empty steps. The next active step, regardless of source, chokes the previous phrase voice with a short de-click release.
 - **PHRASE MODE — CONTINUE** follows the host timeline; **RETRIGGER** restarts the phrase from step 1 on each new MIDI note.
+
+- Regression coverage verifies long-sample choke across empty steps and the CONTINUE/RETRIGGER timing contract.
