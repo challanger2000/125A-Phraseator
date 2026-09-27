@@ -60,6 +60,9 @@ private:
                                    Steinberg::int32 sampleOffset) noexcept;
     void emitSourceStatusParameters(Steinberg::Vst::ProcessData& data,
                                     Steinberg::int32 sampleOffset) noexcept;
+    bool patternHasActiveSteps() const noexcept;
+    void refreshSchedulerPattern() noexcept;
+    void handleMidiEvent(const Steinberg::Vst::Event& event) noexcept;
 
     struct SourceRecallEntry {
         bool occupied {false};
@@ -93,6 +96,9 @@ private:
     double variateTrigger_ {0.0};
     bool patternViewDirty_ {true};
     bool sourceStatusDirty_ {true};
+    std::array<bool, 128> heldMidiNotes_ {};
+    int activeMidiNote_ {-1};
+    float midiTransposeSemitones_ {0.0f};
 };
 
 } // namespace phraseator::vst3
