@@ -70,7 +70,8 @@ void PhraseScheduler::scheduleRatchets(
     const auto stepIndex = static_cast<std::size_t>(absoluteStep % kStepCount);
     const auto& step = pattern_[stepIndex];
 
-    const auto repeats = static_cast<std::uint8_t>(std::max<int>(1, step.repeats));
+    const auto repeats = static_cast<std::uint8_t>(
+        std::clamp<int>(step.repeats, 1, kMaxRatchetHits));
     if (!step.active || repeats <= 1u) {
         ratchetsRemaining_ = 0u;
         ratchetIntervalSamples_ = 0.0;
