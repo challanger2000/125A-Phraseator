@@ -25,6 +25,54 @@ using namespace Steinberg;
 using namespace Steinberg::Vst;
 
 namespace {
+
+std::uint32_t liveHash(std::uint32_t seed,
+                       std::uint32_t stepIndex,
+                       std::uint32_t fragment,
+                       std::uint32_t salt) noexcept {
+    std::uint32_t x = seed ^ (stepIndex * 0x9E3779B9u) ^
+                      (fragment * 0x85EBCA6Bu) ^ salt;
+    x ^= x >> 16;
+    x *= 0x7FEB352Du;
+    x ^= x >> 15;
+    x *= 0x846CA68Bu;
+    x ^= x >> 16;
+    return x;
+}
+
+float liveUnit(std::uint32_t h) noexcept {
+    return static_cast<float>(h & 0x00FFFFFFu) /
+           static_cast<float>(0x01000000u);
+}
+
+float livePitchSemitones(float amount, std::uint32_t h) noexcept {
+    amount = std::clamp(amount, 0.0f, 1.0f);
+    if (amount <= 0.0f)
+        return 0.0f;
+
+    static constexpr int gentle[] {0, 2, -2, 3, -3};
+    static constexpr int musical[] {0, 2, -2, 3, -3, 5, -5, 7, -7};
+    static constexpr int wide[] {0, 2, -2, 3, -3, 5, -5, 7, -7, 12, -12};
+
+    auto choose = [h](const int* values, std::size_t count) noexcept {
+        return static_cast<float>(values[h % static_cast<std::uint32_t>(count)]);
+    };
+
+    if (amount < 0.35f)
+        return choose(gentle, std::size(gentle));
+    if (amount < 0.60f)
+        return choose(musical, std::size(musical));
+    if (amount < 0.80f)
+        return choose(wide, std::size(wide));
+
+    const float chromaticChance = (amount - 0.80f) / 0.20f;
+    const float selector = liveUnit(liveHash(h, 0u, 0u, 0xC001u));
+    if (selector < chromaticChance) {
+        return static_cast<float>(static_cast<int>(h % 25u) - 12);
+    }
+
+    return choose(wide, std::size(wide));
+}
 constexpr int32 kMinStateVersion = 1;
 constexpr int32 kMaxRecallPathBytes = 16384;
 
@@ -428,11 +476,13 @@ GenerationSettings Processor::currentGenerationSettings() const noexcept {
     settings.density = state_.density;
     settings.variation = state_.variation;
     settings.repeat = state_.repeat;
-    settings.pitch = state_.pitch;
-    settings.pan = state_.pan;
-    settings.groove = state_.groove;
-    settings.velocity = state_.velocity;
-    settings.octaveMode = state_.octaveMode;
+    // Live-shape controls are applied during playback so changing them does
+    // not destroy or regenerate the phrase. The generator owns structure only.
+    settings.pitch = 0.0f;
+    settings.pan = 0.0f;
+    settings.groove = 0.0f;
+    settings.velocity = 0.0f;
+    settings.octaveMode = 0;
 
     const auto& pool = sampleBanks_.activeBank().sourcePool();
     const auto fragments = pool.fragmentCount();
@@ -515,7 +565,6 @@ void Processor::applyPitchToKey(Pattern& pattern) noexcept {
 void Processor::generatePattern() noexcept {
     recallPatternRemapPending_.store(false, std::memory_order_release);
     state_.pattern = engine_.generate(currentGenerationSettings());
-    applyPitchToKey(state_.pattern);
     refreshSchedulerPattern();
     patternViewDirty_ = true;
 }
@@ -523,7 +572,6 @@ void Processor::generatePattern() noexcept {
 void Processor::varyPattern() noexcept {
     recallPatternRemapPending_.store(false, std::memory_order_release);
     state_.pattern = engine_.vary(state_.pattern, currentGenerationSettings());
-    applyPitchToKey(state_.pattern);
     refreshSchedulerPattern();
     patternViewDirty_ = true;
 }
@@ -546,20 +594,60 @@ void Processor::refreshSchedulerPattern() noexcept {
     Pattern playback = state_.pattern;
     const auto& pool = sampleBanks_.activeBank().sourcePool();
 
-    for (auto& step : playback) {
-        if (step.active) {
-            FragmentRef ref {};
-            if (pool.fragmentAt(step.fragment, ref) &&
-                ref.sourceIndex < state_.sources.size() &&
-                state_.sources[ref.sourceIndex].muted) {
-                step.active = false;
-            }
+    for (std::size_t i = 0; i < playback.size(); ++i) {
+        auto& step = playback[i];
+        if (!step.active)
+            continue;
+
+        FragmentRef ref {};
+        if (pool.fragmentAt(step.fragment, ref) &&
+            ref.sourceIndex < state_.sources.size() &&
+            state_.sources[ref.sourceIndex].muted) {
+            step.active = false;
+            continue;
         }
 
+        // Deterministic per-step live shaping. Moving a macro immediately
+        // changes playback, but the stored pattern/source choice stays intact.
+        const auto base = liveHash(
+            state_.randomSeed,
+            static_cast<std::uint32_t>(i),
+            static_cast<std::uint32_t>(step.fragment),
+            0x125A0001u);
+
+        const float velocityDraw = liveUnit(liveHash(base, 0u, 0u, 0x1101u));
+        step.velocity = 1.0f - velocityDraw * (0.28f * state_.velocity);
+
+        const float panDraw =
+            liveUnit(liveHash(base, 0u, 0u, 0x2202u)) * 2.0f - 1.0f;
+        step.pan = panDraw * state_.pan;
+
+        step.timingOffset = (i & 1u) != 0u
+            ? state_.groove * 0.20f
+            : 0.0f;
+
+        step.pitchSemitones =
+            livePitchSemitones(state_.pitch, liveHash(base, 0u, 0u, 0x3303u));
+
+        if (state_.octaveMode == 1) {
+            step.pitchSemitones += 12.0f;
+        } else if (state_.octaveMode == 2) {
+            step.pitchSemitones -= 12.0f;
+        } else if (state_.octaveMode == 3) {
+            const bool up =
+                (liveHash(base, 0u, 0u, 0x4404u) & 1u) != 0u;
+            step.pitchSemitones += up ? 12.0f : -12.0f;
+        }
+    }
+
+    applyPitchToKey(playback);
+
+    for (auto& step : playback) {
         step.pitchSemitones = std::clamp(
             step.pitchSemitones + midiTransposeSemitones_,
             -48.0f, 48.0f);
     }
+
     scheduler_.setPattern(playback);
 }
 
