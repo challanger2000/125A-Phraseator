@@ -7,6 +7,11 @@ namespace phraseator {
 
 namespace {
 constexpr double kPi = 3.14159265358979323846;
+constexpr float kDenormalFloor = 1.0e-20f;
+
+float killDenormal(float value) noexcept {
+    return std::fabs(value) < kDenormalFloor ? 0.0f : value;
+}
 
 double delayQuarterMultiplier(std::int32_t division) noexcept {
     switch (std::clamp(division, 0, 7)) {
@@ -197,8 +202,10 @@ bool PhraseFx::processBlock(float* left,
                 const float delayedR = readDelay(delayRight_, delayGenerations_, readPos);
 
                 constexpr float feedback = 0.34f;
-                delayLeft_[writeIndex_] = inL + delayedR * feedback;
-                delayRight_[writeIndex_] = inR + delayedL * feedback;
+                delayLeft_[writeIndex_] =
+                    killDenormal(inL + delayedR * feedback);
+                delayRight_[writeIndex_] =
+                    killDenormal(inR + delayedL * feedback);
                 delayGenerations_[writeIndex_] = delayGeneration_;
 
                 const float mix = std::clamp(delayCurrent_, 0.0f, 1.0f);
@@ -219,8 +226,10 @@ bool PhraseFx::processBlock(float* left,
             const float oneMinusA = static_cast<float>(1.0 - a);
             const float af = static_cast<float>(a);
 
-            filterStateL_ = oneMinusA * inL + af * filterStateL_;
-            filterStateR_ = oneMinusA * inR + af * filterStateR_;
+            filterStateL_ = killDenormal(
+                oneMinusA * inL + af * filterStateL_);
+            filterStateR_ = killDenormal(
+                oneMinusA * inR + af * filterStateR_);
 
             if (filterMode_ == 0) {
                 inL = filterStateL_;
@@ -234,6 +243,8 @@ bool PhraseFx::processBlock(float* left,
             filterStateR_ = inR;
         }
 
+        inL = killDenormal(inL);
+        inR = killDenormal(inR);
         left[i] = inL;
         right[i] = inR;
         producedAudio = producedAudio || inL != 0.0f || inR != 0.0f;
