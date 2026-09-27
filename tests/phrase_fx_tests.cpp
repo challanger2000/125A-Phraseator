@@ -257,5 +257,64 @@ int main() {
             CHECK(std::fabs(x) < 1.0e-6f);
     }
 
+
+    {
+        // Bypass transition: turning division OFF from a settled 100% wet
+        // state must return to full dry immediately, not attenuate the input.
+        PhraseFx measured;
+        measured.prepare(48000.0);
+        measured.setDelayAmount(1.0f);
+        measured.setDelayDivision(2);
+
+        std::vector<float> settleL(48000u, 0.0f);
+        std::vector<float> settleR(48000u, 0.0f);
+        measured.processBlock(
+            settleL.data(), settleR.data(), settleL.size(), 120.0);
+
+        measured.setDelayDivision(0);
+        float offL[1] {1.0f};
+        float offR[1] {1.0f};
+        CHECK(measured.processBlock(offL, offR, 1u, 120.0));
+        CHECK(std::fabs(offL[0] - 1.0f) < 1.0e-6f);
+        CHECK(std::fabs(offR[0] - 1.0f) < 1.0e-6f);
+
+        // Re-enable with an empty history buffer. The first sample must still
+        // be essentially dry; wet mix ramps in from zero instead of creating
+        // a silence hole before the first new echo exists.
+        measured.setDelayDivision(2);
+        float onL[1] {1.0f};
+        float onR[1] {1.0f};
+        CHECK(measured.processBlock(onL, onR, 1u, 120.0));
+        CHECK(onL[0] > 0.99f);
+        CHECK(onR[0] > 0.99f);
+    }
+
+    {
+        // Amount 0 follows the same dry/re-enable contract.
+        PhraseFx measured;
+        measured.prepare(48000.0);
+        measured.setDelayAmount(1.0f);
+        measured.setDelayDivision(2);
+
+        std::vector<float> settleL(48000u, 0.0f);
+        std::vector<float> settleR(48000u, 0.0f);
+        measured.processBlock(
+            settleL.data(), settleR.data(), settleL.size(), 120.0);
+
+        measured.setDelayAmount(0.0f);
+        float dryL[1] {0.75f};
+        float dryR[1] {-0.5f};
+        CHECK(measured.processBlock(dryL, dryR, 1u, 120.0));
+        CHECK(std::fabs(dryL[0] - 0.75f) < 1.0e-6f);
+        CHECK(std::fabs(dryR[0] + 0.5f) < 1.0e-6f);
+
+        measured.setDelayAmount(1.0f);
+        float restartL[1] {0.75f};
+        float restartR[1] {-0.5f};
+        CHECK(measured.processBlock(restartL, restartR, 1u, 120.0));
+        CHECK(std::fabs(restartL[0]) > 0.74f);
+        CHECK(std::fabs(restartR[0]) > 0.49f);
+    }
+
     return 0;
 }
