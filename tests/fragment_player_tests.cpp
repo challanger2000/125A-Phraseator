@@ -194,5 +194,35 @@ int main() {
         CHECK(std::fabs(centeredAgain.left - centeredAgain.right) < 1.0e-6f);
     }
 
+
+    {
+        // Source-specific mute choke must release only voices from that source.
+        SourcePool mutePool;
+        constexpr std::uint32_t frames = 256u;
+        CHECK(mutePool.setOneShot(0, 21u, frames, 48000.0, false));
+        CHECK(mutePool.setOneShot(1, 22u, frames, 48000.0, false));
+
+        float a[frames] {};
+        float b[frames] {};
+        for (auto& x : a) x = 1.0f;
+        for (auto& x : b) x = 0.5f;
+
+        std::array<AudioBufferView, kMaxSources> muteBuffers {};
+        muteBuffers[0] = {a, nullptr, frames, false};
+        muteBuffers[1] = {b, nullptr, frames, false};
+
+        FragmentPlayer player;
+        player.prepare(48000.0);
+        CHECK(player.trigger(mutePool, muteBuffers, {0u, 0u}, 1.0f, 0.0f, 0.0f));
+        CHECK(player.trigger(mutePool, muteBuffers, {1u, 0u}, 1.0f, 0.0f, 0.0f));
+        CHECK(player.activeVoiceCount() == 2u);
+
+        player.chokeSource(0u);
+        for (int i = 0; i < 96; ++i)
+            player.processSample(mutePool, muteBuffers);
+
+        CHECK(player.activeVoiceCount() == 1u);
+    }
+
     return 0;
 }
