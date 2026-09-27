@@ -1,6 +1,7 @@
 #include "source_pool.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace phraseator {
 
@@ -23,7 +24,8 @@ bool SourcePool::setOneShot(std::size_t sourceIndex,
                             bool stereo,
                             bool tonal,
                             float detectedRootMidi) noexcept {
-    if (sourceIndex >= kMaxSources || totalFrames == 0 || sampleRate <= 0.0)
+    if (sourceIndex >= kMaxSources || totalFrames == 0 ||
+        !std::isfinite(sampleRate) || sampleRate <= 0.0)
         return false;
 
     auto& s = sources_[sourceIndex];
@@ -33,8 +35,8 @@ bool SourcePool::setOneShot(std::size_t sourceIndex,
     s.totalFrames = totalFrames;
     s.sampleRate = sampleRate;
     s.stereo = stereo;
-    s.tonal = tonal;
-    s.detectedRootMidi = detectedRootMidi;
+    s.tonal = tonal && std::isfinite(detectedRootMidi) && detectedRootMidi >= 0.0f;
+    s.detectedRootMidi = s.tonal ? detectedRootMidi : -1.0f;
     s.slices[0] = {0u, totalFrames};
     s.sliceCount = 1;
     return true;
@@ -49,7 +51,8 @@ bool SourcePool::setLoopSlices(std::size_t sourceIndex,
                                std::size_t sliceCount,
                                bool tonal,
                                float detectedRootMidi) noexcept {
-    if (sourceIndex >= kMaxSources || totalFrames == 0 || sampleRate <= 0.0 ||
+    if (sourceIndex >= kMaxSources || totalFrames == 0 ||
+        !std::isfinite(sampleRate) || sampleRate <= 0.0 ||
         slices == nullptr || sliceCount == 0 || sliceCount > kMaxSlicesPerSource)
         return false;
 
@@ -59,8 +62,10 @@ bool SourcePool::setLoopSlices(std::size_t sourceIndex,
     candidate.totalFrames = totalFrames;
     candidate.sampleRate = sampleRate;
     candidate.stereo = stereo;
-    candidate.tonal = tonal;
-    candidate.detectedRootMidi = detectedRootMidi;
+    candidate.tonal =
+        tonal && std::isfinite(detectedRootMidi) && detectedRootMidi >= 0.0f;
+    candidate.detectedRootMidi =
+        candidate.tonal ? detectedRootMidi : -1.0f;
 
     std::uint32_t previousEnd = 0;
     for (std::size_t i = 0; i < sliceCount; ++i) {
