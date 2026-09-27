@@ -951,9 +951,10 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
         bool valid {false};
     };
 
-    // Phraseator currently exports far fewer than 32 parameters. Keeping this
-    // fixed-size avoids allocation in process() while still leaving headroom.
-    constexpr std::size_t kMaxParameterQueues = 32;
+    // Fixed-size realtime storage: Phraseator now exposes generation,
+    // live-shape, finish, 16 ratchets, 8 mutes and host-facing view/status
+    // parameters. Keep generous headroom without allocating in process().
+    constexpr std::size_t kMaxParameterQueues = 96;
     std::array<ParameterCursor, kMaxParameterQueues> cursors {};
     std::size_t cursorCount = 0;
 
