@@ -205,5 +205,50 @@ int main() {
         CHECK(std::fabs(retriggerL[0] - centerGain) < 1.0e-5f);
     }
 
+
+    {
+        // Exact ratchet timing at 120 BPM / 48 kHz: one 16th is 6000 samples.
+        SourcePool ratchetPool;
+        constexpr std::uint32_t frames = 4u;
+        CHECK(ratchetPool.setOneShot(0, 30u, frames, 48000.0, false));
+
+        const float click[frames] {1.0f, 0.0f, 0.0f, 0.0f};
+        std::array<AudioBufferView, kMaxSources> ratchetBuffers {};
+        ratchetBuffers[0] = {click, nullptr, frames, false};
+
+        for (int hits = 1; hits <= 4; ++hits) {
+            Pattern p {};
+            p[0].active = true;
+            p[0].fragment = 0u;
+            p[0].velocity = 1.0f;
+            p[0].pan = 0.0f;
+            p[0].repeats = static_cast<std::uint8_t>(hits);
+
+            PhraseScheduler sch;
+            sch.setPattern(p);
+            sch.prepare(48000.0, 120.0);
+
+            std::vector<float> l(6000u);
+            std::vector<float> rr(6000u);
+            CHECK(sch.processBlock(
+                ratchetPool, ratchetBuffers, 0.0, true,
+                l.data(), rr.data(), l.size()));
+
+            int impulses = 0;
+            for (std::size_t i = 0; i < l.size(); ++i) {
+                if (std::fabs(l[i] - centerGain) < 1.0e-5f)
+                    ++impulses;
+            }
+            CHECK(impulses == hits);
+
+            for (int n = 0; n < hits; ++n) {
+                const auto expected = static_cast<std::size_t>(
+                    std::llround(static_cast<double>(n) * 6000.0 /
+                                 static_cast<double>(hits)));
+                CHECK(std::fabs(l[expected] - centerGain) < 1.0e-5f);
+            }
+        }
+    }
+
     return 0;
 }
