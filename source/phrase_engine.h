@@ -9,6 +9,7 @@ namespace phraseator {
 constexpr std::size_t kStepCount = 16;
 constexpr std::size_t kMaxFragments = 128;
 constexpr std::size_t kMaxGenerationSources = 16;
+constexpr std::uint8_t kMaxRatchetHits = 4u;
 
 struct Step {
     bool active {false};
