@@ -108,3 +108,13 @@ AUTO classification is intentionally conservative:
 - MIDI note 60 remains neutral transpose; higher/lower notes transpose phrase playback.
 - Generate/Variate custom buttons use explicit controller action pulses so each click reaches the processor deterministically.
 - Loading additional sources preserves the current pattern; pressing GENERATE rebuilds source assignments from all currently loaded sources.
+
+
+## 2026-09-27 measured regression fixes
+
+- Generate/Variate GUI actions use direct controller-to-processor VST3 messages; the processor consumes them on the audio thread via lock-free pending flags.
+- RESTART phase uses a monotonic local phrase clock. DAW loop-wrap/project-time jumps cannot clamp restart phase back to zero and create rapid retriggers.
+- SampleBank copy semantics explicitly rebind AudioBufferView pointers to copied OwnedAudioSource storage, preventing earlier sources from referencing the previous bank after a later source is loaded.
+- Regression coverage verifies copied multi-source banks keep both source views valid and independent.
+- Generation macro regression coverage verifies high Density produces more than twice the active-step population of low Density across deterministic fixtures, and Pitch/Pan/Groove produce measurable non-zero effects after generation.
+- Existing source-balanced generation regression continues to verify comparable source-level use of a one-shot versus a 16-slice loop.
