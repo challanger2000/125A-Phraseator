@@ -134,3 +134,13 @@ AUTO classification is intentionally conservative:
 - The 16 visible pattern steps are directly editable by left click. A click toggles the step on/off while retaining its current fragment assignment; activating an empty step starts with fragment 1.
 - Pattern edits are sent as direct controller-to-processor messages and applied through fixed-size atomic pending state on the audio thread.
 - Existing pitch-to-key regression tests verify deterministic quantization to the selected root/scale.
+
+
+## 2026-09-27 source-number pattern editing
+
+- Pattern step labels now represent visible source slots 1-8, not internal flat fragment indices.
+- Left-click cycles through currently loaded sources only.
+- Right-click clears the step.
+- Manual selection of a loop source targets that source's first slice; generated/varied patterns may still use any valid slice internally.
+- Pattern display maps internal fragments back to their owning source before showing the step number.
+- Core regression verifies source-to-flat-fragment and flat-fragment-to-source mapping when earlier sources contain multiple slices.
