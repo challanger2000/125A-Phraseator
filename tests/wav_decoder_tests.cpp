@@ -77,6 +77,8 @@ std::vector<std::uint8_t> makeStereoFloat() {
     }
 
     return out;
+}
+
 std::vector<std::uint8_t> makeStereo24Extensible(std::uint32_t subFormat = 1u) {
     std::vector<std::uint8_t> out;
     appendId(out, "RIFF");
@@ -110,8 +112,6 @@ std::vector<std::uint8_t> makeStereo24Extensible(std::uint32_t subFormat = 1u) {
     return out;
 }
 
-
-}
 
 }
 
