@@ -375,7 +375,10 @@ void Processor::applyNormalizedParameter(ParamID id, double rawValue) noexcept {
         const auto sourceIndex = static_cast<std::size_t>(
             id - static_cast<ParamID>(kSourceMuteBase));
         if (sourceIndex < state_.sources.size()) {
-            state_.sources[sourceIndex].muted = value >= 0.5;
+            const bool muted = value >= 0.5;
+            state_.sources[sourceIndex].muted = muted;
+            if (muted)
+                scheduler_.chokeSource(static_cast<std::uint16_t>(sourceIndex));
             refreshSchedulerPattern();
         }
         return;
@@ -862,6 +865,9 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
         patternSnapshot = snapshotPatternFragments(state_.pattern, oldPool);
 
     if (sampleBanks_.consumePending()) {
+        // Any active voice points into the previous bank's buffers. Never let
+        // it continue against newly published sample memory.
+        scheduler_.reset();
         sourceStatusDirty_ = true;
         const auto& newPool = sampleBanks_.activeBank().sourcePool();
 
