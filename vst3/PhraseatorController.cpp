@@ -317,11 +317,25 @@ Steinberg::tresult Controller::sendLoadSample(const Steinberg::Vst::TChar* path,
                                               Steinberg::int32 divisions,
                                               bool tonal,
                                               double detectedRootMidi) {
+    return sendLoadSampleMode(
+        path, sourceIndex, sourceId, asLoop ? 1 : 0, divisions,
+        tonal, detectedRootMidi);
+}
+
+Steinberg::tresult Controller::sendLoadSampleMode(
+    const Steinberg::Vst::TChar* path,
+    Steinberg::int32 sourceIndex,
+    Steinberg::uint32 sourceId,
+    Steinberg::int32 mode,
+    Steinberg::int32 divisions,
+    bool tonal,
+    double detectedRootMidi) {
     using namespace Steinberg;
     using namespace Steinberg::Vst;
 
     if (!path || *path == 0 ||
         sourceIndex < 0 || sourceIndex >= static_cast<int32>(kMaxSources) ||
+        mode < 0 || mode > 2 ||
         divisions < 0 || divisions > static_cast<int32>(kMaxSlicesPerSource)) {
         return kInvalidArgument;
     }
@@ -338,7 +352,7 @@ Steinberg::tresult Controller::sendLoadSample(const Steinberg::Vst::TChar* path,
     if (attributes->setString(kAttrPath, path) != kResultTrue ||
         attributes->setInt(kAttrSourceIndex, sourceIndex) != kResultTrue ||
         attributes->setInt(kAttrSourceId, static_cast<int64>(sourceId)) != kResultTrue ||
-        attributes->setInt(kAttrMode, asLoop ? 1 : 0) != kResultTrue ||
+        attributes->setInt(kAttrMode, mode) != kResultTrue ||
         attributes->setInt(kAttrDivisions, divisions) != kResultTrue ||
         attributes->setInt(kAttrTonal, tonal ? 1 : 0) != kResultTrue ||
         attributes->setFloat(kAttrDetectedRootMidi, detectedRootMidi) != kResultTrue) {
@@ -346,6 +360,24 @@ Steinberg::tresult Controller::sendLoadSample(const Steinberg::Vst::TChar* path,
     }
 
     return sendMessage(message);
+}
+
+bool Controller::loadDroppedSample(const std::string& utf8Path,
+                                   Steinberg::int32 sourceIndex) {
+    if (utf8Path.empty() || sourceIndex < 0 || sourceIndex >= 8)
+        return false;
+
+    Steinberg::String path;
+    path.fromUTF8(utf8Path.c_str());
+
+    return sendLoadSampleMode(
+        path.text(),
+        sourceIndex,
+        static_cast<Steinberg::uint32>(sourceIndex + 1),
+        2,
+        16,
+        false,
+        -1.0) == Steinberg::kResultTrue;
 }
 
 Steinberg::tresult Controller::sendClearSample(Steinberg::int32 sourceIndex) {

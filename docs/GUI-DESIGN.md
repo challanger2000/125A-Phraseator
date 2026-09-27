@@ -62,6 +62,10 @@ The engine may retain greater technical source capacity, but a second source-ban
 
 The source bay is not a library index. Loading remains explicit and user-driven.
 
+Each source status field is also a WAV drop target. Dragging a WAV from the OS or from a host that forwards file-path drops invokes AUTO loading: Phraseator keeps ordinary material as a one-shot and treats material with multiple reliable transients as a loop. ONE / LOOP buttons remain explicit overrides and a universal fallback when the host does not forward drag-and-drop to third-party plug-ins.
+
+An internal sample browser is intentionally not part of V0.1.
+
 ### Pattern area — center/top
 
 A 16-step horizontal phrase strip.

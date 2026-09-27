@@ -20,6 +20,7 @@ namespace phraseator {
 enum class SampleLoadMode : std::uint8_t {
     OneShot = 0,
     EqualSlices,
+    Auto,
     Clear
 };
 

@@ -46,7 +46,9 @@ Decoded sources are staged in the inactive SampleBank and atomically published t
 
 ## Implemented loading path
 
-The VST3 editor can select WAV files for visible source slots. Paths are sent to the processor, decoded asynchronously, and published through the non-realtime sample-bank exchange.
+The VST3 editor can select WAV files for visible source slots or accept WAV file-path drops on each source status field. Paths are sent to the processor, decoded asynchronously, and published through the non-realtime sample-bank exchange.
+
+Drag-and-drop uses AUTO classification. Multiple reliable transient fragments resolve to loop mode; otherwise the complete file remains a one-shot. Explicit ONE / LOOP buttons bypass AUTO classification.
 
 Loop loads prefer transient-based slicing when reliable onsets are found. If onset analysis is inconclusive, Phraseator falls back to the requested equal grid so the load remains musically usable.
 

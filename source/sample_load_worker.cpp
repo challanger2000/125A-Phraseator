@@ -43,13 +43,15 @@ bool SampleLoadWorker::validRequest(const SampleLoadRequest& request) noexcept {
     if (request.path.empty())
         return false;
 
-    if (request.mode == SampleLoadMode::EqualSlices) {
+    if (request.mode == SampleLoadMode::EqualSlices ||
+        request.mode == SampleLoadMode::Auto) {
         if (request.equalDivisions == 0 ||
             request.equalDivisions > kMaxSlicesPerSource) {
             return false;
         }
 
-        if (request.useStoredSlices) {
+        if (request.mode == SampleLoadMode::EqualSlices &&
+            request.useStoredSlices) {
             if (request.resolvedSliceCount == 0 ||
                 request.resolvedSliceCount > kMaxSlicesPerSource) {
                 return false;
@@ -192,6 +194,27 @@ SampleLoadWorkerResult SampleLoadWorker::execute(WorkItem& item) {
                 source.request.detectedRootMidi = pitch.midiNote;
                 request.tonal = true;
                 request.detectedRootMidi = pitch.midiNote;
+            }
+        }
+
+        if (request.mode == SampleLoadMode::Auto) {
+            source.slices = Slicer::transientDivisions(
+                source.audio.view(),
+                static_cast<double>(source.audio.sampleRate),
+                request.equalDivisions);
+
+            // AUTO stays conservative: only classify as a loop when analysis
+            // found at least two usable fragments. Otherwise retain the
+            // complete file as a one-shot.
+            if (source.slices.count >= 2u) {
+                request.mode = SampleLoadMode::EqualSlices;
+                source.request.mode = SampleLoadMode::EqualSlices;
+                request.preferTransient = true;
+                source.request.preferTransient = true;
+            } else {
+                source.slices = {};
+                request.mode = SampleLoadMode::OneShot;
+                source.request.mode = SampleLoadMode::OneShot;
             }
         }
 

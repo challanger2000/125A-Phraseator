@@ -30,6 +30,9 @@ The user should not need to program a sampler in detail. The primary workflow is
 - Loops can expose slices as playable fragments.
 - Fragments share one phrase-generation pool.
 - Sample loading is from external files; Phraseator does not require a bundled library.
+- WAV drag-and-drop onto any visible source slot is a primary fast path where the host supports file-path drops.
+- ONE / LOOP file-dialog actions remain explicit host-independent fallbacks.
+- No internal sample browser is required for V0.1.
 
 ## V1 macro controls
 

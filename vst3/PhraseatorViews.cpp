@@ -1,4 +1,5 @@
 #include "PhraseatorViews.h"
+#include "PhraseatorController.h"
 #include "PhraseatorIDs.h"
 #include "branding_master.h"
 
@@ -12,6 +13,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cstdio>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -135,6 +137,117 @@ void StepIndicator::draw(VSTGUI::CDrawContext* context) {
     setDirty(false);
 }
 
+SourceSlotView::SourceSlotView(const VSTGUI::CRect& size,
+                               VSTGUI::IControlListener* listener,
+                               std::int32_t tag,
+                               Controller* controller)
+: VSTGUI::CControl(size, listener, tag),
+  controller_(controller) {
+    setTransparency(true);
+}
+
+bool SourceSlotView::extractWavePath(VSTGUI::IDataPackage* drag,
+                                     std::string& path) {
+    if (!drag)
+        return false;
+
+    const auto count = drag->getCount();
+    for (std::uint32_t i = 0; i < count; ++i) {
+        if (drag->getDataType(i) != VSTGUI::IDataPackage::kFilePath)
+            continue;
+
+        const void* buffer = nullptr;
+        VSTGUI::IDataPackage::Type type {};
+        const auto size = drag->getData(i, buffer, type);
+        if (size == 0 || buffer == nullptr)
+            continue;
+
+        std::string candidate(
+            reinterpret_cast<const char*>(buffer),
+            static_cast<std::size_t>(size));
+        while (!candidate.empty() && candidate.back() == '\0')
+            candidate.pop_back();
+
+        std::string lower = candidate;
+        std::transform(lower.begin(), lower.end(), lower.begin(),
+                       [](unsigned char ch) {
+                           return static_cast<char>(std::tolower(ch));
+                       });
+
+        if (lower.size() >= 4u &&
+            lower.compare(lower.size() - 4u, 4u, ".wav") == 0) {
+            path = std::move(candidate);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void SourceSlotView::draw(VSTGUI::CDrawContext* context) {
+    const auto r = getViewSize();
+    const double normalized =
+        std::clamp(static_cast<double>(getValueNormalized()), 0.0, 1.0);
+
+    const char* label = "EMPTY";
+    if (normalized > 0.75)
+        label = "LOOP";
+    else if (normalized > 0.25)
+        label = "ONE";
+
+    if (dragActive_) {
+        context->setFillColor({28, 55, 78, 255});
+        context->setFrameColor({86, 154, 220, 255});
+    } else {
+        context->setFillColor({8, 12, 17, 255});
+        context->setFrameColor({52, 65, 79, 255});
+    }
+    context->setLineWidth(dragActive_ ? 1.8 : 1.0);
+    context->drawRect(r, VSTGUI::kDrawFilledAndStroked);
+    context->setFont(VSTGUI::kNormalFontSmall);
+    context->setFontColor(dragActive_
+        ? VSTGUI::CColor{239, 243, 247, 255}
+        : VSTGUI::CColor{154, 168, 183, 255});
+    context->drawString(label, r, VSTGUI::kCenterText);
+    setDirty(false);
+}
+
+VSTGUI::DragOperation SourceSlotView::onDragEnter(VSTGUI::DragEventData data) {
+    std::string path;
+    if (!extractWavePath(data.drag, path))
+        return VSTGUI::DragOperation::None;
+
+    dragActive_ = true;
+    invalid();
+    return VSTGUI::DragOperation::Copy;
+}
+
+VSTGUI::DragOperation SourceSlotView::onDragMove(VSTGUI::DragEventData data) {
+    std::string path;
+    return extractWavePath(data.drag, path)
+        ? VSTGUI::DragOperation::Copy
+        : VSTGUI::DragOperation::None;
+}
+
+void SourceSlotView::onDragLeave(VSTGUI::DragEventData) {
+    dragActive_ = false;
+    invalid();
+}
+
+bool SourceSlotView::onDrop(VSTGUI::DragEventData data) {
+    std::string path;
+    const bool valid = extractWavePath(data.drag, path);
+    dragActive_ = false;
+    invalid();
+
+    if (!valid || !controller_)
+        return false;
+
+    const auto sourceIndex = getTag() -
+        static_cast<std::int32_t>(kSourceStatusBase);
+    return controller_->loadDroppedSample(path, sourceIndex);
+}
+
 MacroKnob::MacroKnob(const VSTGUI::CRect& size,
                      VSTGUI::IControlListener* listener,
                      std::int32_t tag)
@@ -193,7 +306,7 @@ void configureEditor(VSTGUI::VST3Editor* editor,double width,double height,doubl
 VSTGUI::CView* createCustomView(VSTGUI::UTF8StringPtr name,
                                 const VSTGUI::UIAttributes& attributes,
                                 VSTGUI::VST3Editor* editor,
-                                VSTGUI::IControlListener* controllerListener){
+                                Controller* controller){
     if(!name || !editor) return nullptr;
     VSTGUI::CPoint origin{0,0}, size{80,80};
     attributes.getPointAttribute("origin",origin);
@@ -210,6 +323,11 @@ VSTGUI::CView* createCustomView(VSTGUI::UTF8StringPtr name,
        tag < static_cast<Steinberg::int32>(kPatternViewBase + kPatternViewCount))
         return new StepIndicator(rect,editor,tag);
 
+    if(std::strcmp(name,"PhraseSourceSlot")==0 &&
+       tag >= static_cast<Steinberg::int32>(kSourceStatusBase) &&
+       tag < static_cast<Steinberg::int32>(kSourceStatusBase + kSourceStatusCount))
+        return new SourceSlotView(rect, editor, tag, controller);
+
     if(std::strcmp(name,"PhraseKnob")==0 && tag>=0)
         return new MacroKnob(rect,editor,tag);
 
@@ -218,11 +336,11 @@ VSTGUI::CView* createCustomView(VSTGUI::UTF8StringPtr name,
     if(std::strcmp(name,"PhraseVariate")==0 && tag>=0)
         return new VSTGUI::CTextButton(rect,editor,tag,"VARIATE");
     if(std::strcmp(name,"PhraseLoadOne")==0 && tag>=0)
-        return new VSTGUI::CTextButton(rect,controllerListener,tag,"ONE");
+        return new VSTGUI::CTextButton(rect,controller,tag,"ONE");
     if(std::strcmp(name,"PhraseLoadLoop")==0 && tag>=0)
-        return new VSTGUI::CTextButton(rect,controllerListener,tag,"LOOP");
+        return new VSTGUI::CTextButton(rect,controller,tag,"LOOP");
     if(std::strcmp(name,"PhraseClear")==0 && tag>=0)
-        return new VSTGUI::CTextButton(rect,controllerListener,tag,"X");
+        return new VSTGUI::CTextButton(rect,controller,tag,"X");
 
     return nullptr;
 }

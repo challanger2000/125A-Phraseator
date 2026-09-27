@@ -3,8 +3,14 @@
 #include "vstgui/lib/controls/cknob.h"
 #include "vstgui/lib/controls/ccontrol.h"
 #include "vstgui/lib/cview.h"
+#include "vstgui/lib/dragging.h"
 #include "vstgui/plugin-bindings/vst3editor.h"
 #include "vstgui/uidescription/uiattributes.h"
+#include <string>
+
+namespace phraseator::vst3 {
+class Controller;
+}
 
 namespace phraseator::vst3::gui {
 
@@ -23,6 +29,29 @@ public:
     CLASS_METHODS(StepIndicator, VSTGUI::CControl)
 };
 
+class SourceSlotView final :
+    public VSTGUI::CControl,
+    public VSTGUI::IDropTarget {
+public:
+    SourceSlotView(const VSTGUI::CRect& size,
+                   VSTGUI::IControlListener* listener,
+                   std::int32_t tag,
+                   Controller* controller);
+
+    void draw(VSTGUI::CDrawContext* context) override;
+    VSTGUI::SharedPointer<VSTGUI::IDropTarget> getDropTarget() override { return this; }
+    VSTGUI::DragOperation onDragEnter(VSTGUI::DragEventData data) override;
+    VSTGUI::DragOperation onDragMove(VSTGUI::DragEventData data) override;
+    void onDragLeave(VSTGUI::DragEventData data) override;
+    bool onDrop(VSTGUI::DragEventData data) override;
+    CLASS_METHODS(SourceSlotView, VSTGUI::CControl)
+
+private:
+    static bool extractWavePath(VSTGUI::IDataPackage* drag, std::string& path);
+    Controller* controller_ {nullptr};
+    bool dragActive_ {false};
+};
+
 class MacroKnob final : public VSTGUI::CKnob {
 public:
     MacroKnob(const VSTGUI::CRect& size,
@@ -39,6 +68,6 @@ void configureEditor(VSTGUI::VST3Editor* editor,
 VSTGUI::CView* createCustomView(VSTGUI::UTF8StringPtr name,
                                 const VSTGUI::UIAttributes& attributes,
                                 VSTGUI::VST3Editor* editor,
-                                VSTGUI::IControlListener* controllerListener);
+                                Controller* controller);
 
 } // namespace phraseator::vst3::gui

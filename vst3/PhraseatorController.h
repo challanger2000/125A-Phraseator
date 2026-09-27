@@ -3,6 +3,7 @@
 #include "public.sdk/source/vst/vsteditcontroller.h"
 #include "vstgui/plugin-bindings/vst3editor.h"
 #include "vstgui/lib/controls/icontrollistener.h"
+#include <string>
 
 namespace phraseator::vst3 {
 
@@ -44,9 +45,19 @@ public:
                                       bool tonal = false,
                                       double detectedRootMidi = -1.0);
     Steinberg::tresult sendClearSample(Steinberg::int32 sourceIndex);
+    bool loadDroppedSample(const std::string& utf8Path,
+                           Steinberg::int32 sourceIndex);
 
 private:
     void openSampleSelector(int sourceIndex, bool asLoop);
+    Steinberg::tresult sendLoadSampleMode(
+        const Steinberg::Vst::TChar* path,
+        Steinberg::int32 sourceIndex,
+        Steinberg::uint32 sourceId,
+        Steinberg::int32 mode,
+        Steinberg::int32 divisions,
+        bool tonal = false,
+        double detectedRootMidi = -1.0);
 
     double guiZoom_ {1.0};
     VSTGUI::VST3Editor* editor_ {nullptr};

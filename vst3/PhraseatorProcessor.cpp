@@ -122,7 +122,7 @@ tresult PLUGIN_API Processor::notify(IMessage* message) {
 
     if (sourceIndex < 0 || sourceIndex >= static_cast<int64>(kMaxSources) ||
         sourceId < 0 ||
-        mode < 0 || mode > 1 ||
+        mode < 0 || mode > 2 ||
         divisions < 0 || divisions > static_cast<int64>(kMaxSlicesPerSource)) {
         return kResultFalse;
     }
@@ -141,9 +141,13 @@ tresult PLUGIN_API Processor::notify(IMessage* message) {
     request.sourceIndex = static_cast<std::size_t>(sourceIndex);
     request.sourceId = static_cast<std::uint32_t>(sourceId);
     request.path = std::filesystem::u8path(utf8Path);
-    request.mode = mode == 0 ? SampleLoadMode::OneShot : SampleLoadMode::EqualSlices;
+    request.mode = mode == 0
+        ? SampleLoadMode::OneShot
+        : (mode == 1 ? SampleLoadMode::EqualSlices : SampleLoadMode::Auto);
     request.equalDivisions = static_cast<std::size_t>(divisions);
-    request.preferTransient = request.mode == SampleLoadMode::EqualSlices;
+    request.preferTransient =
+        request.mode == SampleLoadMode::EqualSlices ||
+        request.mode == SampleLoadMode::Auto;
     request.tonal = tonal != 0;
     request.detectedRootMidi = static_cast<float>(detectedRootMidi);
 
@@ -170,6 +174,16 @@ tresult PLUGIN_API Processor::notify(IMessage* message) {
 
             auto resolvedRecall = recallCandidate;
             const auto& resolved = resolvedRequests.front();
+            resolvedRecall.mode = resolved.mode;
+            resolvedRecall.divisions = static_cast<std::uint16_t>(
+                resolved.mode == SampleLoadMode::OneShot
+                    ? 1u
+                    : (resolved.equalDivisions > 0u
+                        ? resolved.equalDivisions
+                        : resolved.resolvedSliceCount));
+            resolvedRecall.preferTransient =
+                resolved.mode == SampleLoadMode::EqualSlices &&
+                resolved.preferTransient;
             resolvedRecall.resolvedSliceCount = resolved.resolvedSliceCount;
             resolvedRecall.resolvedSlices = resolved.resolvedSlices;
             resolvedRecall.tonal = resolved.tonal;

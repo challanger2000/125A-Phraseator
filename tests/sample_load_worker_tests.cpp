@@ -251,6 +251,40 @@ int main() {
     CHECK(source3->slices[1].startFrame == 10000u);
     CHECK(source3->slices[1].endFrame == 48000u);
 
+    // AUTO mode used by drag-and-drop should classify clear repeated
+    // transients as a loop and publish the resolved mode to the callback.
+    SampleLoadRequest autoDropLoop;
+    autoDropLoop.sourceIndex = 4u;
+    autoDropLoop.sourceId = 500u;
+    autoDropLoop.path = transientPath;
+    autoDropLoop.mode = SampleLoadMode::Auto;
+    autoDropLoop.equalDivisions = 16u;
+
+    std::atomic<int> autoLoopMode {-1};
+    const auto autoLoopId = worker.requestLoad(
+        autoDropLoop,
+        true,
+        [&](const SampleLoadWorkerResult& completed,
+            const std::vector<SampleLoadRequest>& resolved) {
+            if (completed.ok() && resolved.size() == 1u)
+                autoLoopMode.store(
+                    static_cast<int>(resolved.front().mode),
+                    std::memory_order_release);
+        });
+
+    CHECK(autoLoopId != 0u);
+    CHECK(worker.waitForResult(autoLoopId, result, std::chrono::seconds(2)));
+    CHECK(result.ok());
+    CHECK(exchange.consumePending());
+    CHECK(autoLoopMode.load(std::memory_order_acquire) ==
+          static_cast<int>(SampleLoadMode::EqualSlices));
+
+    const auto* autoLoopSource =
+        exchange.activeBank().sourcePool().source(4u);
+    CHECK(autoLoopSource != nullptr);
+    CHECK(autoLoopSource->type == SourceType::Loop);
+    CHECK(autoLoopSource->sliceCount >= 2u);
+
     // Clearing a slot must remove both its audio and all fragments from the
     // published bank, without requiring a file path.
     const auto beforeClearFragments =
