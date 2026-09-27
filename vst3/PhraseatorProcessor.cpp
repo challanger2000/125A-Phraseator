@@ -364,6 +364,19 @@ tresult PLUGIN_API Processor::setProcessing(TBool state) {
 void Processor::applyNormalizedParameter(ParamID id, double rawValue) noexcept {
     const double value = clamp01(rawValue);
 
+    if (id >= static_cast<ParamID>(kStepRatchetBase) &&
+        id < static_cast<ParamID>(kStepRatchetBase + kStepRatchetCount)) {
+        const auto stepIndex = static_cast<std::size_t>(
+            id - static_cast<ParamID>(kStepRatchetBase));
+        if (stepIndex < state_.pattern.size()) {
+            state_.pattern[stepIndex].repeats = static_cast<std::uint8_t>(
+                std::clamp(static_cast<int>(std::lround(value * 3.0)) + 1, 1, 4));
+            refreshSchedulerPattern();
+            patternViewDirty_ = true;
+        }
+        return;
+    }
+
     if (id >= static_cast<ParamID>(kSourceMuteBase) &&
         id < static_cast<ParamID>(kSourceMuteBase + kSourceMuteCount)) {
         const auto sourceIndex = static_cast<std::size_t>(
@@ -756,6 +769,22 @@ void Processor::emitPatternViewParameters(ProcessData& data,
         int32 pointIndex = 0;
         if (queue->addPoint(safeOffset, value, pointIndex) != kResultTrue)
             complete = false;
+
+        int32 ratchetQueueIndex = 0;
+        auto* ratchetQueue = data.outputParameterChanges->addParameterData(
+            static_cast<ParamID>(kStepRatchetBase + i), ratchetQueueIndex);
+        if (!ratchetQueue) {
+            complete = false;
+        } else {
+            const ParamValue ratchetValue =
+                static_cast<ParamValue>(
+                    std::clamp<int>(static_cast<int>(step.repeats), 1, 4) - 1) / 3.0;
+            int32 ratchetPointIndex = 0;
+            if (ratchetQueue->addPoint(
+                    safeOffset, ratchetValue, ratchetPointIndex) != kResultTrue) {
+                complete = false;
+            }
+        }
     }
 
     if (complete)
