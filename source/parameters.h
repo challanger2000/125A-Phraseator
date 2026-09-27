@@ -21,6 +21,7 @@ enum class ParameterId : std::uint32_t {
     ReverbAmount = 1202,
     DriveAmount = 1203,
     FilterAmount = 1204,
+    FilterMode = 1205,
 
     GenerateTrigger = 1300,
     VariateTrigger = 1301,
@@ -37,6 +38,8 @@ struct ParameterDefaults {
     static constexpr float groove = 0.0f;
 
     static constexpr float delayAmount = 0.0f;
+    static constexpr std::int32_t delayDivision = 1; // 1/8
+    static constexpr std::int32_t filterMode = 0; // LP
     static constexpr float reverbAmount = 0.0f;
     static constexpr float driveAmount = 0.0f;
     static constexpr float filterAmount = 0.0f;
