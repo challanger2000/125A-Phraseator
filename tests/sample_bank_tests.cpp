@@ -103,5 +103,58 @@ int main() {
         CHECK(loudPeak <= 0.89f + 1.0e-6f);
     }
 
+
+    {
+        // Auto-level must remain finite and bounded for stereo, extreme low
+        // level and silence-like material.
+        SampleBank levelBank;
+
+        OwnedAudioSource stereo;
+        stereo.sampleRate = 48000u;
+        stereo.stereo = true;
+        stereo.left = {0.8f, -0.8f, 0.4f, -0.4f};
+        stereo.right = {0.4f, -0.4f, 0.2f, -0.2f};
+        CHECK(levelBank.setOneShot(0, 501u, std::move(stereo)));
+        const auto stereoView = levelBank.buffers()[0];
+        CHECK(stereoView.valid());
+        for (std::uint32_t i = 0; i < stereoView.frames; ++i) {
+            CHECK(std::isfinite(stereoView.left[i]));
+            CHECK(std::isfinite(stereoView.right[i]));
+            CHECK(std::fabs(stereoView.left[i]) <= 0.89f + 1.0e-6f);
+            CHECK(std::fabs(stereoView.right[i]) <= 0.89f + 1.0e-6f);
+        }
+
+        OwnedAudioSource veryQuiet;
+        veryQuiet.sampleRate = 48000u;
+        veryQuiet.stereo = false;
+        veryQuiet.left = {0.001f, -0.001f, 0.0005f, -0.0005f};
+        CHECK(levelBank.setOneShot(1, 502u, std::move(veryQuiet)));
+        const auto quietView = levelBank.buffers()[1];
+        CHECK(quietView.valid());
+        CHECK(std::fabs(quietView.left[0]) <= 0.004001f); // +12 dB cap (4x)
+
+        OwnedAudioSource hot;
+        hot.sampleRate = 48000u;
+        hot.stereo = false;
+        hot.left = {4.0f, -4.0f, 2.0f, -2.0f};
+        CHECK(levelBank.setOneShot(2, 503u, std::move(hot)));
+        const auto hotView = levelBank.buffers()[2];
+        CHECK(hotView.valid());
+        for (std::uint32_t i = 0; i < hotView.frames; ++i) {
+            CHECK(std::isfinite(hotView.left[i]));
+            CHECK(std::fabs(hotView.left[i]) <= 0.89f + 1.0e-6f);
+        }
+
+        OwnedAudioSource silence;
+        silence.sampleRate = 48000u;
+        silence.stereo = false;
+        silence.left = {0.0f, 0.0f, 0.0f, 0.0f};
+        CHECK(levelBank.setOneShot(3, 504u, std::move(silence)));
+        const auto silenceView = levelBank.buffers()[3];
+        CHECK(silenceView.valid());
+        for (std::uint32_t i = 0; i < silenceView.frames; ++i)
+            CHECK(silenceView.left[i] == 0.0f);
+    }
+
     return 0;
 }
