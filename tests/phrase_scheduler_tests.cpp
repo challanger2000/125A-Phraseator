@@ -154,5 +154,56 @@ int main() {
         CHECK(std::fabs(l[12110] - 0.25f * centerGain) < 1.0e-4f);
     }
 
+
+    {
+        // Phrase Mode contract:
+        // CONTINUE feeds absolute host time into the scheduler, so a note
+        // starting on the second 16th must continue at pattern step 1.
+        // RETRIGGER resets and feeds phrase-local time 0, so the same note
+        // must start from pattern step 0.
+        SourcePool modePool;
+        constexpr std::uint32_t modeFrames = 32u;
+        CHECK(modePool.setOneShot(0, 20u, modeFrames, 48000.0, false));
+        CHECK(modePool.setOneShot(1, 21u, modeFrames, 48000.0, false));
+
+        float first[modeFrames] {};
+        float second[modeFrames] {};
+        for (auto& x : first) x = 1.0f;
+        for (auto& x : second) x = 0.25f;
+
+        std::array<AudioBufferView, kMaxSources> modeBuffers {};
+        modeBuffers[0] = {first, nullptr, modeFrames, false};
+        modeBuffers[1] = {second, nullptr, modeFrames, false};
+
+        Pattern modePattern {};
+        modePattern[0].active = true;
+        modePattern[0].fragment = 0;
+        modePattern[0].velocity = 1.0f;
+        modePattern[1].active = true;
+        modePattern[1].fragment = 1;
+        modePattern[1].velocity = 1.0f;
+
+        PhraseScheduler modeScheduler;
+        modeScheduler.setPattern(modePattern);
+        modeScheduler.prepare(48000.0, 120.0);
+
+        float continueL[1] {};
+        float continueR[1] {};
+        CHECK(modeScheduler.processBlock(
+            modePool, modeBuffers, 6000.0, true,
+            continueL, continueR, 1u));
+        CHECK(std::fabs(continueL[0] - 0.25f * centerGain) < 1.0e-5f);
+
+        modeScheduler.reset();
+        modeScheduler.prepare(48000.0, 120.0);
+
+        float retriggerL[1] {};
+        float retriggerR[1] {};
+        CHECK(modeScheduler.processBlock(
+            modePool, modeBuffers, 0.0, true,
+            retriggerL, retriggerR, 1u));
+        CHECK(std::fabs(retriggerL[0] - centerGain) < 1.0e-5f);
+    }
+
     return 0;
 }
