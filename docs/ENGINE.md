@@ -42,6 +42,7 @@ music-theory laws.
 - Repeats prefer short contiguous groups.
 - Variation mutates an existing pattern rather than always replacing it.
 - Avoid pathological same-fragment repetition unless Repeat is high.
+- Choose sources approximately uniformly first, then choose a fragment/slice inside that source, so loops with many slices do not automatically dominate one-shots.
 - Use a local motif anchor per quarter-note group so active steps are not sixteen unrelated sample choices.
 - Prefer recent/local fragment continuity, with Repeat increasing the probability of deliberate adjacent reuse.
 - VARIATE preserves an existing active step's fragment more often than it replaces it, so variation behaves like mutation rather than a fresh random pattern.

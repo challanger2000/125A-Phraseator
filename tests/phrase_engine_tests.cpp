@@ -157,6 +157,53 @@ int main() {
     }
 
     {
+        // Source-balanced selection: one one-shot and one 16-slice loop should
+        // receive comparable source-level usage despite very different slice
+        // counts. Flat fragment weighting would heavily favor the loop.
+        GenerationSettings balanced;
+        balanced.density = 0.85f;
+        balanced.fragmentCount = 17u;
+        balanced.sourceSpanCount = 2u;
+        balanced.sourceSpans[0] = {0u, 1u};
+        balanced.sourceSpans[1] = {1u, 16u};
+
+        PhraseEngine balancedEngine(0x50A2CEu);
+        int oneShotUses = 0;
+        int loopUses = 0;
+        std::array<bool, 16> loopSlicesSeen {};
+
+        for (int n = 0; n < 512; ++n) {
+            const auto pattern = balancedEngine.generate(balanced);
+            for (const auto& step : pattern) {
+                if (!step.active)
+                    continue;
+
+                if (step.fragment == 0u) {
+                    ++oneShotUses;
+                } else if (step.fragment <= 16u) {
+                    ++loopUses;
+                    loopSlicesSeen[step.fragment - 1u] = true;
+                }
+            }
+        }
+
+        CHECK(oneShotUses > 0);
+        CHECK(loopUses > 0);
+
+        const double oneShotRatio =
+            static_cast<double>(oneShotUses) /
+            static_cast<double>(oneShotUses + loopUses);
+
+        CHECK(oneShotRatio > 0.35);
+        CHECK(oneShotRatio < 0.65);
+
+        int distinctLoopSlices = 0;
+        for (const bool seen : loopSlicesSeen)
+            distinctLoopSlices += seen ? 1 : 0;
+        CHECK(distinctLoopSlices >= 12);
+    }
+
+    {
         GenerationSettings lowRepeat;
         lowRepeat.density = 0.85f;
         lowRepeat.fragmentCount = 12;

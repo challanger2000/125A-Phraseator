@@ -342,9 +342,47 @@ GenerationSettings Processor::currentGenerationSettings() const noexcept {
     settings.pan = state_.pan;
     settings.groove = state_.groove;
 
-    const auto fragments = sampleBanks_.activeBank().sourcePool().fragmentCount();
+    const auto& pool = sampleBanks_.activeBank().sourcePool();
+    const auto fragments = pool.fragmentCount();
     settings.fragmentCount = static_cast<std::uint16_t>(
         std::clamp<std::size_t>(fragments == 0 ? 1 : fragments, 1, kMaxFragments));
+
+    // Build source spans in the same flat-fragment order used by SourcePool.
+    // PhraseEngine can then choose a source first and a slice second, so a
+    // sliced loop does not automatically outweigh a one-shot by slice count.
+    std::size_t flatCursor = 0u;
+    std::uint8_t spanCount = 0u;
+
+    for (std::size_t sourceIndex = 0;
+         sourceIndex < kMaxSources && spanCount < kMaxGenerationSources;
+         ++sourceIndex) {
+        const auto* source = pool.source(sourceIndex);
+        if (!source)
+            continue;
+
+        const auto sourceFragments =
+            static_cast<std::size_t>(source->sliceCount);
+
+        if (sourceFragments == 0u)
+            continue;
+
+        if (flatCursor < settings.fragmentCount) {
+            const auto available = std::min<std::size_t>(
+                sourceFragments,
+                static_cast<std::size_t>(settings.fragmentCount) - flatCursor);
+
+            if (available > 0u) {
+                settings.sourceSpans[spanCount++] = {
+                    static_cast<std::uint16_t>(flatCursor),
+                    static_cast<std::uint16_t>(available)
+                };
+            }
+        }
+
+        flatCursor += sourceFragments;
+    }
+
+    settings.sourceSpanCount = spanCount;
     return settings;
 }
 

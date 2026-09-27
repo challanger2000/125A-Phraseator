@@ -36,9 +36,46 @@ bool PhraseEngine::shouldActivate(std::size_t stepIndex, float density) {
     return randomUnit() < probability;
 }
 
-std::uint16_t PhraseEngine::chooseFragment(std::uint16_t fragmentCount) {
-    fragmentCount = std::clamp<std::uint16_t>(fragmentCount, 1, static_cast<std::uint16_t>(kMaxFragments));
-    std::uniform_int_distribution<std::uint16_t> distribution(0, static_cast<std::uint16_t>(fragmentCount - 1));
+std::uint16_t PhraseEngine::chooseFragment(const GenerationSettings& settings) {
+    const auto totalFragments = std::clamp<std::uint16_t>(
+        settings.fragmentCount, 1, static_cast<std::uint16_t>(kMaxFragments));
+
+    const auto spanCount = std::min<std::size_t>(
+        settings.sourceSpanCount, settings.sourceSpans.size());
+
+    if (spanCount > 0u) {
+        std::uniform_int_distribution<std::size_t> sourceDistribution(
+            0u, spanCount - 1u);
+
+        // Try each configured source at most once. Invalid spans should not
+        // poison generation; they simply fall back to flat fragment choice.
+        const auto firstSource = sourceDistribution(rng_);
+        for (std::size_t attempt = 0; attempt < spanCount; ++attempt) {
+            const auto spanIndex = (firstSource + attempt) % spanCount;
+            const auto& span = settings.sourceSpans[spanIndex];
+
+            if (span.fragmentCount == 0u ||
+                span.firstFragment >= totalFragments) {
+                continue;
+            }
+
+            const auto available = static_cast<std::uint16_t>(
+                std::min<std::size_t>(
+                    span.fragmentCount,
+                    static_cast<std::size_t>(totalFragments - span.firstFragment)));
+
+            if (available == 0u)
+                continue;
+
+            std::uniform_int_distribution<std::uint16_t> sliceDistribution(
+                0u, static_cast<std::uint16_t>(available - 1u));
+            return static_cast<std::uint16_t>(
+                span.firstFragment + sliceDistribution(rng_));
+        }
+    }
+
+    std::uniform_int_distribution<std::uint16_t> distribution(
+        0u, static_cast<std::uint16_t>(totalFragments - 1u));
     return distribution(rng_);
 }
 
@@ -81,16 +118,13 @@ void PhraseEngine::assignMusicalFragments(
     Pattern& pattern,
     const GenerationSettings& raw) {
 
-    const auto fragmentCount = std::clamp<std::uint16_t>(
-        raw.fragmentCount, 1, static_cast<std::uint16_t>(kMaxFragments));
-
     // EMPIRICALLY TUNED musical-coherence rule:
     // each quarter-note group gets a motif anchor. Offbeats usually reuse
     // either the recent fragment or the local anchor instead of selecting
     // every fragment independently.
     std::array<std::uint16_t, 4> quarterAnchor {};
     for (auto& anchor : quarterAnchor)
-        anchor = chooseFragment(fragmentCount);
+        anchor = chooseFragment(raw);
 
     bool havePrevious = false;
     std::uint16_t previous = 0;
@@ -114,7 +148,7 @@ void PhraseEngine::assignMusicalFragments(
             } else if (draw < previousProbability + 0.52f) {
                 step.fragment = anchor;
             } else {
-                step.fragment = chooseFragment(fragmentCount);
+                step.fragment = chooseFragment(raw);
             }
         }
 
@@ -147,7 +181,7 @@ std::uint16_t PhraseEngine::chooseVariedFragment(
         }
     }
 
-    return chooseFragment(fragmentCount);
+    return chooseFragment(raw);
 }
 
 Pattern PhraseEngine::generate(const GenerationSettings& settings) {

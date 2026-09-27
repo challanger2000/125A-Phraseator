@@ -8,6 +8,7 @@ namespace phraseator {
 
 constexpr std::size_t kStepCount = 16;
 constexpr std::size_t kMaxFragments = 128;
+constexpr std::size_t kMaxGenerationSources = 16;
 
 struct Step {
     bool active {false};
@@ -22,6 +23,11 @@ struct Step {
 
 using Pattern = std::array<Step, kStepCount>;
 
+struct FragmentSourceSpan {
+    std::uint16_t firstFragment {0};
+    std::uint16_t fragmentCount {0};
+};
+
 struct GenerationSettings {
     float density {0.50f};
     float variation {0.25f};
@@ -30,6 +36,8 @@ struct GenerationSettings {
     float pan {0.0f};
     float groove {0.0f};
     std::uint16_t fragmentCount {1};
+    std::array<FragmentSourceSpan, kMaxGenerationSources> sourceSpans {};
+    std::uint8_t sourceSpanCount {0};
 };
 
 class PhraseEngine {
@@ -46,7 +54,7 @@ private:
     static float clamp01(float value) noexcept;
     Step makeStep(std::size_t stepIndex, const GenerationSettings& settings);
     bool shouldActivate(std::size_t stepIndex, float density);
-    std::uint16_t chooseFragment(std::uint16_t fragmentCount);
+    std::uint16_t chooseFragment(const GenerationSettings& settings);
     void assignMusicalFragments(Pattern& pattern, const GenerationSettings& settings);
     std::uint16_t chooseVariedFragment(const Pattern& input,
                                        const Pattern& output,
