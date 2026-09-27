@@ -47,6 +47,9 @@ public:
     Steinberg::tresult sendClearSample(Steinberg::int32 sourceIndex);
     bool loadDroppedSample(const std::string& utf8Path,
                            Steinberg::int32 sourceIndex);
+    Steinberg::tresult sendPatternStepEdit(Steinberg::int32 stepIndex,
+                                           bool active,
+                                           Steinberg::int32 fragment);
 
 private:
     void openSampleSelector(int sourceIndex, bool asLoop);
