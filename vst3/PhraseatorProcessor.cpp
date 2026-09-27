@@ -245,6 +245,10 @@ tresult PLUGIN_API Processor::setActive(TBool state) {
         scheduler_.reset();
         fx_.reset();
         fallbackProjectTimeSamples_ = 0.0;
+        heldMidiNotes_.fill(false);
+        activeMidiNote_ = -1;
+        midiTransposeSemitones_ = 0.0f;
+        refreshSchedulerPattern();
     }
     return AudioEffect::setActive(state);
 }
@@ -254,12 +258,16 @@ tresult PLUGIN_API Processor::setProcessing(TBool state) {
     if (processing_) {
         scheduler_.reset();
         scheduler_.prepare(sampleRate_, 120.0);
-        scheduler_.setPattern(state_.pattern);
+        refreshSchedulerPattern();
         fx_.reset();
         fallbackProjectTimeSamples_ = 0.0;
     } else {
         scheduler_.reset();
         fx_.reset();
+        heldMidiNotes_.fill(false);
+        activeMidiNote_ = -1;
+        midiTransposeSemitones_ = 0.0f;
+        refreshSchedulerPattern();
     }
 
     AudioEffect::setProcessing(state);
