@@ -451,5 +451,43 @@ int main() {
         CHECK(sawUp && sawDown);
     }
 
+
+    {
+        // VARIATE DEPTH must mutate more than the first step and must keep
+        // forced fragment changes inside the configured audible source spans.
+        Pattern base {};
+        for (std::size_t i = 0; i < base.size(); ++i) {
+            base[i].active = true;
+            base[i].fragment = 0u;
+            base[i].repeats = 1u;
+        }
+
+        GenerationSettings settings;
+        settings.variation = 0.25f;
+        settings.fragmentCount = 4u;
+        settings.sourceSpanCount = 2u;
+        settings.sourceSpans[0] = {0u, 1u};
+        settings.sourceSpans[1] = {3u, 1u}; // fragment 1-2 emulate muted sources
+
+        PhraseEngine variator(0x125A991u);
+        const auto varied = variator.vary(base, settings);
+
+        int changed = 0;
+        bool changedBeyondFirst = false;
+        for (std::size_t i = 0; i < varied.size(); ++i) {
+            const bool differs =
+                varied[i].fragment != base[i].fragment ||
+                varied[i].repeats != base[i].repeats;
+            if (!differs)
+                continue;
+            ++changed;
+            changedBeyondFirst = changedBeyondFirst || i > 0u;
+            CHECK(varied[i].fragment == 0u || varied[i].fragment == 3u);
+        }
+
+        CHECK(changed == 4); // ceil(0.25 * 16)
+        CHECK(changedBeyondFirst);
+    }
+
     return 0;
 }
