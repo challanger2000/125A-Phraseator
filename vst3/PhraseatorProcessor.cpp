@@ -955,6 +955,13 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
     // live-shape, finish, 16 ratchets, 8 mutes and host-facing view/status
     // parameters. Keep generous headroom without allocating in process().
     constexpr std::size_t kMaxParameterQueues = 96;
+    constexpr std::size_t kExpectedParameterCount =
+        21u + static_cast<std::size_t>(kPatternViewCount) +
+        static_cast<std::size_t>(kStepRatchetCount) +
+        static_cast<std::size_t>(kSourceStatusCount) +
+        static_cast<std::size_t>(kSourceMuteCount);
+    static_assert(kMaxParameterQueues >= kExpectedParameterCount,
+                  "Realtime parameter queue capacity is too small");
     std::array<ParameterCursor, kMaxParameterQueues> cursors {};
     std::size_t cursorCount = 0;
 
@@ -1373,7 +1380,7 @@ bool Processor::readProjectState(IBStream* state) noexcept {
         step.pitchSemitones = static_cast<float>(std::clamp(pitch, -24.0, 24.0));
         step.pan = static_cast<float>(std::clamp(pan, -1.0, 1.0));
         step.gate = static_cast<float>(std::clamp(gate, 0.0, 1.0));
-        step.repeats = static_cast<std::uint8_t>(std::clamp<int32>(repeats, 1, 8));
+        step.repeats = static_cast<std::uint8_t>(std::clamp<int32>(repeats, 1, 4));
         step.timingOffset = static_cast<float>(std::clamp(timing, -0.5, 0.5));
     }
 
