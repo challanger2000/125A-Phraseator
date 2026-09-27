@@ -91,29 +91,33 @@
     <view class="CTextLabel" origin="780,242" size="212,12" title="PHRASE MODE" transparent="true" font-color="Muted" font="Small" text-alignment="center"/>
     <view class="CSegmentButton" origin="780,254" size="212,24" control-tag="1303" style="horizontal" segment-names="CONTINUE,RETRIGGER" font="Small"/>
 
-    <view class="CViewContainer" origin="320,310" size="470,250" transparent="false" background-color="Panel2"/>
-    <view class="CTextLabel" origin="338,324" size="180,18" title="GENERATION MACROS" transparent="true" font-color="Muted" font="Section"/>
-    <view class="CTextLabel" origin="596,324" size="64,18" title="OCTAVE" transparent="true" font-color="Muted" font="Small" text-alignment="right"/>
-    <view class="COptionMenu" origin="666,322" size="104,22" control-tag="1007" back-color="ValueBack" frame-color="Line" frame-width="1" font-color="Text" font="Small"/>
+    <view class="CViewContainer" origin="320,310" size="470,112" transparent="false" background-color="Panel2"/>
+    <view class="CTextLabel" origin="338,322" size="210,18" title="1 · CREATE / CHANGE PHRASE" transparent="true" font-color="Muted" font="Section"/>
+    <view class="CTextLabel" origin="548,322" size="222,18" title="needs GENERATE / VARIATE" transparent="true" font-color="Muted" font="Small" text-alignment="right"/>
+    <view class="CView" custom-view-name="PhraseKnob" control-tag="1000" origin="352,344" size="66,58"/>
+    <view class="CTextLabel" origin="344,396" size="82,16" title="DENSITY" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
+    <view class="CView" custom-view-name="PhraseKnob" control-tag="1001" origin="508,344" size="66,58"/>
+    <view class="CTextLabel" origin="488,396" size="106,16" title="VARIATE DEPTH" transparent="true" font-color="Text" font="Small" text-alignment="center"/>
+    <view class="CView" custom-view-name="PhraseKnob" control-tag="1002" origin="664,344" size="66,58"/>
+    <view class="CTextLabel" origin="656,396" size="82,16" title="REPEAT" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
 
-    <view class="CView" custom-view-name="PhraseKnob" control-tag="1000" origin="332,354" size="82,72"/>
-    <view class="CTextLabel" origin="332,426" size="82,18" title="DENSITY" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
-    <view class="CView" custom-view-name="PhraseKnob" control-tag="1001" origin="443,354" size="82,72"/>
-    <view class="CTextLabel" origin="435,426" size="98,18" title="VARIATE DEPTH" transparent="true" font-color="Text" font="Small" text-alignment="center"/>
-    <view class="CView" custom-view-name="PhraseKnob" control-tag="1002" origin="554,354" size="82,72"/>
-    <view class="CTextLabel" origin="554,426" size="82,18" title="REPEAT" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
-    <view class="CView" custom-view-name="PhraseKnob" control-tag="1006" origin="665,354" size="82,72"/>
-    <view class="CTextLabel" origin="665,426" size="82,18" title="VELOCITY" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
+    <view class="CViewContainer" origin="320,434" size="470,126" transparent="false" background-color="Panel"/>
+    <view class="CTextLabel" origin="338,446" size="190,18" title="2 · LIVE SHAPE" transparent="true" font-color="Accent" font="Section"/>
+    <view class="CTextLabel" origin="526,446" size="244,18" title="HEAR CHANGES IMMEDIATELY" transparent="true" font-color="Accent" font="Small" text-alignment="right"/>
+    <view class="CTextLabel" origin="338,468" size="52,18" title="OCTAVE" transparent="true" font-color="Muted" font="Small"/>
+    <view class="COptionMenu" origin="390,466" size="92,22" control-tag="1007" back-color="ValueBack" frame-color="Line" frame-width="1" font-color="Text" font="Small"/>
 
-    <view class="CView" custom-view-name="PhraseKnob" control-tag="1003" origin="388,458" size="82,72"/>
-    <view class="CTextLabel" origin="388,530" size="82,18" title="PITCH" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
-    <view class="CView" custom-view-name="PhraseKnob" control-tag="1004" origin="500,458" size="82,72"/>
-    <view class="CTextLabel" origin="500,530" size="82,18" title="PAN" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
-    <view class="CView" custom-view-name="PhraseKnob" control-tag="1005" origin="612,458" size="82,72"/>
-    <view class="CTextLabel" origin="612,530" size="82,18" title="GROOVE" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
+    <view class="CView" custom-view-name="PhraseKnob" control-tag="1003" origin="486,466" size="60,52"/>
+    <view class="CTextLabel" origin="482,516" size="68,16" title="PITCH" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
+    <view class="CView" custom-view-name="PhraseKnob" control-tag="1006" origin="554,466" size="60,52"/>
+    <view class="CTextLabel" origin="548,516" size="72,16" title="VELOCITY" transparent="true" font-color="Text" font="Small" text-alignment="center"/>
+    <view class="CView" custom-view-name="PhraseKnob" control-tag="1004" origin="622,466" size="60,52"/>
+    <view class="CTextLabel" origin="618,516" size="68,16" title="PAN" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
+    <view class="CView" custom-view-name="PhraseKnob" control-tag="1005" origin="690,466" size="60,52"/>
+    <view class="CTextLabel" origin="686,516" size="68,16" title="GROOVE" transparent="true" font-color="Text" font="Small" text-alignment="center"/>
 
     <view class="CViewContainer" origin="810,310" size="210,116" transparent="false" background-color="Panel2"/>
-    <view class="CTextLabel" origin="826,324" size="170,18" title="PITCH TO KEY" transparent="true" font-color="Muted" font="Section"/>
+    <view class="CTextLabel" origin="826,324" size="170,18" title="PITCH TO KEY · LIVE" transparent="true" font-color="Muted" font="Section"/>
     <view class="CSegmentButton" origin="826,348" size="176,24" control-tag="1102" style="horizontal" font="Small"/>
     <view class="CTextLabel" origin="826,380" size="44,16" title="ROOT" transparent="true" font-color="Muted" font="Small"/>
     <view class="COptionMenu" origin="872,378" size="54,22" control-tag="1100" back-color="ValueBack" frame-color="Line" frame-width="1" font-color="Text" font="Small"/>
