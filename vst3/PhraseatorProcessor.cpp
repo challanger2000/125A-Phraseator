@@ -346,6 +346,10 @@ void Processor::applyNormalizedParameter(ParamID id, double rawValue) noexcept {
         case static_cast<ParamID>(ParameterId::DelayAmount):
             state_.delayAmount = static_cast<float>(value);
             break;
+        case static_cast<ParamID>(ParameterId::DelayDivision):
+            state_.delayDivision = std::clamp(
+                static_cast<int>(std::lround(value * 6.0)), 0, 6);
+            break;
         case static_cast<ParamID>(ParameterId::ReverbAmount):
             state_.reverbAmount = static_cast<float>(value);
             break;
@@ -354,6 +358,9 @@ void Processor::applyNormalizedParameter(ParamID id, double rawValue) noexcept {
             break;
         case static_cast<ParamID>(ParameterId::FilterAmount):
             state_.filterAmount = static_cast<float>(value);
+            break;
+        case static_cast<ParamID>(ParameterId::FilterMode):
+            state_.filterMode = value >= 0.5 ? 1 : 0;
             break;
         case static_cast<ParamID>(ParameterId::LockPattern):
             state_.lockPattern = value >= 0.5;
@@ -945,7 +952,9 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
             segmentSamples);
 
         fx_.setDelayAmount(state_.delayAmount);
+        fx_.setDelayDivision(state_.delayDivision);
         fx_.setFilterAmount(state_.filterAmount);
+        fx_.setFilterMode(state_.filterMode);
         const bool fxAudio = fx_.processBlock(
             out[0] + currentOffset,
             out[1] + currentOffset,
@@ -1005,7 +1014,9 @@ bool Processor::writeProjectState(IBStream* state) const noexcept {
         !stream.writeInt32(state_.scaleMode) ||
         !stream.writeInt32(state_.pitchToKey ? 1 : 0) ||
         !stream.writeInt32(state_.lockPattern ? 1 : 0) ||
-        !stream.writeInt32(state_.restartOnNote ? 1 : 0)) {
+        !stream.writeInt32(state_.restartOnNote ? 1 : 0) ||
+        !stream.writeInt32(state_.delayDivision) ||
+        !stream.writeInt32(state_.filterMode)) {
         return false;
     }
 
@@ -1103,12 +1114,16 @@ bool Processor::readProjectState(IBStream* state) noexcept {
     int32 pitchToKey = 0;
     int32 lockPattern = 0;
     int32 restartOnNote = 1;
+    int32 delayDivision = 1;
+    int32 filterMode = 0;
 
     if (!stream.readInt32(keyRoot) ||
         !stream.readInt32(scaleMode) ||
         !stream.readInt32(pitchToKey) ||
         !stream.readInt32(lockPattern) ||
-        (version >= 5 && !stream.readInt32(restartOnNote))) {
+        (version >= 5 && !stream.readInt32(restartOnNote)) ||
+        (version >= 6 && !stream.readInt32(delayDivision)) ||
+        (version >= 6 && !stream.readInt32(filterMode))) {
         return false;
     }
 
@@ -1117,6 +1132,10 @@ bool Processor::readProjectState(IBStream* state) noexcept {
     candidate.pitchToKey = pitchToKey != 0;
     candidate.lockPattern = lockPattern != 0;
     candidate.restartOnNote = version >= 5 ? restartOnNote != 0 : true;
+    candidate.delayDivision = version >= 6
+        ? std::clamp(delayDivision, 0, 6)
+        : 1;
+    candidate.filterMode = version >= 6 && filterMode != 0 ? 1 : 0;
 
     for (auto& step : candidate.pattern) {
         int32 active = 0;
