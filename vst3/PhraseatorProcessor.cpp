@@ -63,14 +63,12 @@ tresult PLUGIN_API Processor::notify(IMessage* message) {
         return kInvalidArgument;
 
     if (FIDStringsEqual(message->getMessageID(), kMsgGenerate)) {
-        if (!state_.lockPattern)
-            generatePattern();
+        generateCommandPending_.store(true, std::memory_order_release);
         return kResultTrue;
     }
 
     if (FIDStringsEqual(message->getMessageID(), kMsgVariate)) {
-        if (!state_.lockPattern)
-            varyPattern();
+        variateCommandPending_.store(true, std::memory_order_release);
         return kResultTrue;
     }
 
@@ -260,7 +258,7 @@ tresult PLUGIN_API Processor::setActive(TBool state) {
         heldMidiNotes_.fill(false);
         activeMidiNote_ = -1;
         midiTransposeSemitones_ = 0.0f;
-        midiPhraseStartProjectSample_ = 0.0;
+        midiPhraseTimeSamples_ = 0.0;
         refreshSchedulerPattern();
     }
     return AudioEffect::setActive(state);
@@ -494,8 +492,7 @@ void Processor::refreshSchedulerPattern() noexcept {
     scheduler_.setPattern(playback);
 }
 
-void Processor::handleMidiEvent(const Event& event,
-                                double absoluteProjectSample) noexcept {
+void Processor::handleMidiEvent(const Event& event) noexcept {
     auto applyCurrentNote = [this](int note) noexcept {
         activeMidiNote_ = note;
         midiTransposeSemitones_ = note >= 0
@@ -526,7 +523,7 @@ void Processor::handleMidiEvent(const Event& event,
             }
 
             if (state_.restartOnNote || !hadHeldNote) {
-                midiPhraseStartProjectSample_ = std::max(0.0, absoluteProjectSample);
+                midiPhraseTimeSamples_ = 0.0;
                 scheduler_.reset();
             }
 
@@ -697,6 +694,15 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
     scheduler_.prepare(sampleRate_, tempo);
     refreshSchedulerPattern();
 
+    if (generateCommandPending_.exchange(false, std::memory_order_acq_rel) &&
+        !state_.lockPattern) {
+        generatePattern();
+    }
+    if (variateCommandPending_.exchange(false, std::memory_order_acq_rel) &&
+        !state_.lockPattern) {
+        varyPattern();
+    }
+
     if (data.symbolicSampleSize != kSample32)
         return kResultFalse;
 
@@ -815,9 +821,7 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
 
     auto applyEventsAt = [&](int32 sampleOffset) noexcept {
         while (eventValid && nextEventOffset <= sampleOffset) {
-            handleMidiEvent(
-                nextEvent,
-                projectTime + static_cast<double>(sampleOffset));
+            handleMidiEvent(nextEvent);
             advanceEvent();
         }
     };
@@ -858,7 +862,7 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
         const double absoluteSegmentTime =
             projectTime + static_cast<double>(currentOffset);
         const double phraseTime = state_.restartOnNote
-            ? std::max(0.0, absoluteSegmentTime - midiPhraseStartProjectSample_)
+            ? midiPhraseTimeSamples_
             : absoluteSegmentTime;
 
         const bool schedulerAudio = scheduler_.processBlock(
@@ -879,6 +883,8 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
             tempo);
 
         producedAudio = producedAudio || schedulerAudio || fxAudio;
+        if (state_.restartOnNote && phrasePlaying)
+            midiPhraseTimeSamples_ += static_cast<double>(segmentSamples);
         currentOffset = segmentEnd;
 
         if (currentOffset < data.numSamples) {
