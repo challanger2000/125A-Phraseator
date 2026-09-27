@@ -204,6 +204,57 @@ int main() {
     }
 
     {
+        // PITCH follows the 125A macro philosophy: the normal musical range
+        // must avoid arbitrary chromatic semitone scatter, while the top
+        // creative range is explicitly allowed to reach it.
+        GenerationSettings musicalPitch;
+        musicalPitch.density = 1.0f;
+        musicalPitch.fragmentCount = 4u;
+        musicalPitch.pitch = 0.50f;
+
+        PhraseEngine pitchEngine(0x917C4u);
+        bool sawNonZero = false;
+
+        for (int n = 0; n < 256; ++n) {
+            const auto pattern = pitchEngine.generate(musicalPitch);
+            for (const auto& step : pattern) {
+                if (!step.active)
+                    continue;
+
+                const int p = static_cast<int>(step.pitchSemitones);
+                sawNonZero = sawNonZero || p != 0;
+
+                const int absP = std::abs(p);
+                CHECK(absP == 0 || absP == 2 || absP == 3 ||
+                      absP == 5 || absP == 7);
+            }
+        }
+
+        CHECK(sawNonZero);
+
+        GenerationSettings creativePitch = musicalPitch;
+        creativePitch.pitch = 1.0f;
+        PhraseEngine creativeEngine(0xC2EA7u);
+        bool sawChromatic = false;
+
+        for (int n = 0; n < 256; ++n) {
+            const auto pattern = creativeEngine.generate(creativePitch);
+            for (const auto& step : pattern) {
+                if (!step.active)
+                    continue;
+
+                const int absP = std::abs(static_cast<int>(step.pitchSemitones));
+                if (absP == 1 || absP == 4 || absP == 6 ||
+                    absP == 8 || absP == 9 || absP == 10 || absP == 11) {
+                    sawChromatic = true;
+                }
+            }
+        }
+
+        CHECK(sawChromatic);
+    }
+
+    {
         GenerationSettings lowRepeat;
         lowRepeat.density = 0.85f;
         lowRepeat.fragmentCount = 12;
