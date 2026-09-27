@@ -348,7 +348,7 @@ void Processor::applyNormalizedParameter(ParamID id, double rawValue) noexcept {
             break;
         case static_cast<ParamID>(ParameterId::DelayDivision):
             state_.delayDivision = std::clamp(
-                static_cast<int>(std::lround(value * 6.0)), 0, 6);
+                static_cast<int>(std::lround(value * 7.0)), 0, 7);
             break;
         case static_cast<ParamID>(ParameterId::ReverbAmount):
             state_.reverbAmount = static_cast<float>(value);
@@ -1132,9 +1132,9 @@ bool Processor::readProjectState(IBStream* state) noexcept {
     candidate.pitchToKey = pitchToKey != 0;
     candidate.lockPattern = lockPattern != 0;
     candidate.restartOnNote = version >= 5 ? restartOnNote != 0 : true;
-    candidate.delayDivision = version >= 6
-        ? std::clamp(delayDivision, 0, 6)
-        : 1;
+    candidate.delayDivision = version >= 7
+        ? std::clamp(delayDivision, 0, 7)
+        : (version >= 6 ? std::clamp(delayDivision, 0, 6) + 1 : 2);
     candidate.filterMode = version >= 6 && filterMode != 0 ? 1 : 0;
 
     for (auto& step : candidate.pattern) {
