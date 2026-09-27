@@ -125,25 +125,14 @@ StereoFrame FragmentPlayer::processSample(const SourcePool& pool,
             ? sampleLinear(buffer.right, buffer.frames, voice.position)
             : l;
 
-        float gL = voice.gain;
-        float gR = voice.gain;
-
-        if (buffer.stereo) {
-            // Stereo sources use a balance law with unity gain at center.
-            // This avoids the unintended -3 dB-per-channel drop that a
-            // mono constant-power panner would impose on stereo material.
-            if (voice.pan > 0.0f) {
-                gL *= std::cos(voice.pan * 1.57079632679f);
-            } else if (voice.pan < 0.0f) {
-                gR *= std::cos((-voice.pan) * 1.57079632679f);
-            }
-        } else {
-            // Mono sources use constant-power panning.
-            const float pan01 = (voice.pan + 1.0f) * 0.5f;
-            const float angle = pan01 * 1.57079632679f;
-            gL = std::cos(angle) * voice.gain;
-            gR = std::sin(angle) * voice.gain;
-        }
+        // Phraseator PAN is a placement macro, not a stereo-balance control.
+        // At PAN=0 every source -- including stereo WAVs -- is true mono/center.
+        // Non-zero values pan that mono-compatible signal with a constant-power law.
+        const float mono = buffer.stereo ? 0.5f * (l + r) : l;
+        const float pan01 = (voice.pan + 1.0f) * 0.5f;
+        const float angle = pan01 * 1.57079632679f;
+        const float gL = std::cos(angle) * voice.gain;
+        const float gR = std::sin(angle) * voice.gain;
 
         float envelope = 1.0f;
         if (voice.fadeFrames > 0.0) {
@@ -160,8 +149,8 @@ StereoFrame FragmentPlayer::processSample(const SourcePool& pool,
             envelope = static_cast<float>(std::min(fadeIn, fadeOut));
         }
 
-        out.left += l * gL * envelope;
-        out.right += r * gR * envelope;
+        out.left += mono * gL * envelope;
+        out.right += mono * gR * envelope;
 
         voice.position += voice.increment;
         if (voice.position >= static_cast<double>(voice.endFrame))
