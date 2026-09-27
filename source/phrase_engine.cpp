@@ -243,9 +243,6 @@ std::uint16_t PhraseEngine::chooseVariedFragment(
     std::size_t stepIndex,
     const GenerationSettings& raw) {
 
-    const auto fragmentCount = std::clamp<std::uint16_t>(
-        raw.fragmentCount, 1, static_cast<std::uint16_t>(kMaxFragments));
-
     // Preserve phrase identity only when the fragment is still selectable.
     if (input[stepIndex].active &&
         fragmentSelectable(input[stepIndex].fragment, raw) &&
