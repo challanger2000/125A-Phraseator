@@ -24,9 +24,16 @@ class StepIndicator final : public VSTGUI::CControl {
 public:
     StepIndicator(const VSTGUI::CRect& size,
                   VSTGUI::IControlListener* listener,
-                  std::int32_t tag);
+                  std::int32_t tag,
+                  Controller* controller);
     void draw(VSTGUI::CDrawContext* context) override;
+    VSTGUI::CMouseEventResult onMouseDown(
+        VSTGUI::CPoint& where,
+        const VSTGUI::CButtonState& buttons) override;
     CLASS_METHODS(StepIndicator, VSTGUI::CControl)
+
+private:
+    Controller* controller_ {nullptr};
 };
 
 class SourceSlotView final :
