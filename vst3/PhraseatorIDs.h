@@ -20,6 +20,8 @@ constexpr Steinberg::int32 kSourceStatusCount = 8;
 
 constexpr const char* kMsgLoadSample = "Phraseator.LoadSample";
 constexpr const char* kMsgClearSample = "Phraseator.ClearSample";
+constexpr const char* kMsgGenerate = "Phraseator.Generate";
+constexpr const char* kMsgVariate = "Phraseator.Variate";
 constexpr const char* kAttrPath = "Path";
 constexpr const char* kAttrSourceIndex = "SourceIndex";
 constexpr const char* kAttrSourceId = "SourceId";
