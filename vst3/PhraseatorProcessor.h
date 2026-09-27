@@ -10,6 +10,7 @@
 #include "../source/pattern_fragment_remap.h"
 #include "../source/sample_bank.h"
 #include "../source/sample_load_worker.h"
+#include "../source/midi_note_tracker.h"
 
 #include <array>
 #include <atomic>
@@ -97,7 +98,7 @@ private:
     double variateTrigger_ {0.0};
     bool patternViewDirty_ {true};
     bool sourceStatusDirty_ {true};
-    std::array<bool, 128> heldMidiNotes_ {};
+    MidiNoteTracker heldMidiNotes_ {};
     int activeMidiNote_ {-1};
     float midiTransposeSemitones_ {0.0f};
     double midiPhraseTimeSamples_ {0.0};
