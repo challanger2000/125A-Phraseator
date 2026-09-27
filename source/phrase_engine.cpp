@@ -240,6 +240,18 @@ Pattern PhraseEngine::generate(const GenerationSettings& settings) {
 Pattern PhraseEngine::vary(const Pattern& input, const GenerationSettings& raw) {
     Pattern output = input;
     const float amount = clamp01(raw.variation);
+    bool changed = false;
+
+    const auto differs = [](const Step& a, const Step& b) noexcept {
+        return a.active != b.active ||
+               a.fragment != b.fragment ||
+               std::fabs(a.velocity - b.velocity) > 1.0e-6f ||
+               std::fabs(a.pitchSemitones - b.pitchSemitones) > 1.0e-6f ||
+               std::fabs(a.pan - b.pan) > 1.0e-6f ||
+               std::fabs(a.gate - b.gate) > 1.0e-6f ||
+               a.repeats != b.repeats ||
+               std::fabs(a.timingOffset - b.timingOffset) > 1.0e-6f;
+    };
 
     for (std::size_t i = 0; i < output.size(); ++i) {
         if (randomUnit() >= amount)
@@ -260,6 +272,8 @@ Pattern PhraseEngine::vary(const Pattern& input, const GenerationSettings& raw) 
                 if (randomUnit() < structuralChance)
                     output[i].active = false;
             }
+
+            changed = changed || differs(output[i], input[i]);
         } else if (amount > 0.75f) {
             // Likewise, only strong variation may introduce new hits.
             const float structuralChance = (amount - 0.75f) * 1.6f;
@@ -268,7 +282,34 @@ Pattern PhraseEngine::vary(const Pattern& input, const GenerationSettings& raw) 
                 candidate.active = true;
                 candidate.fragment = chooseVariedFragment(input, output, i, raw);
                 output[i] = candidate;
+                changed = true;
             }
+        }
+    }
+
+    // A VARIATE click must always do something audible on a non-empty phrase.
+    // Prefer a fragment/source change; if only one fragment exists, make a
+    // deterministic velocity change while preserving the rhythm structure.
+    if (!changed && amount > 0.0f) {
+        for (std::size_t i = 0; i < output.size(); ++i) {
+            if (!input[i].active)
+                continue;
+
+            if (raw.fragmentCount > 1u) {
+                output[i].fragment = static_cast<std::uint16_t>(
+                    (input[i].fragment + 1u) %
+                    std::max<std::uint16_t>(raw.fragmentCount, 1u));
+            }
+
+            if (output[i].fragment == input[i].fragment) {
+                const float delta = input[i].velocity > 0.86f ? -0.10f : 0.10f;
+                output[i].velocity =
+                    std::clamp(input[i].velocity + delta, 0.50f, 1.0f);
+            }
+
+            changed = differs(output[i], input[i]);
+            if (changed)
+                break;
         }
     }
 
