@@ -94,7 +94,7 @@ bool FragmentPlayer::trigger(const SourcePool& pool,
         std::pow(2.0, static_cast<double>(pitchSemitones) / 12.0);
     voice->increment = rateRatio * pitchRatio;
     voice->gain = std::max(0.0f, gain);
-    voice->pan = clamp(pan, -1.0f, 1.0f);
+    voice->panShape = clamp(pan, -1.0f, 1.0f);
     voice->endFrame = region.endFrame;
     voice->releaseSamplesRemaining = 0u;
     voice->releaseSamplesTotal = 0u;
@@ -143,7 +143,8 @@ StereoFrame FragmentPlayer::processSample(const SourcePool& pool,
         // At PAN=0 every source -- including stereo WAVs -- is true mono/center.
         // Non-zero values pan that mono-compatible signal with a constant-power law.
         const float mono = buffer.stereo ? 0.5f * (l + r) : l;
-        const float pan01 = (voice.pan + 1.0f) * 0.5f;
+        const float livePan = clamp(voice.panShape * panAmount_, -1.0f, 1.0f);
+        const float pan01 = (livePan + 1.0f) * 0.5f;
         const float angle = pan01 * 1.57079632679f;
         const float gL = std::cos(angle) * voice.gain;
         const float gR = std::sin(angle) * voice.gain;
@@ -183,6 +184,10 @@ StereoFrame FragmentPlayer::processSample(const SourcePool& pool,
     }
 
     return out;
+}
+
+void FragmentPlayer::setPanAmount(float amount) noexcept {
+    panAmount_ = clamp(amount, 0.0f, 1.0f);
 }
 
 std::size_t FragmentPlayer::activeVoiceCount() const noexcept {
