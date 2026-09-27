@@ -16,6 +16,16 @@ void FragmentPlayer::reset() noexcept {
     voices_ = {};
 }
 
+void FragmentPlayer::chokeAll(std::uint32_t releaseSamples) noexcept {
+    const auto safeRelease = std::max<std::uint32_t>(1u, releaseSamples);
+    for (auto& voice : voices_) {
+        if (!voice.active)
+            continue;
+        voice.releaseSamplesRemaining = safeRelease;
+        voice.releaseSamplesTotal = safeRelease;
+    }
+}
+
 float FragmentPlayer::clamp(float v, float lo, float hi) noexcept {
     return std::clamp(v, lo, hi);
 }
@@ -84,6 +94,8 @@ bool FragmentPlayer::trigger(const SourcePool& pool,
     voice->gain = std::max(0.0f, gain);
     voice->pan = clamp(pan, -1.0f, 1.0f);
     voice->endFrame = region.endFrame;
+    voice->releaseSamplesRemaining = 0u;
+    voice->releaseSamplesTotal = 0u;
 
     if (source->type == SourceType::Loop) {
         // EMPIRICALLY TUNED de-click baseline: 0.25 ms at the source rate,
@@ -135,6 +147,12 @@ StereoFrame FragmentPlayer::processSample(const SourcePool& pool,
         const float gR = std::sin(angle) * voice.gain;
 
         float envelope = 1.0f;
+        if (voice.releaseSamplesRemaining > 0u &&
+            voice.releaseSamplesTotal > 0u) {
+            envelope *= static_cast<float>(voice.releaseSamplesRemaining) /
+                        static_cast<float>(voice.releaseSamplesTotal);
+        }
+
         if (voice.fadeFrames > 0.0) {
             const double fromStart =
                 voice.position - static_cast<double>(voice.startFrame);
@@ -153,6 +171,11 @@ StereoFrame FragmentPlayer::processSample(const SourcePool& pool,
         out.right += mono * gR * envelope;
 
         voice.position += voice.increment;
+        if (voice.releaseSamplesRemaining > 0u) {
+            --voice.releaseSamplesRemaining;
+            if (voice.releaseSamplesRemaining == 0u)
+                voice.active = false;
+        }
         if (voice.position >= static_cast<double>(voice.endFrame))
             voice.active = false;
     }
