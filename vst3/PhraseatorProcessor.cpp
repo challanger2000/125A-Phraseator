@@ -323,7 +323,7 @@ tresult PLUGIN_API Processor::setActive(TBool state) {
         scheduler_.reset();
         fx_.reset();
         fallbackProjectTimeSamples_ = 0.0;
-        heldMidiNotes_.fill(false);
+        heldMidiNotes_.clear();
         activeMidiNote_ = -1;
         midiTransposeSemitones_ = 0.0f;
         midiPhraseTimeSamples_ = 0.0;
@@ -343,7 +343,7 @@ tresult PLUGIN_API Processor::setProcessing(TBool state) {
     } else {
         scheduler_.reset();
         fx_.reset();
-        heldMidiNotes_.fill(false);
+        heldMidiNotes_.clear();
         activeMidiNote_ = -1;
         midiTransposeSemitones_ = 0.0f;
         refreshSchedulerPattern();
@@ -692,9 +692,9 @@ void Processor::handleMidiEvent(const Event& event) noexcept {
         const int pitch = std::clamp<int>(event.noteOn.pitch, 0, 127);
 
         if (event.noteOn.velocity <= 0.0f) {
-            heldMidiNotes_[static_cast<std::size_t>(pitch)] = false;
+            heldMidiNotes_.noteOff(pitch);
         } else {
-            heldMidiNotes_[static_cast<std::size_t>(pitch)] = true;
+            heldMidiNotes_.noteOn(pitch);
 
             if (!patternHasActiveSteps() &&
                 sampleBanks_.activeBank().sourcePool().fragmentCount() > 0u) {
@@ -711,24 +711,15 @@ void Processor::handleMidiEvent(const Event& event) noexcept {
         }
     } else if (event.type == Event::kNoteOffEvent) {
         const int pitch = std::clamp<int>(event.noteOff.pitch, 0, 127);
-        heldMidiNotes_[static_cast<std::size_t>(pitch)] = false;
+        heldMidiNotes_.noteOff(pitch);
     } else {
         return;
     }
 
-    if (activeMidiNote_ >= 0 &&
-        heldMidiNotes_[static_cast<std::size_t>(activeMidiNote_)]) {
+    if (heldMidiNotes_.held(activeMidiNote_))
         return;
-    }
 
-    for (int note = 127; note >= 0; --note) {
-        if (heldMidiNotes_[static_cast<std::size_t>(note)]) {
-            applyCurrentNote(note);
-            return;
-        }
-    }
-
-    applyCurrentNote(-1);
+    applyCurrentNote(heldMidiNotes_.highestHeld());
 }
 
 void Processor::emitPatternViewParameters(ProcessData& data,
