@@ -148,6 +148,37 @@ int main() {
     }
 
     {
+        // Every non-zero VARIATE action on a non-empty phrase must produce at
+        // least one audible/detail change, even at the default 25% setting.
+        GenerationSettings settings;
+        settings.density = 0.65f;
+        settings.variation = 0.25f;
+        settings.fragmentCount = 2u;
+
+        PhraseEngine sourceEngine(0xA11D1u);
+        const auto base = sourceEngine.generate(settings);
+
+        PhraseEngine variator(0xA11D2u);
+        for (int n = 0; n < 256; ++n) {
+            const auto varied = variator.vary(base, settings);
+            bool anyDifference = false;
+            for (std::size_t i = 0; i < kStepCount; ++i) {
+                const auto& a = base[i];
+                const auto& b = varied[i];
+                anyDifference = anyDifference ||
+                    a.active != b.active ||
+                    a.fragment != b.fragment ||
+                    std::fabs(a.velocity - b.velocity) > 1.0e-6f ||
+                    std::fabs(a.pitchSemitones - b.pitchSemitones) > 1.0e-6f ||
+                    std::fabs(a.pan - b.pan) > 1.0e-6f ||
+                    a.repeats != b.repeats ||
+                    std::fabs(a.timingOffset - b.timingOffset) > 1.0e-6f;
+            }
+            CHECK(anyDifference);
+        }
+    }
+
+    {
         // At useful densities the first beat remains anchored instead of
         // allowing an accidental fully floating phrase start.
         GenerationSettings anchored;
