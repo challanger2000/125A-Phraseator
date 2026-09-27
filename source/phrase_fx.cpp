@@ -8,7 +8,20 @@ namespace phraseator {
 namespace {
 constexpr double kPi = 3.14159265358979323846;
 
-double musicalFilterCutoff(double amount, double sampleRate) noexcept {
+double delayQuarterMultiplier(std::int32_t division) noexcept {
+    switch (std::clamp(division, 0, 6)) {
+        case 0: return 1.0;        // 1/4
+        case 1: return 0.5;        // 1/8
+        case 2: return 0.75;       // 1/8 dotted
+        case 3: return 1.0 / 3.0;  // 1/8 triplet
+        case 4: return 0.25;       // 1/16
+        case 5: return 0.375;      // 1/16 dotted
+        case 6: return 1.0 / 6.0;  // 1/16 triplet
+        default: return 0.5;
+    }
+}
+
+double musicalFilterCutoff(double amount, double sampleRate, std::int32_t mode) noexcept {
     amount = std::clamp(amount, 0.0, 1.0);
     const double maxCutoff = std::min(20000.0, sampleRate * 0.45);
 
@@ -18,8 +31,14 @@ double musicalFilterCutoff(double amount, double sampleRate) noexcept {
     // 50% ~8 kHz: musical
     // 75% ~3.5 kHz: obvious
     // 100% ~1.2 kHz: strong creative darkening
-    constexpr double minCutoff = 1200.0;
-    return maxCutoff * std::pow(minCutoff / maxCutoff, amount);
+    if (mode == 0) {
+        constexpr double minCutoff = 1200.0;
+        return maxCutoff * std::pow(minCutoff / maxCutoff, amount);
+    }
+
+    constexpr double minCutoff = 20.0;
+    constexpr double maxHighPass = 4000.0;
+    return minCutoff * std::pow(maxHighPass / minCutoff, amount);
 }
 
 } // namespace
@@ -76,8 +95,16 @@ void PhraseFx::setDelayAmount(float amount) noexcept {
     delayTarget_ = next;
 }
 
+void PhraseFx::setDelayDivision(std::int32_t division) noexcept {
+    delayDivision_ = std::clamp<std::int32_t>(division, 0, 6);
+}
+
 void PhraseFx::setFilterAmount(float amount) noexcept {
     filterTarget_ = clamp01(amount);
+}
+
+void PhraseFx::setFilterMode(std::int32_t mode) noexcept {
+    filterMode_ = mode == 0 ? 0 : 1;
 }
 
 float PhraseFx::readDelay(const std::vector<float>& buffer,
@@ -120,7 +147,7 @@ bool PhraseFx::processBlock(float* left,
 
     const double quarterSamples = sampleRate_ * 60.0 / tempo;
     const double delaySamplesTarget = std::clamp(
-        quarterSamples * 0.5,
+        quarterSamples * delayQuarterMultiplier(delayDivision_),
         1.0,
         static_cast<double>(delayLeft_.empty() ? 1u : delayLeft_.size() - 2u));
 
@@ -164,8 +191,8 @@ bool PhraseFx::processBlock(float* left,
         }
 
         if (filterCurrent_ > 0.000001f) {
-            const double cutoff =
-                musicalFilterCutoff(static_cast<double>(filterCurrent_), sampleRate_);
+            const double cutoff = musicalFilterCutoff(
+                static_cast<double>(filterCurrent_), sampleRate_, filterMode_);
 
             const double a = std::exp(-2.0 * kPi * cutoff / sampleRate_);
             const float oneMinusA = static_cast<float>(1.0 - a);
@@ -174,8 +201,13 @@ bool PhraseFx::processBlock(float* left,
             filterStateL_ = oneMinusA * inL + af * filterStateL_;
             filterStateR_ = oneMinusA * inR + af * filterStateR_;
 
-            inL = filterStateL_;
-            inR = filterStateR_;
+            if (filterMode_ == 0) {
+                inL = filterStateL_;
+                inR = filterStateR_;
+            } else {
+                inL -= filterStateL_;
+                inR -= filterStateR_;
+            }
         } else {
             filterStateL_ = inL;
             filterStateR_ = inR;
