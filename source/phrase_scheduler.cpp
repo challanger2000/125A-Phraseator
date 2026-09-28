@@ -9,9 +9,9 @@ void PhraseScheduler::resetPlaybackState() noexcept {
     player_.reset();
     lastTriggeredAbsoluteStep_ = 0u;
     pendingAbsoluteStep_ = 0u;
-    pendingStepTimeSamples_ = 0.0;
-    nextRatchetTimeSamples_ = 0.0;
-    ratchetIntervalSamples_ = 0.0;
+    pendingStepPosition_ = 0.0;
+    nextRatchetStepPosition_ = 0.0;
+    ratchetIntervalSteps_ = 0.0;
     ratchetsRemaining_ = 0u;
     hasTriggeredStep_ = false;
     hasPendingStep_ = false;
@@ -19,13 +19,11 @@ void PhraseScheduler::resetPlaybackState() noexcept {
 
 void PhraseScheduler::reset() noexcept {
     resetPlaybackState();
-    clock_.reset();
     timelineValid_ = false;
-    expectedNextProjectTimeSamples_ = 0.0;
+    expectedNextStepPosition_ = 0.0;
 }
 
-void PhraseScheduler::prepare(double sampleRate, double tempoBpm) noexcept {
-    clock_.configure(sampleRate, tempoBpm);
+void PhraseScheduler::prepare(double sampleRate) noexcept {
     player_.prepare(sampleRate);
 }
 
@@ -51,20 +49,20 @@ void PhraseScheduler::triggerStep(
     player_.trigger(pool, buffers, ref, step.velocity, step.pan, step.pitchSemitones);
 }
 
-double PhraseScheduler::stepTriggerTime(std::uint64_t absoluteStep) const noexcept {
+double PhraseScheduler::stepTriggerPosition(
+    std::uint64_t absoluteStep) const noexcept {
+
     const auto stepIndex = static_cast<std::size_t>(absoluteStep % kStepCount);
     const auto& step = pattern_[stepIndex];
-
-    const double gridStart = static_cast<double>(absoluteStep) * clock_.samplesPerStep();
-    const double offset = std::clamp(static_cast<double>(step.timingOffset), 0.0, 0.49);
-    const double offsetSamples = std::round(offset * clock_.samplesPerStep());
-    return gridStart + offsetSamples;
+    const double offset =
+        std::clamp(static_cast<double>(step.timingOffset), 0.0, 0.49);
+    return static_cast<double>(absoluteStep) + offset;
 }
 
 void PhraseScheduler::scheduleRatchets(
     std::uint64_t absoluteStep,
-    double actualStepTriggerTimeSamples,
-    double currentTimeSamples) noexcept {
+    double actualTriggerStepPosition,
+    double currentStepPosition) noexcept {
 
     const auto stepIndex = static_cast<std::size_t>(absoluteStep % kStepCount);
     const auto& step = pattern_[stepIndex];
@@ -73,63 +71,68 @@ void PhraseScheduler::scheduleRatchets(
         std::clamp<int>(step.repeats, 1, kMaxRatchetHits));
     if (!step.active || repeats <= 1u) {
         ratchetsRemaining_ = 0u;
-        ratchetIntervalSamples_ = 0.0;
-        nextRatchetTimeSamples_ = 0.0;
+        ratchetIntervalSteps_ = 0.0;
+        nextRatchetStepPosition_ = 0.0;
         return;
     }
 
-    ratchetIntervalSamples_ = clock_.samplesPerStep() / static_cast<double>(repeats);
-    nextRatchetTimeSamples_ = actualStepTriggerTimeSamples + ratchetIntervalSamples_;
+    ratchetIntervalSteps_ = 1.0 / static_cast<double>(repeats);
+    nextRatchetStepPosition_ =
+        actualTriggerStepPosition + ratchetIntervalSteps_;
     ratchetsRemaining_ = static_cast<std::uint8_t>(repeats - 1u);
 
     while (ratchetsRemaining_ > 0u &&
-           nextRatchetTimeSamples_ < currentTimeSamples) {
-        nextRatchetTimeSamples_ += ratchetIntervalSamples_;
+           nextRatchetStepPosition_ < currentStepPosition) {
+        nextRatchetStepPosition_ += ratchetIntervalSteps_;
         --ratchetsRemaining_;
     }
 }
 
 void PhraseScheduler::triggerAbsoluteStep(
     std::uint64_t absoluteStep,
-    double triggerTimeSamples,
+    double triggerStepPosition,
     const SourcePool& pool,
     const std::array<AudioBufferView, kMaxSources>& buffers) noexcept {
 
-    triggerStep(static_cast<std::size_t>(absoluteStep % kStepCount), pool, buffers);
+    triggerStep(
+        static_cast<std::size_t>(absoluteStep % kStepCount), pool, buffers);
     lastTriggeredAbsoluteStep_ = absoluteStep;
     hasTriggeredStep_ = true;
     hasPendingStep_ = false;
-    scheduleRatchets(absoluteStep, triggerTimeSamples, triggerTimeSamples);
+    scheduleRatchets(
+        absoluteStep, triggerStepPosition, triggerStepPosition);
 }
 
 void PhraseScheduler::scheduleAbsoluteStep(
     std::uint64_t absoluteStep,
-    double blockTimeSamples,
+    double currentStepPosition,
     const SourcePool& pool,
     const std::array<AudioBufferView, kMaxSources>& buffers) noexcept {
 
-    const double triggerTime = stepTriggerTime(absoluteStep);
+    const double triggerPosition = stepTriggerPosition(absoluteStep);
 
-    if (triggerTime <= blockTimeSamples) {
-        triggerAbsoluteStep(absoluteStep, blockTimeSamples, pool, buffers);
+    if (triggerPosition <= currentStepPosition) {
+        triggerAbsoluteStep(
+            absoluteStep, currentStepPosition, pool, buffers);
         return;
     }
 
     pendingAbsoluteStep_ = absoluteStep;
-    pendingStepTimeSamples_ = triggerTime;
+    pendingStepPosition_ = triggerPosition;
     hasPendingStep_ = true;
 }
 
 bool PhraseScheduler::processBlock(
     const SourcePool& pool,
     const std::array<AudioBufferView, kMaxSources>& buffers,
-    double projectTimeSamples,
+    double startStepPosition,
+    double stepsPerSample,
     bool playing,
     float* outLeft,
     float* outRight,
     std::size_t numSamples) noexcept {
 
-    if (outLeft == nullptr || outRight == nullptr || numSamples == 0)
+    if (outLeft == nullptr || outRight == nullptr || numSamples == 0u)
         return false;
 
     std::fill(outLeft, outLeft + numSamples, 0.0f);
@@ -138,60 +141,87 @@ bool PhraseScheduler::processBlock(
     if (!playing) {
         resetPlaybackState();
         timelineValid_ = false;
-        expectedNextProjectTimeSamples_ = 0.0;
+        expectedNextStepPosition_ = 0.0;
+        return false;
+    }
+
+    if (!std::isfinite(startStepPosition) ||
+        !std::isfinite(stepsPerSample) ||
+        stepsPerSample <= 0.0) {
+        resetPlaybackState();
+        timelineValid_ = false;
+        expectedNextStepPosition_ = 0.0;
         return false;
     }
 
     bool producedAudio = false;
-    const double blockStart = std::max(0.0, projectTimeSamples);
+    const double blockStart = std::max(0.0, startStepPosition);
 
-    // A host seek, loop wrap, or non-contiguous process position must not
-    // carry voices/ratchets from the previous timeline position.
+    // Host seek/loop wrap is detected in musical time. A tempo change alone
+    // does not create a discontinuity because the accumulated step position
+    // remains continuous.
+    const double continuityTolerance =
+        std::max(1.0e-8, stepsPerSample * 1.5);
     if (timelineValid_ &&
-        std::fabs(blockStart - expectedNextProjectTimeSamples_) > 0.5) {
+        std::fabs(blockStart - expectedNextStepPosition_) >
+            continuityTolerance) {
         resetPlaybackState();
     }
-    const auto startAbsoluteStep = clock_.absoluteStepAt(blockStart);
 
-    if ((!hasTriggeredStep_ || startAbsoluteStep != lastTriggeredAbsoluteStep_) &&
-        (!hasPendingStep_ || pendingAbsoluteStep_ != startAbsoluteStep)) {
+    const auto startAbsoluteStep = static_cast<std::uint64_t>(
+        std::floor(blockStart));
+
+    if ((!hasTriggeredStep_ ||
+         startAbsoluteStep != lastTriggeredAbsoluteStep_) &&
+        (!hasPendingStep_ ||
+         pendingAbsoluteStep_ != startAbsoluteStep)) {
         scheduleAbsoluteStep(startAbsoluteStep, blockStart, pool, buffers);
     }
 
-    double nextBoundary = clock_.nextStepBoundary(blockStart);
+    double nextBoundary = static_cast<double>(startAbsoluteStep + 1u);
     auto nextAbsoluteStep = startAbsoluteStep + 1u;
 
     for (std::size_t i = 0; i < numSamples; ++i) {
-        const double absoluteSample = blockStart + static_cast<double>(i);
+        const double stepPosition =
+            blockStart + static_cast<double>(i) * stepsPerSample;
 
-        if (hasPendingStep_ && absoluteSample >= pendingStepTimeSamples_) {
+        if (hasPendingStep_ &&
+            stepPosition + 1.0e-12 >= pendingStepPosition_) {
             triggerAbsoluteStep(
-                pendingAbsoluteStep_, pendingStepTimeSamples_, pool, buffers);
+                pendingAbsoluteStep_,
+                pendingStepPosition_,
+                pool,
+                buffers);
         }
 
-        while (absoluteSample >= nextBoundary) {
-            scheduleAbsoluteStep(nextAbsoluteStep, absoluteSample, pool, buffers);
+        while (stepPosition + 1.0e-12 >= nextBoundary) {
+            scheduleAbsoluteStep(
+                nextAbsoluteStep, stepPosition, pool, buffers);
             ++nextAbsoluteStep;
-            nextBoundary += clock_.samplesPerStep();
+            nextBoundary += 1.0;
         }
 
         while (ratchetsRemaining_ > 0u &&
-               absoluteSample >= nextRatchetTimeSamples_ &&
-               absoluteSample < nextBoundary) {
-            triggerStep(static_cast<std::size_t>(lastTriggeredAbsoluteStep_ % kStepCount),
-                        pool, buffers);
-            nextRatchetTimeSamples_ += ratchetIntervalSamples_;
+               stepPosition + 1.0e-12 >= nextRatchetStepPosition_ &&
+               stepPosition < nextBoundary) {
+            triggerStep(
+                static_cast<std::size_t>(
+                    lastTriggeredAbsoluteStep_ % kStepCount),
+                pool,
+                buffers);
+            nextRatchetStepPosition_ += ratchetIntervalSteps_;
             --ratchetsRemaining_;
         }
 
         const auto frame = player_.processSample(pool, buffers);
         outLeft[i] = frame.left;
         outRight[i] = frame.right;
-        producedAudio = producedAudio || frame.left != 0.0f || frame.right != 0.0f;
+        producedAudio =
+            producedAudio || frame.left != 0.0f || frame.right != 0.0f;
     }
 
-    expectedNextProjectTimeSamples_ =
-        blockStart + static_cast<double>(numSamples);
+    expectedNextStepPosition_ =
+        blockStart + static_cast<double>(numSamples) * stepsPerSample;
     timelineValid_ = true;
 
     return producedAudio;
