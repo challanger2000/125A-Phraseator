@@ -173,12 +173,17 @@ SampleBank* SampleBankExchange::writableBank(int index) noexcept {
     return &banks_[static_cast<std::size_t>(index)];
 }
 
-bool SampleBankExchange::commitWrite(int index) noexcept {
+bool SampleBankExchange::commitWrite(
+    int index,
+    std::uint64_t publishTag) noexcept {
+
     if (index < 0 || index > 1)
         return false;
 
     if (writerIndex_.load(std::memory_order_acquire) != index)
         return false;
+
+    pendingPublishTag_.store(publishTag, std::memory_order_relaxed);
 
     int expectedPending = -1;
     if (!pendingIndex_.compare_exchange_strong(
@@ -200,21 +205,31 @@ void SampleBankExchange::cancelWrite(int index) noexcept {
         std::memory_order_relaxed);
 }
 
-bool SampleBankExchange::consumePending() noexcept {
+bool SampleBankExchange::consumePending(
+    std::uint64_t* publishTag) noexcept {
+
     const int pending = pendingIndex_.load(std::memory_order_acquire);
     if (pending < 0)
         return false;
+
+    const auto tag = pendingPublishTag_.load(std::memory_order_relaxed);
 
     // Publish the new active bank before making the writer gate available.
     // This prevents a non-realtime writer from observing pending==-1 while
     // activeIndex still refers to the previous bank.
     activeIndex_.store(pending, std::memory_order_release);
+    activePublishTag_.store(tag, std::memory_order_release);
 
     int expected = pending;
-    return pendingIndex_.compare_exchange_strong(
+    const bool consumed = pendingIndex_.compare_exchange_strong(
         expected, -1,
         std::memory_order_acq_rel,
         std::memory_order_acquire);
+
+    if (consumed && publishTag)
+        *publishTag = tag;
+
+    return consumed;
 }
 
 } // namespace phraseator
