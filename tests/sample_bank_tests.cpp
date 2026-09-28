@@ -35,10 +35,13 @@ int main() {
     CHECK(bank->setOneShot(0, 101u, std::move(source)));
 
     // Publish does not mutate the realtime-visible bank until the audio thread consumes it.
-    CHECK(exchange.commitWrite(writeIndex));
+    CHECK(exchange.commitWrite(writeIndex, 10101u));
     CHECK(exchange.activeBank().sourcePool().fragmentCount() == 0u);
 
-    CHECK(exchange.consumePending());
+    std::uint64_t firstTag = 0u;
+    CHECK(exchange.consumePending(&firstTag));
+    CHECK(firstTag == 10101u);
+    CHECK(exchange.activePublishTag() == 10101u);
     CHECK(exchange.activeIndex() == 1);
     CHECK(exchange.activeBank().sourcePool().fragmentCount() == 1u);
     CHECK(exchange.activeBank().buffers()[0].valid());
@@ -54,8 +57,11 @@ int main() {
     SliceRegion slices[2] {{0u, 1u}, {1u, 3u}};
     auto loop = makeMono();
     CHECK(secondBank->setLoop(0, 202u, std::move(loop), slices, 2u));
-    CHECK(exchange.commitWrite(secondWrite));
-    CHECK(exchange.consumePending());
+    CHECK(exchange.commitWrite(secondWrite, 20202u));
+    std::uint64_t secondTag = 0u;
+    CHECK(exchange.consumePending(&secondTag));
+    CHECK(secondTag == 20202u);
+    CHECK(exchange.activePublishTag() == 20202u);
     CHECK(exchange.activeBank().sourcePool().fragmentCount() == 2u);
 
     {
