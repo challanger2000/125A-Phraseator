@@ -16,8 +16,6 @@ set(PHRASEATOR_CORE_SOURCES
     source/audio_buffer.h
     source/fragment_player.cpp
     source/fragment_player.h
-    source/step_clock.cpp
-    source/step_clock.h
     source/phrase_scheduler.cpp
     source/phrase_scheduler.h
     source/pattern_fragment_remap.cpp
@@ -58,9 +56,6 @@ target_link_libraries(PhraseatorPatternRemapTests PRIVATE PhraseatorCore)
 
 add_executable(PhraseatorPlaybackTests tests/fragment_player_tests.cpp)
 target_link_libraries(PhraseatorPlaybackTests PRIVATE PhraseatorCore)
-
-add_executable(PhraseatorStepClockTests tests/step_clock_tests.cpp)
-target_link_libraries(PhraseatorStepClockTests PRIVATE PhraseatorCore)
 
 add_executable(PhraseatorSchedulerTests tests/phrase_scheduler_tests.cpp)
 target_link_libraries(PhraseatorSchedulerTests PRIVATE PhraseatorCore)
@@ -103,7 +98,6 @@ add_test(NAME PhraseatorEngineTests COMMAND PhraseatorEngineTests)
 add_test(NAME PhraseatorSourcePoolTests COMMAND PhraseatorSourcePoolTests)
 add_test(NAME PhraseatorPatternRemapTests COMMAND PhraseatorPatternRemapTests)
 add_test(NAME PhraseatorPlaybackTests COMMAND PhraseatorPlaybackTests)
-add_test(NAME PhraseatorStepClockTests COMMAND PhraseatorStepClockTests)
 add_test(NAME PhraseatorSchedulerTests COMMAND PhraseatorSchedulerTests)
 add_test(NAME PhraseatorSlicerTests COMMAND PhraseatorSlicerTests)
 add_test(NAME PhraseatorPitchTests COMMAND PhraseatorPitchTests)
