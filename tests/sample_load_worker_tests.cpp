@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <fstream>
 #include <cmath>
+#include <limits>
 #include <vector>
 
 using namespace phraseator;
@@ -427,6 +428,44 @@ int main() {
     CHECK(!exchange.activeBank().buffers()[1u].valid());
     CHECK(exchange.activeBank().sourcePool().fragmentCount() + 4u ==
           beforeClearFragments);
+
+
+    // Invalid supplied tonal metadata must never survive into the active bank
+    // or persisted resolved request. The worker treats it as unresolved.
+    SampleLoadRequest invalidRoot;
+    invalidRoot.sourceIndex = 7u;
+    invalidRoot.sourceId = 800u;
+    invalidRoot.path = path;
+    invalidRoot.mode = SampleLoadMode::OneShot;
+    invalidRoot.tonal = true;
+    invalidRoot.detectedRootMidi =
+        std::numeric_limits<float>::quiet_NaN();
+
+    std::atomic<bool> rootFinite {false};
+    const auto invalidRootId = worker.requestLoad(
+        invalidRoot,
+        true,
+        [&](const SampleLoadWorkerResult& completed,
+            const std::vector<SampleLoadRequest>& resolved) {
+            if (completed.ok() && resolved.size() == 1u) {
+                rootFinite.store(
+                    std::isfinite(resolved.front().detectedRootMidi),
+                    std::memory_order_release);
+            }
+        });
+    CHECK(invalidRootId != 0u);
+    CHECK(worker.waitForResult(
+        invalidRootId, result, std::chrono::seconds(2)));
+    CHECK(result.ok());
+    CHECK(exchange.consumePending());
+    CHECK(rootFinite.load(std::memory_order_acquire));
+
+    const auto* invalidRootSource =
+        exchange.activeBank().sourcePool().source(7u);
+    CHECK(invalidRootSource != nullptr);
+    CHECK(!invalidRootSource->tonal ||
+          (invalidRootSource->detectedRootMidi >= 0.0f &&
+           invalidRootSource->detectedRootMidi <= 127.0f));
 
     std::filesystem::remove(path, ec);
     CHECK(!ec);
