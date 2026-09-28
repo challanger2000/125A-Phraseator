@@ -160,7 +160,8 @@ bool PhraseScheduler::processBlock(
 
     if (!std::isfinite(startStepPosition) ||
         !std::isfinite(stepsPerSample) ||
-        stepsPerSample <= 0.0) {
+        stepsPerSample <= 0.0 ||
+        stepsPerSample > 1.0) {
         resetPlaybackState();
         timelineValid_ = false;
         expectedNextStepPosition_ = 0.0;
