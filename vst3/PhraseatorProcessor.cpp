@@ -487,15 +487,20 @@ void Processor::readParameterChanges(IParameterChanges* changes) noexcept {
 
     for (int32 i = 0; i < changes->getParameterCount(); ++i) {
         auto* queue = changes->getParameterData(i);
-        if (!queue || queue->getPointCount() <= 0)
+        if (!queue)
             continue;
 
-        int32 sampleOffset = 0;
-        ParamValue value = 0.0;
-        if (queue->getPoint(queue->getPointCount() - 1, sampleOffset, value) != kResultTrue)
-            continue;
+        const auto pointCount = queue->getPointCount();
+        for (int32 point = 0; point < pointCount; ++point) {
+            int32 sampleOffset = 0;
+            ParamValue value = 0.0;
+            if (queue->getPoint(point, sampleOffset, value) != kResultTrue)
+                continue;
 
-        applyNormalizedParameter(queue->getParameterId(), value);
+            // Parameter-only flushes have no audio timeline to segment, but
+            // every ordered point still matters for edge-triggered controls.
+            applyNormalizedParameter(queue->getParameterId(), value);
+        }
     }
 }
 
