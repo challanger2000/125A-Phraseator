@@ -63,10 +63,11 @@ float PitchMapper::quantizedOffset(float detectedRootMidi,
                                    float requestedOffsetSemitones,
                                    int rootPitchClass,
                                    ScaleMode scale) noexcept {
-    if (!std::isfinite(detectedRootMidi) || detectedRootMidi < 0.0f ||
-        !std::isfinite(requestedOffsetSemitones)) {
+    if (!std::isfinite(requestedOffsetSemitones))
+        return 0.0f;
+
+    if (!std::isfinite(detectedRootMidi) || detectedRootMidi < 0.0f)
         return requestedOffsetSemitones;
-    }
 
     const int requestedMidi = std::clamp(
         static_cast<int>(std::lround(detectedRootMidi + requestedOffsetSemitones)),
