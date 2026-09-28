@@ -435,6 +435,7 @@ tresult PLUGIN_API Processor::setProcessing(TBool state) {
         heldMidiNotes_.clear();
         activeMidiNote_ = -1;
         midiTransposeSemitones_ = 0.0f;
+        midiPhraseStepPosition_ = 0.0;
         refreshSchedulerPattern();
     }
 
