@@ -10,7 +10,7 @@ The audio callback receives only immutable audio-buffer views that have already 
 
 The initial internal decoder supports standard little-endian RIFF/WAVE:
 
-- mono or stereo;
+- mono or stereo; stereo playback preserves the original L/R channels at PAN 0 and is not automatically downmixed to mono;
 - PCM 16-bit;
 - PCM 24-bit;
 - PCM 32-bit;

@@ -84,9 +84,9 @@ int main() {
         const auto centered = stereoPlayer.processSample(
             stereoPool, stereoBuffers);
 
-        const float centeredMono = 0.75f * std::sqrt(0.5f);
-        CHECK(std::fabs(centered.left - centeredMono) < 1.0e-5f);
-        CHECK(std::fabs(centered.right - centeredMono) < 1.0e-5f);
+        // Center must preserve the original stereo channels exactly.
+        CHECK(std::fabs(centered.left - 1.0f) < 1.0e-5f);
+        CHECK(std::fabs(centered.right - 0.5f) < 1.0e-5f);
 
         stereoPlayer.reset();
         CHECK(stereoPlayer.trigger(
@@ -95,8 +95,24 @@ int main() {
         const auto hardRight = stereoPlayer.processSample(
             stereoPool, stereoBuffers);
 
+        // Hard-right placement removes the opposite channel without
+        // downmixing L+R first.
         CHECK(std::fabs(hardRight.left) < 1.0e-5f);
-        CHECK(std::fabs(hardRight.right - 0.75f) < 1.0e-5f);
+        CHECK(std::fabs(hardRight.right - 0.5f) < 1.0e-5f);
+
+        // Anti-phase stereo must not disappear at center. This directly
+        // guards against an accidental return to 0.5 * (L + R) downmixing.
+        const float antiLeft[2] {1.0f, 0.0f};
+        const float antiRight[2] {-1.0f, 0.0f};
+        std::array<AudioBufferView, kMaxSources> antiBuffers {};
+        antiBuffers[0] = {antiLeft, antiRight, 2u, true};
+
+        stereoPlayer.reset();
+        CHECK(stereoPlayer.trigger(
+            stereoPool, antiBuffers, ref, 1.0f, 0.0f, 0.0f));
+        const auto anti = stereoPlayer.processSample(stereoPool, antiBuffers);
+        CHECK(std::fabs(anti.left - 1.0f) < 1.0e-5f);
+        CHECK(std::fabs(anti.right + 1.0f) < 1.0e-5f);
     }
 
     {

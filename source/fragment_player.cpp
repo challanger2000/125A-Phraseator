@@ -161,15 +161,34 @@ StereoFrame FragmentPlayer::processSample(const SourcePool& pool,
             ? sampleLinear(buffer.right, voice.endFrame, voice.position)
             : l;
 
-        // Phraseator PAN is a placement macro, not a stereo-balance control.
-        // At PAN=0 every source -- including stereo WAVs -- is true mono/center.
-        // Non-zero values pan that mono-compatible signal with a constant-power law.
-        const float mono = buffer.stereo ? 0.5f * (l + r) : l;
-        const float livePan = clamp(voice.panShape * panAmountCurrent_, -1.0f, 1.0f);
-        const float pan01 = (livePan + 1.0f) * 0.5f;
-        const float angle = pan01 * 1.57079632679f;
-        const float gL = std::cos(angle) * voice.gain;
-        const float gR = std::sin(angle) * voice.gain;
+        // Preserve native stereo at PAN=0. Stereo material is never summed
+        // to mono merely to place it: the PAN macro behaves as a balance
+        // control for stereo sources, attenuating only the opposite side.
+        // Mono sources keep the existing constant-power pan law.
+        const float livePan =
+            clamp(voice.panShape * panAmountCurrent_, -1.0f, 1.0f);
+
+        float sourceL = l;
+        float sourceR = r;
+        float gL = voice.gain;
+        float gR = voice.gain;
+
+        if (buffer.stereo) {
+            const float magnitude = std::fabs(livePan);
+            const float oppositeGain =
+                std::cos(magnitude * 1.57079632679f);
+
+            if (livePan > 0.0f)
+                gL *= oppositeGain;
+            else if (livePan < 0.0f)
+                gR *= oppositeGain;
+        } else {
+            const float pan01 = (livePan + 1.0f) * 0.5f;
+            const float angle = pan01 * 1.57079632679f;
+            sourceR = sourceL;
+            gL *= std::cos(angle);
+            gR *= std::sin(angle);
+        }
 
         float envelope = 1.0f;
         if (voice.releaseSamplesRemaining > 0u &&
@@ -192,8 +211,8 @@ StereoFrame FragmentPlayer::processSample(const SourcePool& pool,
             envelope *= static_cast<float>(std::min(fadeIn, fadeOut));
         }
 
-        out.left += mono * gL * envelope;
-        out.right += mono * gR * envelope;
+        out.left += sourceL * gL * envelope;
+        out.right += sourceR * gR * envelope;
 
         voice.position += voice.increment;
         if (voice.releaseSamplesRemaining > 0u) {

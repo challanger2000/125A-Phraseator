@@ -18,7 +18,7 @@ Load arbitrary one-shot WAV samples, then generate musically useful rhythmic phr
 - Optional pitch-to-key behavior with Chromatic / Major / Minor
 - Discrete octave selector: OFF / +1 / -1 / +/-1
 - Density, Variate Depth, Motif Reuse, Velocity, Pitch, Pan and Groove controls
-- PAN 0 is true mono/center; higher PAN settings create generated placement
+- PAN 0 preserves the source format: stereo WAVs keep their native L/R image and mono WAVs remain centered; higher PAN settings create generated placement
 - Simple built-in Delay and Cut processing
 - Pattern locking and manual source assignment per step
 - Host-sync transport and tempo

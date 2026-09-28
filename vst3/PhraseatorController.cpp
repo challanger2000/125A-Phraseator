@@ -1,4 +1,5 @@
 #include "PhraseatorController.h"
+#include "PhraseatorIDs.h"
 
 namespace {
 
@@ -35,7 +36,6 @@ protected:
 
 } // namespace
 
-#include "PhraseatorIDs.h"
 #include "../source/parameters.h"
 #include "../source/phrase_engine.h"
 #include "../source/source_pool.h"
