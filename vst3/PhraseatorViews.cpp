@@ -139,7 +139,7 @@ void FaceplateView::draw(VSTGUI::CDrawContext* context) {
     constexpr double px[4] = {32,104,176,248};
     for(int row=0;row<2;++row)
         for(int col=0;col<4;++col)
-            well(px[col],124+row*82,64,72);
+            well(px[col],124+row*82,64,78);
 
     // Compact step pads: wider than before, less vertical "fader slot" appearance.
     for(int i=0;i<16;++i) {

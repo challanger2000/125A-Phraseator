@@ -117,8 +117,8 @@
     <view class="CTextLabel" origin="476,412" size="66,14" title="PAN" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
     <view class="CView" custom-view-name="PhraseKnob" control-tag="1005" origin="558,360" size="58,52"/>
     <view class="CTextLabel" origin="552,412" size="70,14" title="GROOVE" transparent="true" font-color="Text" font="Small" text-alignment="center"/>
-    <view class="CTextLabel" origin="408,442" size="54,14" title="OCTAVE" transparent="true" font-color="Muted" font="Small"/>
-    <view class="CView" custom-view-name="PhraseOctave" origin="462,438" size="104,24" control-tag="1007"/>
+    <view class="CTextLabel" origin="391,442" size="54,14" title="OCTAVE" transparent="true" font-color="Muted" font="Small"/>
+    <view class="CView" custom-view-name="PhraseOctave" origin="445,438" size="104,24" control-tag="1007"/>
 
     <view class="CTextLabel" origin="698,318" size="180,16" title="PITCH TO KEY" transparent="true" font-color="Accent" font="Section"/>
     <view class="CView" custom-view-name="PhrasePitchToKey" origin="700,350" size="118,24" control-tag="1102"/>
