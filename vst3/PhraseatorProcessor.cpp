@@ -417,6 +417,7 @@ tresult PLUGIN_API Processor::setProcessing(TBool state) {
 
 void Processor::applyNormalizedParameter(ParamID id, double rawValue) noexcept {
     const double value = clamp01(rawValue);
+    runtimeStateDirty_ = true;
 
     if (id >= static_cast<ParamID>(kStepRatchetBase) &&
         id < static_cast<ParamID>(kStepRatchetBase + kStepRatchetCount)) {
@@ -667,6 +668,7 @@ void Processor::generatePattern() noexcept {
             ratchets[i], 1u, kMaxRatchetHits);
 
     state_.pattern = generated;
+    runtimeStateDirty_ = true;
     refreshSchedulerPattern();
     patternViewDirty_ = true;
 }
@@ -677,6 +679,7 @@ void Processor::varyPattern() noexcept {
 
     recallPatternRemapPending_.store(false, std::memory_order_release);
     state_.pattern = engine_.vary(state_.pattern, currentGenerationSettings());
+    runtimeStateDirty_ = true;
     refreshSchedulerPattern();
     patternViewDirty_ = true;
 }
