@@ -102,11 +102,23 @@ void Processor::publishRuntimeState() noexcept {
 }
 
 void Processor::consumePendingProjectState() noexcept {
+    const auto observedSequence = pendingProjectState_.sequence();
+    const auto appliedSequence =
+        appliedPendingStateSequence_.load(std::memory_order_acquire);
+
+    // Fast path for the overwhelmingly common case: no new host state.
+    // Avoid copying the whole ProjectState atomically on every audio block.
+    if (observedSequence == 0u ||
+        observedSequence == appliedSequence ||
+        (observedSequence & 1u) != 0u) {
+        return;
+    }
+
     PendingProjectState pending {};
     std::uint64_t sequence = 0u;
     if (!pendingProjectState_.tryLoad(pending, sequence) ||
         sequence == 0u ||
-        sequence == appliedPendingStateSequence_.load(std::memory_order_acquire)) {
+        sequence == appliedSequence) {
         return;
     }
 
