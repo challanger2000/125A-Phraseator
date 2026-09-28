@@ -95,6 +95,9 @@ target_link_libraries(PhraseatorFxTests PRIVATE PhraseatorCore)
 add_executable(PhraseatorMidiNoteTrackerTests tests/midi_note_tracker_tests.cpp)
 target_link_libraries(PhraseatorMidiNoteTrackerTests PRIVATE PhraseatorCore)
 
+add_executable(PhraseatorAtomicSnapshotTests tests/atomic_snapshot_tests.cpp)
+target_link_libraries(PhraseatorAtomicSnapshotTests PRIVATE PhraseatorCore)
+
 enable_testing()
 add_test(NAME PhraseatorEngineTests COMMAND PhraseatorEngineTests)
 add_test(NAME PhraseatorSourcePoolTests COMMAND PhraseatorSourcePoolTests)
@@ -112,6 +115,7 @@ add_test(NAME PhraseatorSampleFileLoaderTests COMMAND PhraseatorSampleFileLoader
 add_test(NAME PhraseatorSampleLoadWorkerTests COMMAND PhraseatorSampleLoadWorkerTests)
 add_test(NAME PhraseatorFxTests COMMAND PhraseatorFxTests)
 add_test(NAME PhraseatorMidiNoteTrackerTests COMMAND PhraseatorMidiNoteTrackerTests)
+add_test(NAME PhraseatorAtomicSnapshotTests COMMAND PhraseatorAtomicSnapshotTests)
 
 if(PHRASEATOR_BUILD_VST3)
     include(FetchContent)
