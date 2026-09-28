@@ -54,3 +54,5 @@ The UI should remain simple even when the internal rules are sophisticated. Phra
 - Deep audit: component setState/getState now use a fixed lock-free snapshot mailbox so UI-thread project save/recall does not race the realtime-owned ProjectState.
 
 - Timing audit: phrase scheduling now uses musical 16th-step phase; CONTINUE prefers host PPQ/projectTimeMusic and RETRIGGER keeps a local musical phase, preventing historical sample-time reinterpretation across tempo changes.
+
+- Fourth deep audit: held-note mode switching, source-recall save coherence, setup-allocation containment, and signed preroll/negative-PPQ scheduling.
