@@ -377,5 +377,45 @@ int main() {
         }
     }
 
+
+    {
+        // Negative host musical time must run continuously through zero.
+        // Absolute step -1 maps to pattern step 15; absolute step 0 maps to
+        // pattern step 0. Clamping negative time to zero would retrigger step
+        // 0 repeatedly during preroll instead of producing this sequence.
+        SourcePool negativePool;
+        constexpr std::uint32_t frames = 8u;
+        CHECK(negativePool.setOneShot(0, 60u, frames, 48000.0, false));
+        CHECK(negativePool.setOneShot(1, 61u, frames, 48000.0, false));
+
+        const float a[frames] {0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+        const float b[frames] {0.25f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+        std::array<AudioBufferView, kMaxSources> negativeBuffers {};
+        negativeBuffers[0] = {a, nullptr, frames, false};
+        negativeBuffers[1] = {b, nullptr, frames, false};
+
+        Pattern p {};
+        p[15].active = true;
+        p[15].fragment = 0u;
+        p[15].velocity = 1.0f;
+        p[0].active = true;
+        p[0].fragment = 1u;
+        p[0].velocity = 1.0f;
+
+        PhraseScheduler sch;
+        sch.setPattern(p);
+        sch.prepare(48000.0);
+
+        std::vector<float> l(6001u);
+        std::vector<float> rr(6001u);
+        CHECK(sch.processBlock(
+            negativePool, negativeBuffers,
+            -1.0, 1.0 / 6000.0, true,
+            l.data(), rr.data(), l.size()));
+
+        CHECK(std::fabs(l[0] - 0.5f * centerGain) < 1.0e-5f);
+        CHECK(std::fabs(l[6000] - 0.25f * centerGain) < 1.0e-5f);
+    }
+
     return 0;
 }
