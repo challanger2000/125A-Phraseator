@@ -43,6 +43,22 @@ private:
     Controller* controller_ {nullptr};
 };
 
+class StepEditView final : public VSTGUI::CView {
+public:
+    StepEditView(const VSTGUI::CRect& size,
+                 std::int32_t patternViewTag,
+                 Controller* controller);
+
+    void draw(VSTGUI::CDrawContext* context) override;
+    VSTGUI::CMouseEventResult onMouseDown(
+        VSTGUI::CPoint& where,
+        const VSTGUI::CButtonState& buttons) override;
+
+private:
+    std::int32_t patternViewTag_ {-1};
+    Controller* controller_ {nullptr};
+};
+
 class RatchetView final : public VSTGUI::CControl {
 public:
     RatchetView(const VSTGUI::CRect& size,

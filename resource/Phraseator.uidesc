@@ -68,36 +68,52 @@
     <view class="CTextLabel" origin="586,98" size="180,16" title="PHRASE · 16 STEPS" transparent="true" font-color="Accent" font="Section" text-alignment="center"/>
     <view class="CTextLabel" origin="815,100" size="178,12" title="CLICK: SOURCE · RIGHT CLICK: CLEAR" transparent="true" font-color="Muted" font="Small" text-alignment="right"/>
     <view class="CView" custom-view-name="PhraseStep" control-tag="1400" origin="366,134" size="34,30"/>
+    <view class="CView" custom-view-name="PhraseStepEdit" control-tag="1400" origin="366,134" size="34,30" transparent="true"/>
     <view class="CView" custom-view-name="PhraseRatchet" control-tag="1700" origin="366,164" size="34,15"/>
     <view class="CView" custom-view-name="PhraseStep" control-tag="1401" origin="405,134" size="34,30"/>
+    <view class="CView" custom-view-name="PhraseStepEdit" control-tag="1401" origin="405,134" size="34,30" transparent="true"/>
     <view class="CView" custom-view-name="PhraseRatchet" control-tag="1701" origin="405,164" size="34,15"/>
     <view class="CView" custom-view-name="PhraseStep" control-tag="1402" origin="444,134" size="34,30"/>
+    <view class="CView" custom-view-name="PhraseStepEdit" control-tag="1402" origin="444,134" size="34,30" transparent="true"/>
     <view class="CView" custom-view-name="PhraseRatchet" control-tag="1702" origin="444,164" size="34,15"/>
     <view class="CView" custom-view-name="PhraseStep" control-tag="1403" origin="483,134" size="34,30"/>
+    <view class="CView" custom-view-name="PhraseStepEdit" control-tag="1403" origin="483,134" size="34,30" transparent="true"/>
     <view class="CView" custom-view-name="PhraseRatchet" control-tag="1703" origin="483,164" size="34,15"/>
     <view class="CView" custom-view-name="PhraseStep" control-tag="1404" origin="522,134" size="34,30"/>
+    <view class="CView" custom-view-name="PhraseStepEdit" control-tag="1404" origin="522,134" size="34,30" transparent="true"/>
     <view class="CView" custom-view-name="PhraseRatchet" control-tag="1704" origin="522,164" size="34,15"/>
     <view class="CView" custom-view-name="PhraseStep" control-tag="1405" origin="561,134" size="34,30"/>
+    <view class="CView" custom-view-name="PhraseStepEdit" control-tag="1405" origin="561,134" size="34,30" transparent="true"/>
     <view class="CView" custom-view-name="PhraseRatchet" control-tag="1705" origin="561,164" size="34,15"/>
     <view class="CView" custom-view-name="PhraseStep" control-tag="1406" origin="600,134" size="34,30"/>
+    <view class="CView" custom-view-name="PhraseStepEdit" control-tag="1406" origin="600,134" size="34,30" transparent="true"/>
     <view class="CView" custom-view-name="PhraseRatchet" control-tag="1706" origin="600,164" size="34,15"/>
     <view class="CView" custom-view-name="PhraseStep" control-tag="1407" origin="639,134" size="34,30"/>
+    <view class="CView" custom-view-name="PhraseStepEdit" control-tag="1407" origin="639,134" size="34,30" transparent="true"/>
     <view class="CView" custom-view-name="PhraseRatchet" control-tag="1707" origin="639,164" size="34,15"/>
     <view class="CView" custom-view-name="PhraseStep" control-tag="1408" origin="678,134" size="34,30"/>
+    <view class="CView" custom-view-name="PhraseStepEdit" control-tag="1408" origin="678,134" size="34,30" transparent="true"/>
     <view class="CView" custom-view-name="PhraseRatchet" control-tag="1708" origin="678,164" size="34,15"/>
     <view class="CView" custom-view-name="PhraseStep" control-tag="1409" origin="717,134" size="34,30"/>
+    <view class="CView" custom-view-name="PhraseStepEdit" control-tag="1409" origin="717,134" size="34,30" transparent="true"/>
     <view class="CView" custom-view-name="PhraseRatchet" control-tag="1709" origin="717,164" size="34,15"/>
     <view class="CView" custom-view-name="PhraseStep" control-tag="1410" origin="756,134" size="34,30"/>
+    <view class="CView" custom-view-name="PhraseStepEdit" control-tag="1410" origin="756,134" size="34,30" transparent="true"/>
     <view class="CView" custom-view-name="PhraseRatchet" control-tag="1710" origin="756,164" size="34,15"/>
     <view class="CView" custom-view-name="PhraseStep" control-tag="1411" origin="795,134" size="34,30"/>
+    <view class="CView" custom-view-name="PhraseStepEdit" control-tag="1411" origin="795,134" size="34,30" transparent="true"/>
     <view class="CView" custom-view-name="PhraseRatchet" control-tag="1711" origin="795,164" size="34,15"/>
     <view class="CView" custom-view-name="PhraseStep" control-tag="1412" origin="834,134" size="34,30"/>
+    <view class="CView" custom-view-name="PhraseStepEdit" control-tag="1412" origin="834,134" size="34,30" transparent="true"/>
     <view class="CView" custom-view-name="PhraseRatchet" control-tag="1712" origin="834,164" size="34,15"/>
     <view class="CView" custom-view-name="PhraseStep" control-tag="1413" origin="873,134" size="34,30"/>
+    <view class="CView" custom-view-name="PhraseStepEdit" control-tag="1413" origin="873,134" size="34,30" transparent="true"/>
     <view class="CView" custom-view-name="PhraseRatchet" control-tag="1713" origin="873,164" size="34,15"/>
     <view class="CView" custom-view-name="PhraseStep" control-tag="1414" origin="912,134" size="34,30"/>
+    <view class="CView" custom-view-name="PhraseStepEdit" control-tag="1414" origin="912,134" size="34,30" transparent="true"/>
     <view class="CView" custom-view-name="PhraseRatchet" control-tag="1714" origin="912,164" size="34,15"/>
     <view class="CView" custom-view-name="PhraseStep" control-tag="1415" origin="951,134" size="34,30"/>
+    <view class="CView" custom-view-name="PhraseStepEdit" control-tag="1415" origin="951,134" size="34,30" transparent="true"/>
     <view class="CView" custom-view-name="PhraseRatchet" control-tag="1715" origin="951,164" size="34,15"/>
 
     <view class="CView" custom-view-name="PhraseGenerate" control-tag="1300" origin="366,216" size="180,36"/>

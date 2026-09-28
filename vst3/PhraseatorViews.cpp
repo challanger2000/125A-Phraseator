@@ -309,6 +309,72 @@ VSTGUI::CMouseEventResult StepIndicator::onMouseDown(
     return VSTGUI::kMouseDownEventHandledButDontNeedMovedOrUpEvents;
 }
 
+StepEditView::StepEditView(const VSTGUI::CRect& size,
+                           std::int32_t patternViewTag,
+                           Controller* controller)
+: VSTGUI::CView(size),
+  patternViewTag_(patternViewTag),
+  controller_(controller) {
+    setTransparency(true);
+    setMouseEnabled(true);
+}
+
+void StepEditView::draw(VSTGUI::CDrawContext*) {
+    setDirty(false);
+}
+
+VSTGUI::CMouseEventResult StepEditView::onMouseDown(
+    VSTGUI::CPoint&,
+    const VSTGUI::CButtonState& buttons) {
+
+    if (!controller_)
+        return VSTGUI::kMouseEventNotHandled;
+
+    const auto stepIndex =
+        patternViewTag_ - static_cast<std::int32_t>(kPatternViewBase);
+    if (stepIndex < 0 || stepIndex >= kPatternViewCount)
+        return VSTGUI::kMouseEventNotHandled;
+
+    if (buttons.isRightButton()) {
+        controller_->sendPatternStepEdit(stepIndex, false, 0);
+        return VSTGUI::kMouseDownEventHandledButDontNeedMovedOrUpEvents;
+    }
+
+    if (!buttons.isLeftButton())
+        return VSTGUI::kMouseEventNotHandled;
+
+    const double normalized = std::clamp(
+        static_cast<double>(controller_->getParamNormalized(
+            static_cast<Steinberg::Vst::ParamID>(patternViewTag_))),
+        0.0, 1.0);
+    const int currentSource = normalized > 0.0
+        ? std::clamp(
+            static_cast<int>(std::lround(normalized * kPatternViewStepCount)) - 1,
+            0, kPatternViewStepCount - 1)
+        : -1;
+
+    int nextSource = -1;
+    const int begin = currentSource >= 0 ? currentSource + 1 : 0;
+    for (int source = begin; source < kSourceStatusCount; ++source) {
+        const auto status = controller_->getParamNormalized(
+            static_cast<Steinberg::Vst::ParamID>(kSourceStatusBase + source));
+        const auto muted = controller_->getParamNormalized(
+            static_cast<Steinberg::Vst::ParamID>(kSourceMuteBase + source));
+
+        if (status > 0.0 && muted < 0.5) {
+            nextSource = source;
+            break;
+        }
+    }
+
+    if (nextSource >= 0)
+        controller_->sendPatternStepEdit(stepIndex, true, nextSource);
+    else
+        controller_->sendPatternStepEdit(stepIndex, false, 0);
+
+    return VSTGUI::kMouseDownEventHandledButDontNeedMovedOrUpEvents;
+}
+
 RatchetView::RatchetView(const VSTGUI::CRect& size,
                          VSTGUI::IControlListener* listener,
                          std::int32_t tag)
@@ -1001,6 +1067,14 @@ VSTGUI::CView* createCustomView(VSTGUI::UTF8StringPtr name,
        tag >= static_cast<Steinberg::int32>(kPatternViewBase) &&
        tag < static_cast<Steinberg::int32>(kPatternViewBase + kPatternViewCount))
         return new StepIndicator(rect,editor,tag,controller);
+
+    // Pattern View is intentionally read-only. VSTGUI disables mouse input on
+    // bound controls for read-only parameters, so step editing lives on an
+    // unbound transparent overlay while StepIndicator remains display-only.
+    if(std::strcmp(name,"PhraseStepEdit")==0 &&
+       tag >= static_cast<Steinberg::int32>(kPatternViewBase) &&
+       tag < static_cast<Steinberg::int32>(kPatternViewBase + kPatternViewCount))
+        return new StepEditView(rect,tag,controller);
 
     if(std::strcmp(name,"PhraseRatchet")==0 &&
        tag >= static_cast<Steinberg::int32>(kStepRatchetBase) &&
