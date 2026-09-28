@@ -2,6 +2,7 @@
 
 #include "PhraseatorIDs.h"
 #include "../source/parameters.h"
+#include "../source/phrase_engine.h"
 #include "../source/source_pool.h"
 
 #include "base/source/fstreamer.h"
@@ -468,7 +469,10 @@ tresult PLUGIN_API Controller::setComponentState(IBStream* state) {
             static_cast<ParamID>(kPatternViewBase + i), 0.0);
         setParamNormalized(
             static_cast<ParamID>(kStepRatchetBase + i),
-            static_cast<double>(std::clamp<int32>(repeats, 1, 4) - 1) / 3.0);
+            static_cast<double>(
+                std::clamp<int32>(
+                    repeats, 1, static_cast<int32>(kMaxRatchetHits)) - 1) /
+                static_cast<double>(kMaxRatchetHits - 1u));
     }
 
     return kResultOk;
