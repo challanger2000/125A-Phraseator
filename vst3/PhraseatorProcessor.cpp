@@ -91,6 +91,56 @@ Processor::Processor() {
     setControllerClass(kControllerUID);
     for (auto& edit : patternEditPending_)
         edit.store(-1, std::memory_order_relaxed);
+    publishedProjectState_.store(state_);
+}
+
+void Processor::publishRuntimeState() noexcept {
+    if (!runtimeStateDirty_)
+        return;
+    publishedProjectState_.store(state_);
+    runtimeStateDirty_ = false;
+}
+
+void Processor::consumePendingProjectState() noexcept {
+    PendingProjectState pending {};
+    std::uint64_t sequence = 0u;
+    if (!pendingProjectState_.tryLoad(pending, sequence) ||
+        sequence == 0u ||
+        sequence == appliedPendingStateSequence_.load(std::memory_order_acquire)) {
+        return;
+    }
+
+    state_ = pending.state;
+    recallPatternSnapshot_ = pending.recallPatternSnapshot;
+    recallPatternRemapPending_.store(
+        pending.hasRecallIdentity &&
+            !recallPreservePatternOnFailure_.load(std::memory_order_acquire),
+        std::memory_order_release);
+
+    generateTrigger_ = 0.0;
+    variateTrigger_ = 0.0;
+    heldMidiNotes_.clear();
+    activeMidiNote_ = -1;
+    midiTransposeSemitones_ = 0.0f;
+    midiPhraseTimeSamples_ = 0.0;
+
+    engine_.setSeed(state_.randomSeed);
+    scheduler_.reset();
+    fx_.setDelayAmount(state_.delayAmount);
+    fx_.setDelayDivision(state_.delayDivision);
+    fx_.setFilterAmount(state_.filterAmount);
+    fx_.setFilterMode(state_.filterMode);
+    fx_.reset();
+    refreshSchedulerPattern();
+
+    runtimeStateDirty_ = true;
+    publishRuntimeState();
+
+    // Publish the audio-owned snapshot before marking this UI handoff applied,
+    // so getState() never observes "applied" with only the previous snapshot.
+    appliedPendingStateSequence_.store(sequence, std::memory_order_release);
+    patternViewDirty_ = true;
+    sourceStatusDirty_ = true;
 }
 
 tresult PLUGIN_API Processor::initialize(FUnknown* context) {
