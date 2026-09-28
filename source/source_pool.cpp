@@ -35,7 +35,8 @@ bool SourcePool::setOneShot(std::size_t sourceIndex,
     s.totalFrames = totalFrames;
     s.sampleRate = sampleRate;
     s.stereo = stereo;
-    s.tonal = tonal && std::isfinite(detectedRootMidi) && detectedRootMidi >= 0.0f;
+    s.tonal = tonal && std::isfinite(detectedRootMidi) &&
+              detectedRootMidi >= 0.0f && detectedRootMidi <= 127.0f;
     s.detectedRootMidi = s.tonal ? detectedRootMidi : -1.0f;
     s.slices[0] = {0u, totalFrames};
     s.sliceCount = 1;
@@ -63,7 +64,8 @@ bool SourcePool::setLoopSlices(std::size_t sourceIndex,
     candidate.sampleRate = sampleRate;
     candidate.stereo = stereo;
     candidate.tonal =
-        tonal && std::isfinite(detectedRootMidi) && detectedRootMidi >= 0.0f;
+        tonal && std::isfinite(detectedRootMidi) &&
+        detectedRootMidi >= 0.0f && detectedRootMidi <= 127.0f;
     candidate.detectedRootMidi =
         candidate.tonal ? detectedRootMidi : -1.0f;
 
