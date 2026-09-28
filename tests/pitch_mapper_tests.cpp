@@ -2,6 +2,7 @@
 #include "test_common.h"
 
 #include <cmath>
+#include <limits>
 
 using namespace phraseator;
 
@@ -22,6 +23,17 @@ int main() {
 
     // F4 remains valid in D natural minor.
     CHECK(std::fabs(PitchMapper::quantizedOffset(60.0f, 5.0f, 2, ScaleMode::Minor) - 5.0f) < 1.0e-6f);
+
+    CHECK(PitchMapper::quantizedOffset(
+        60.0f,
+        std::numeric_limits<float>::quiet_NaN(),
+        0,
+        ScaleMode::Major) == 0.0f);
+
+    // Invalid root detection disables quantization but preserves a finite
+    // requested creative offset.
+    CHECK(PitchMapper::quantizedOffset(
+        -1.0f, 5.0f, 0, ScaleMode::Major) == 5.0f);
 
     // Processor order contract: MIDI transpose is added before final
     // Pitch-To-Key quantization. C4 + live +1 + MIDI +1 = D4, which is valid
