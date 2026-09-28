@@ -1377,7 +1377,7 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
     return kResultOk;
 }
 
-bool Processor::writeProjectState(IBStream* state) const noexcept {
+bool Processor::writeProjectState(IBStream* state,\n                                  const ProjectState& snapshot) const noexcept {
     if (!state)
         return false;
 
@@ -1385,22 +1385,22 @@ bool Processor::writeProjectState(IBStream* state) const noexcept {
 
     if (!stream.writeInt32(kStateMagic) ||
         !stream.writeInt32(kStateVersion) ||
-        !stream.writeInt32(static_cast<int32>(state_.randomSeed))) {
+        !stream.writeInt32(static_cast<int32>(snapshot.randomSeed))) {
         return false;
     }
 
     const double scalars[] {
-        state_.density,
-        state_.variation,
-        state_.repeat,
-        state_.pitch,
-        state_.pan,
-        state_.groove,
-        state_.delayAmount,
-        state_.reverbAmount,
-        state_.driveAmount,
-        state_.filterAmount,
-        state_.velocity
+        snapshot.density,
+        snapshot.variation,
+        snapshot.repeat,
+        snapshot.pitch,
+        snapshot.pan,
+        snapshot.groove,
+        snapshot.delayAmount,
+        snapshot.reverbAmount,
+        snapshot.driveAmount,
+        snapshot.filterAmount,
+        snapshot.velocity
     };
 
     for (const auto value : scalars) {
@@ -1408,25 +1408,25 @@ bool Processor::writeProjectState(IBStream* state) const noexcept {
             return false;
     }
 
-    if (!stream.writeInt32(state_.keyRoot) ||
-        !stream.writeInt32(state_.scaleMode) ||
-        !stream.writeInt32(state_.pitchToKey ? 1 : 0) ||
-        !stream.writeInt32(state_.lockPattern ? 1 : 0) ||
-        !stream.writeInt32(state_.restartOnNote ? 1 : 0) ||
-        !stream.writeInt32(state_.delayDivision) ||
-        !stream.writeInt32(state_.filterMode) ||
-        !stream.writeInt32(state_.octaveMode)) {
+    if (!stream.writeInt32(snapshot.keyRoot) ||
+        !stream.writeInt32(snapshot.scaleMode) ||
+        !stream.writeInt32(snapshot.pitchToKey ? 1 : 0) ||
+        !stream.writeInt32(snapshot.lockPattern ? 1 : 0) ||
+        !stream.writeInt32(snapshot.restartOnNote ? 1 : 0) ||
+        !stream.writeInt32(snapshot.delayDivision) ||
+        !stream.writeInt32(snapshot.filterMode) ||
+        !stream.writeInt32(snapshot.octaveMode)) {
         return false;
     }
 
     for (std::size_t i = 0; i < kSourceMuteCount; ++i) {
         if (!stream.writeInt32(
-                state_.sources[i].muted ? 1 : 0)) {
+                snapshot.sources[i].muted ? 1 : 0)) {
             return false;
         }
     }
 
-    for (const auto& step : state_.pattern) {
+    for (const auto& step : snapshot.pattern) {
         if (!stream.writeInt32(step.active ? 1 : 0) ||
             !stream.writeInt32(static_cast<int32>(step.fragment)) ||
             !stream.writeDouble(step.velocity) ||
