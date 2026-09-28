@@ -7,6 +7,17 @@ namespace phraseator {
 
 namespace {
 
+void sanitizeAudio(OwnedAudioSource& audio) noexcept {
+    for (auto& x : audio.left) {
+        if (!std::isfinite(x))
+            x = 0.0f;
+    }
+    for (auto& x : audio.right) {
+        if (!std::isfinite(x))
+            x = 0.0f;
+    }
+}
+
 void applyConservativeAutoLevel(OwnedAudioSource& audio) noexcept {
     if (!audio.valid())
         return;
@@ -102,6 +113,7 @@ bool SampleBank::setOneShot(std::size_t sourceIndex,
     if (sourceIndex >= kMaxSources || !audio.valid())
         return false;
 
+    sanitizeAudio(audio);
     applyConservativeAutoLevel(audio);
     const auto frames = audio.frames();
     const auto rate = static_cast<double>(audio.sampleRate);
@@ -129,6 +141,7 @@ bool SampleBank::setLoop(std::size_t sourceIndex,
     if (sourceIndex >= kMaxSources || !audio.valid())
         return false;
 
+    sanitizeAudio(audio);
     const auto frames = audio.frames();
     const auto rate = static_cast<double>(audio.sampleRate);
     const auto stereo = audio.stereo;
