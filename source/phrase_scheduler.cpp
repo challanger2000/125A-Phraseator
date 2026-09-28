@@ -180,13 +180,15 @@ bool PhraseScheduler::processBlock(
 
     double nextBoundary = static_cast<double>(startAbsoluteStep + 1u);
     auto nextAbsoluteStep = startAbsoluteStep + 1u;
+    const double eventTolerance =
+        std::max(1.0e-12, stepsPerSample * 0.5);
 
     for (std::size_t i = 0; i < numSamples; ++i) {
         const double stepPosition =
             blockStart + static_cast<double>(i) * stepsPerSample;
 
         if (hasPendingStep_ &&
-            stepPosition + 1.0e-12 >= pendingStepPosition_) {
+            stepPosition + eventTolerance >= pendingStepPosition_) {
             triggerAbsoluteStep(
                 pendingAbsoluteStep_,
                 pendingStepPosition_,
@@ -194,7 +196,7 @@ bool PhraseScheduler::processBlock(
                 buffers);
         }
 
-        while (stepPosition + 1.0e-12 >= nextBoundary) {
+        while (stepPosition + eventTolerance >= nextBoundary) {
             scheduleAbsoluteStep(
                 nextAbsoluteStep, stepPosition, pool, buffers);
             ++nextAbsoluteStep;
@@ -202,7 +204,7 @@ bool PhraseScheduler::processBlock(
         }
 
         while (ratchetsRemaining_ > 0u &&
-               stepPosition + 1.0e-12 >= nextRatchetStepPosition_ &&
+               stepPosition + eventTolerance >= nextRatchetStepPosition_ &&
                stepPosition < nextBoundary) {
             triggerStep(
                 static_cast<std::size_t>(
