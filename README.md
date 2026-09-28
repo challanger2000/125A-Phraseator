@@ -46,3 +46,5 @@ The UI should remain simple even when the internal rules are sophisticated. Phra
 - Audit coverage includes exact 1x-4x ratchet timing, long-sample choke, CONTINUE/RETRIGGER timing, delay OFF history isolation, multi-rate step timing, 2 ms choke release, auto-level bounds/stereo, and realtime parameter-capacity/state checks.
 
 - Live PAN now updates already-running voices without retriggering; Pitch To Key is applied after MIDI transpose so Root/Scale remain the final pitch authority.
+
+- Second audit checkpoint: stale fragment rejection, authoritative mute spans, WAVE_FORMAT_EXTENSIBLE, overlap-safe MIDI note tracking, delay bypass/re-enable, denormal guards, source-specific mute choke, bank-swap voice reset, ratchet independence, and recall-status cleanup.
