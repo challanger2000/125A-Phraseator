@@ -1747,8 +1747,12 @@ bool Processor::readProjectState(IBStream* state) noexcept {
             recall.preferTransient = version >= 3 && preferTransient != 0;
             recall.resolvedSliceCount = resolvedSliceCount;
             recall.resolvedSlices = resolvedSlices;
-            recall.tonal = tonal != 0;
-            recall.detectedRootMidi = static_cast<float>(detectedRootMidi);
+            const bool validDetectedRoot =
+                detectedRootMidi >= 0.0 && detectedRootMidi <= 127.0;
+            recall.tonal = tonal != 0 && validDetectedRoot;
+            recall.detectedRootMidi = recall.tonal
+                ? static_cast<float>(detectedRootMidi)
+                : -1.0f;
             recall.utf8Path = std::move(path);
 
             auto& meta = candidate.sources[i];
