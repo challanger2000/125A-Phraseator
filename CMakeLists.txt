@@ -138,6 +138,7 @@ if(PHRASEATOR_BUILD_VST3)
     endif()
 
     set(PHRASEATOR_VST3_SOURCES
+        vst3/AtomicSnapshot.h
         vst3/PhraseatorIDs.h
         vst3/PhraseatorProcessor.h
         vst3/PhraseatorProcessor.cpp
