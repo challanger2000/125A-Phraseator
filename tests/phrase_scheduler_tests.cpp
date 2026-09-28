@@ -343,7 +343,7 @@ int main() {
     {
         // Musical scheduler timing remains sample-accurate at common host
         // rates. At 120 BPM one 16th is sampleRate/8 samples.
-        for (const double rate : {44100.0, 96000.0}) {
+        for (const double rate : {44100.0, 96000.0, 192000.0}) {
             SourcePool ratePool;
             constexpr std::uint32_t frames = 4u;
             CHECK(ratePool.setOneShot(

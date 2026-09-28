@@ -165,12 +165,12 @@ int main() {
     {
         // PAN is a true live macro on an already-running voice. The voice
         // stores its pan tendency and the global amount can move it without
-        // requiring a retrigger.
+        // retriggering, but automation is de-clicked instead of jumping.
         SourcePool panPool;
-        constexpr std::uint32_t frames = 64u;
+        constexpr std::uint32_t frames = 4096u;
         CHECK(panPool.setOneShot(0, 12u, frames, 48000.0, false));
 
-        float constant[frames] {};
+        static float constant[frames] {};
         for (auto& x : constant) x = 1.0f;
         std::array<AudioBufferView, kMaxSources> panBuffers {};
         panBuffers[0] = {constant, nullptr, frames, false};
@@ -185,13 +185,25 @@ int main() {
         CHECK(std::fabs(centered.left - centered.right) < 1.0e-6f);
 
         player.setPanAmount(1.0f);
-        const auto right = player.processSample(panPool, panBuffers);
-        CHECK(std::fabs(right.left) < 1.0e-5f);
+        const auto firstMove = player.processSample(panPool, panBuffers);
+        CHECK(std::fabs(firstMove.left - centered.left) < 0.05f);
+        CHECK(std::fabs(firstMove.right - centered.right) < 0.05f);
+
+        StereoFrame right {};
+        for (int i = 0; i < 1600; ++i)
+            right = player.processSample(panPool, panBuffers);
+        CHECK(right.left < 0.01f);
         CHECK(right.right > 0.99f);
 
         player.setPanAmount(0.0f);
-        const auto centeredAgain = player.processSample(panPool, panBuffers);
-        CHECK(std::fabs(centeredAgain.left - centeredAgain.right) < 1.0e-6f);
+        const auto firstReturn = player.processSample(panPool, panBuffers);
+        CHECK(std::fabs(firstReturn.left - right.left) < 0.05f);
+        CHECK(std::fabs(firstReturn.right - right.right) < 0.05f);
+
+        StereoFrame centeredAgain {};
+        for (int i = 0; i < 1600; ++i)
+            centeredAgain = player.processSample(panPool, panBuffers);
+        CHECK(std::fabs(centeredAgain.left - centeredAgain.right) < 0.01f);
     }
 
 
