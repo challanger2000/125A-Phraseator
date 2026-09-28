@@ -224,5 +224,68 @@ int main() {
         CHECK(player.activeVoiceCount() == 1u);
     }
 
+
+    {
+        // Fractional interpolation at a slice boundary must not leak samples
+        // from the next slice.
+        SourcePool slicedPool;
+        constexpr std::uint32_t frames = 8u;
+        const SliceRegion slices[2] {{0u, 4u}, {4u, 8u}};
+        CHECK(slicedPool.setLoopSlices(
+            0, 31u, frames, 48000.0, false, slices, 2u));
+
+        const float data[frames] {
+            1.0f, 1.0f, 1.0f, 1.0f,
+            -1.0f, -1.0f, -1.0f, -1.0f
+        };
+        std::array<AudioBufferView, kMaxSources> slicedBuffers {};
+        slicedBuffers[0] = {data, nullptr, frames, false};
+
+        FragmentPlayer player;
+        player.prepare(48000.0);
+        CHECK(player.trigger(
+            slicedPool, slicedBuffers, {0u, 0u}, 1.0f, -1.0f, -12.0f));
+
+        // -12 semitones advances by 0.5 frames. Every sample from slice 0
+        // must remain non-negative; interpolation must never see slice 1.
+        while (player.activeVoiceCount() > 0u) {
+            const auto frame = player.processSample(slicedPool, slicedBuffers);
+            CHECK(frame.left >= -1.0e-6f);
+        }
+    }
+
+    {
+        // Slice fade and choke release multiply; the choke must audibly decay
+        // rather than remain flat until its final forced stop.
+        SourcePool loopPool;
+        constexpr std::uint32_t frames = 512u;
+        const SliceRegion region {0u, frames};
+        CHECK(loopPool.setLoopSlices(
+            0, 32u, frames, 48000.0, false, &region, 1u));
+
+        float constant[frames] {};
+        for (auto& x : constant) x = 1.0f;
+        std::array<AudioBufferView, kMaxSources> buffers {};
+        buffers[0] = {constant, nullptr, frames, false};
+
+        FragmentPlayer player;
+        player.prepare(48000.0);
+        CHECK(player.trigger(
+            loopPool, buffers, {0u, 0u}, 1.0f, -1.0f, 0.0f));
+
+        // Move past the slice fade-in.
+        for (int i = 0; i < 32; ++i)
+            player.processSample(loopPool, buffers);
+
+        player.chokeAll();
+        const auto releaseStart = player.processSample(loopPool, buffers);
+        StereoFrame releaseLate {};
+        for (int i = 0; i < 80; ++i)
+            releaseLate = player.processSample(loopPool, buffers);
+
+        CHECK(releaseStart.left > releaseLate.left);
+        CHECK(releaseLate.left >= 0.0f);
+    }
+
     return 0;
 }
