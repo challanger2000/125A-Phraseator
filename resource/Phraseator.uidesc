@@ -66,7 +66,7 @@
     <view class="CView" custom-view-name="PhraseMute" origin="252,266" size="58,16" control-tag="1607"/>
 
     <view class="CTextLabel" origin="586,98" size="180,16" title="PHRASE · 16 STEPS" transparent="true" font-color="Accent" font="Section" text-alignment="center"/>
-    <view class="CTextLabel" origin="815,100" size="178,12" title="CLICK: SOURCE · RIGHT CLICK: CLEAR" transparent="true" font-color="Muted" font="Small" text-alignment="right"/>
+    <view class="CTextLabel" origin="815,100" size="178,12" title="CLICK: SOURCE · CYCLE TO EMPTY" transparent="true" font-color="Muted" font="Small" text-alignment="right"/>
     <view class="CView" custom-view-name="PhraseStep" control-tag="1400" origin="366,134" size="34,30"/>
     <view class="CView" custom-view-name="PhraseStepEdit" control-tag="1400" origin="366,134" size="34,30" transparent="true"/>
     <view class="CView" custom-view-name="PhraseRatchet" control-tag="1700" origin="366,164" size="34,15"/>
