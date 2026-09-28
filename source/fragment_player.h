@@ -59,6 +59,7 @@ private:
     double outputSampleRate_ {48000.0};
     float panAmountTarget_ {1.0f};
     float panAmountCurrent_ {1.0f};
+    float panSmoothingCoeff_ {0.0f};
 };
 
 } // namespace phraseator

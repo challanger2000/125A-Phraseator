@@ -10,6 +10,8 @@ void FragmentPlayer::prepare(double outputSampleRate) noexcept {
         (std::isfinite(outputSampleRate) && outputSampleRate >= 1000.0)
         ? outputSampleRate
         : 48000.0;
+    panSmoothingCoeff_ = static_cast<float>(
+        1.0 - std::exp(-1.0 / (outputSampleRate_ * 0.005)));
 }
 
 void FragmentPlayer::reset() noexcept {
@@ -132,9 +134,8 @@ StereoFrame FragmentPlayer::processSample(const SourcePool& pool,
 
     // Smooth live PAN automation once per output sample. Doing this inside the
     // voice loop would make the ramp speed depend on temporary voice overlap.
-    const double panCoeff = 1.0 - std::exp(-1.0 / (outputSampleRate_ * 0.005));
-    panAmountCurrent_ += static_cast<float>(
-        (static_cast<double>(panAmountTarget_) - panAmountCurrent_) * panCoeff);
+    panAmountCurrent_ +=
+        (panAmountTarget_ - panAmountCurrent_) * panSmoothingCoeff_;
 
     for (auto& voice : voices_) {
         if (!voice.active)
