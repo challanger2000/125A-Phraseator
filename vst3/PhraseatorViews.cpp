@@ -28,6 +28,19 @@ constexpr VSTGUI::CColor kText {239,243,247,255};
 constexpr VSTGUI::CColor kTick {126,139,153,180};
 constexpr double kPi = 3.14159265358979323846;
 
+bool resetToDefaultOnCtrlClick(VSTGUI::CControl* control,
+                               const VSTGUI::CButtonState& buttons) {
+    if (!control || !buttons.isLeftButton() || !buttons.isControlSet())
+        return false;
+
+    control->beginEdit();
+    control->setValue(control->getDefaultValue());
+    control->valueChanged();
+    control->endEdit();
+    control->invalid();
+    return true;
+}
+
 struct LogoSubpath { std::vector<VSTGUI::CPoint> points; };
 struct LogoPath { std::vector<LogoSubpath> subpaths; bool red {false}; };
 
@@ -332,7 +345,7 @@ VSTGUI::CMouseEventResult RatchetView::onMouseDown(
     VSTGUI::CPoint&,
     const VSTGUI::CButtonState& buttons) {
 
-    if (checkDefaultValue(buttons))
+    if (resetToDefaultOnCtrlClick(this, buttons))
         return VSTGUI::kMouseDownEventHandledButDontNeedMovedOrUpEvents;
 
     if (!buttons.isLeftButton())
@@ -719,7 +732,7 @@ VSTGUI::CMouseEventResult SelectorView::onMouseDown(
     VSTGUI::CPoint& where,const VSTGUI::CButtonState& buttons) {
     if(!getViewSize().pointInside(where) || labels_.size()<2u)
         return VSTGUI::kMouseEventNotHandled;
-    if(checkDefaultValue(buttons))
+    if(resetToDefaultOnCtrlClick(this, buttons))
         return VSTGUI::kMouseDownEventHandledButDontNeedMovedOrUpEvents;
     const bool backwards=buttons.isRightButton();
     if(!buttons.isLeftButton() && !backwards)
@@ -794,7 +807,7 @@ VSTGUI::CMouseEventResult ToggleView::onMouseDown(
     VSTGUI::CPoint& where,const VSTGUI::CButtonState& buttons) {
     if(!getViewSize().pointInside(where))
         return VSTGUI::kMouseEventNotHandled;
-    if(checkDefaultValue(buttons))
+    if(resetToDefaultOnCtrlClick(this, buttons))
         return VSTGUI::kMouseDownEventHandledButDontNeedMovedOrUpEvents;
     if(!buttons.isLeftButton())
         return VSTGUI::kMouseEventNotHandled;
@@ -848,7 +861,13 @@ void ActionButton::draw(VSTGUI::CDrawContext* context) {
 
 VSTGUI::CMouseEventResult ActionButton::onMouseDown(
     VSTGUI::CPoint& where,const VSTGUI::CButtonState& buttons) {
-    if(!buttons.isLeftButton() || !getViewSize().pointInside(where))
+    if(!getViewSize().pointInside(where))
+        return VSTGUI::kMouseEventNotHandled;
+    // Momentary edit/load actions have no user-facing default-reset meaning.
+    // Ctrl-click must not accidentally fire them.
+    if(buttons.isControlSet())
+        return VSTGUI::kMouseDownEventHandledButDontNeedMovedOrUpEvents;
+    if(!buttons.isLeftButton())
         return VSTGUI::kMouseEventNotHandled;
     beginEdit();
     setValueNormalized(1.0f);
