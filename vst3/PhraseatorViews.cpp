@@ -332,6 +332,9 @@ VSTGUI::CMouseEventResult RatchetView::onMouseDown(
     VSTGUI::CPoint&,
     const VSTGUI::CButtonState& buttons) {
 
+    if (checkDefaultValue(buttons))
+        return VSTGUI::kMouseDownEventHandledButDontNeedMovedOrUpEvents;
+
     if (!buttons.isLeftButton())
         return VSTGUI::kMouseEventNotHandled;
 
@@ -716,6 +719,8 @@ VSTGUI::CMouseEventResult SelectorView::onMouseDown(
     VSTGUI::CPoint& where,const VSTGUI::CButtonState& buttons) {
     if(!getViewSize().pointInside(where) || labels_.size()<2u)
         return VSTGUI::kMouseEventNotHandled;
+    if(checkDefaultValue(buttons))
+        return VSTGUI::kMouseDownEventHandledButDontNeedMovedOrUpEvents;
     const bool backwards=buttons.isRightButton();
     if(!buttons.isLeftButton() && !backwards)
         return VSTGUI::kMouseEventNotHandled;
@@ -787,7 +792,11 @@ void ToggleView::draw(VSTGUI::CDrawContext* context) {
 
 VSTGUI::CMouseEventResult ToggleView::onMouseDown(
     VSTGUI::CPoint& where,const VSTGUI::CButtonState& buttons) {
-    if(!buttons.isLeftButton() || !getViewSize().pointInside(where))
+    if(!getViewSize().pointInside(where))
+        return VSTGUI::kMouseEventNotHandled;
+    if(checkDefaultValue(buttons))
+        return VSTGUI::kMouseDownEventHandledButDontNeedMovedOrUpEvents;
+    if(!buttons.isLeftButton())
         return VSTGUI::kMouseEventNotHandled;
     beginEdit();
     setValueNormalized(getValueNormalized()>=0.5f?0.0f:1.0f);
