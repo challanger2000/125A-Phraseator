@@ -1721,52 +1721,47 @@ bool Processor::readProjectState(IBStream* state) noexcept {
         }
     }
 
-    recallPatternSnapshot_ =
+    const auto recallSnapshot =
         snapshotPatternFragmentsFromSourceCounts(
             candidate.pattern, savedSliceCounts);
 
     bool hasRecallIdentity = false;
-    for (const auto& identity : recallPatternSnapshot_) {
+    for (const auto& identity : recallSnapshot) {
         if (identity.valid) {
             hasRecallIdentity = true;
             break;
         }
     }
-    recallPatternRemapPending_.store(
-        hasRecallIdentity, std::memory_order_release);
 
-    // A recalled project state is authoritative. Drop UI/MIDI actions
-    // queued by the previous state so they cannot mutate the newly recalled
-    // pattern on the next audio block.
+    // A recalled project state is authoritative. Drop queued UI actions from
+    // the previous project. Audio-owned live state is reset only when the
+    // realtime thread consumes the pending state at a block boundary.
     generateCommandPending_.store(false, std::memory_order_release);
     variateCommandPending_.store(false, std::memory_order_release);
     for (auto& edit : patternEditPending_)
         edit.store(-1, std::memory_order_release);
-    generateTrigger_ = 0.0;
-    variateTrigger_ = 0.0;
-    heldMidiNotes_.clear();
-    activeMidiNote_ = -1;
-    midiTransposeSemitones_ = 0.0f;
-    midiPhraseTimeSamples_ = 0.0;
 
     sourceRecallEpoch_.fetch_add(1u, std::memory_order_acq_rel);
-    state_ = candidate;
     {
         std::lock_guard<std::mutex> lock(sourceRecallMutex_);
         sourceRecall_ = std::move(recallEntries);
     }
 
-    syncEngineFromState();
+    recallPreservePatternOnFailure_.store(false, std::memory_order_release);
+    recallAudioPending_.store(true, std::memory_order_release);
+    recallLoadRequestId_.store(0u, std::memory_order_release);
+
+    PendingProjectState pending {};
+    pending.state = candidate;
+    pending.recallPatternSnapshot = recallSnapshot;
+    pending.hasRecallIdentity = hasRecallIdentity;
+    pendingProjectState_.store(pending);
+
     queueRecallLoads();
     return true;
 }
 
 void Processor::queueRecallLoads() noexcept {
-    recallAudioPending_.store(true, std::memory_order_release);
-    recallLoadRequestId_.store(0u, std::memory_order_release);
-    scheduler_.reset();
-    fx_.reset();
-
     if (!sampleLoader_) {
         recallPatternRemapPending_.store(false, std::memory_order_release);
         recallAudioPending_.store(false, std::memory_order_release);
@@ -1843,6 +1838,8 @@ void Processor::queueRecallLoads() noexcept {
                     // new state. Preserve the recalled pattern exactly, but
                     // publish an empty bank asynchronously so missing audio
                     // cannot corrupt or retarget its saved step structure.
+                    recallPreservePatternOnFailure_.store(
+                        true, std::memory_order_release);
                     recallPatternRemapPending_.store(
                         false, std::memory_order_release);
 
