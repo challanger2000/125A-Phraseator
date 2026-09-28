@@ -352,34 +352,43 @@ Pattern PhraseEngine::vary(const Pattern& input, const GenerationSettings& raw) 
         // repurposes them as a fallback when no alternate fragment exists.
     }
 
-    // With only one selectable fragment, a source-only mutation has no
-    // audible result. Move one selected hit to a free step instead, preserving
-    // per-step ratchet settings. If every step is occupied, remove one hit as
-    // the minimal audible fallback.
+    // With only one selectable fragment, source swaps cannot create an
+    // audible variation. Vary the rhythm instead, proportional to VARIATE
+    // DEPTH: each selected source hit moves to an originally empty step when
+    // one is available; otherwise that source hit is removed. Ratchets remain
+    // properties of their absolute step positions and are never moved.
     if (!changedPhrase && desiredMutations > 0u) {
-        const auto sourceStep = activeIndices[0];
-        std::size_t targetStep = kStepCount;
+        std::array<bool, kStepCount> targetReserved {};
 
-        for (std::size_t distance = 1u; distance < kStepCount; ++distance) {
-            const auto candidate = (sourceStep + distance) % kStepCount;
-            if (!output[candidate].active) {
-                targetStep = candidate;
-                break;
+        for (std::size_t mutation = 0; mutation < desiredMutations; ++mutation) {
+            const auto sourceStep = activeIndices[mutation];
+            if (!output[sourceStep].active)
+                continue;
+
+            std::size_t targetStep = kStepCount;
+            for (std::size_t distance = 1u; distance < kStepCount; ++distance) {
+                const auto candidate = (sourceStep + distance) % kStepCount;
+                if (!input[candidate].active && !targetReserved[candidate]) {
+                    targetStep = candidate;
+                    break;
+                }
             }
-        }
 
-        if (targetStep < kStepCount) {
-            const auto targetRepeats = output[targetStep].repeats;
-            const auto movedFragment = output[sourceStep].fragment;
-            output[sourceStep].active = false;
-            output[targetStep].active = true;
-            output[targetStep].fragment = movedFragment;
-            output[targetStep].repeats = targetRepeats;
-        } else {
-            output[sourceStep].active = false;
-        }
+            if (targetStep < kStepCount) {
+                const auto targetRepeats = output[targetStep].repeats;
+                const auto movedFragment = output[sourceStep].fragment;
 
-        changedPhrase = true;
+                output[sourceStep].active = false;
+                output[targetStep].active = true;
+                output[targetStep].fragment = movedFragment;
+                output[targetStep].repeats = targetRepeats;
+                targetReserved[targetStep] = true;
+            } else {
+                output[sourceStep].active = false;
+            }
+
+            changedPhrase = true;
+        }
     }
 
     // Only the top creative quarter may otherwise alter the on/off rhythm structure.
