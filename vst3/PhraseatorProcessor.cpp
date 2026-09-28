@@ -757,7 +757,20 @@ void Processor::handleMidiEvent(const Event& event) noexcept {
     if (heldMidiNotes_.held(activeMidiNote_))
         return;
 
-    applyCurrentNote(heldMidiNotes_.highestHeld());
+    const int nextHeld = heldMidiNotes_.highestHeld();
+    if (nextHeld >= 0) {
+        applyCurrentNote(nextHeld);
+        return;
+    }
+
+    // Closing the gate in CONTINUE must not retune the hidden, continuously
+    // running phrase back to C. Keep the last transpose until a new NoteOn;
+    // pitch remains a trigger-bound property by design.
+    activeMidiNote_ = -1;
+    if (state_.restartOnNote) {
+        midiTransposeSemitones_ = 0.0f;
+        refreshSchedulerPattern();
+    }
 }
 
 void Processor::emitPatternViewParameters(ProcessData& data,
