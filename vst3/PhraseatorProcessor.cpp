@@ -1740,15 +1740,62 @@ void Processor::queueRecallLoads() noexcept {
             }
         }
 
+        const auto recallEpoch =
+            sourceRecallEpoch_.load(std::memory_order_acquire);
+
         const auto requestId =
-            sampleLoader_->requestBatch(std::move(requests));
+            sampleLoader_->requestBatch(
+                std::move(requests),
+                false,
+                [this, recallEpoch](
+                    const SampleLoadWorkerResult& result,
+                    const std::vector<SampleLoadRequest>&) {
+                    if (result.ok() ||
+                        sourceRecallEpoch_.load(std::memory_order_acquire) != recallEpoch ||
+                        !sampleLoader_) {
+                        return;
+                    }
+
+                    // Atomic recall failed (e.g. corrupt/unreadable WAV).
+                    // Never leave the old project's samples active behind the
+                    // new state. Publish an empty bank asynchronously instead.
+                    std::vector<SampleLoadRequest> clears;
+                    clears.reserve(kMaxSources);
+                    for (std::size_t i = 0; i < kMaxSources; ++i) {
+                        SampleLoadRequest clear;
+                        clear.sourceIndex = i;
+                        clear.mode = SampleLoadMode::Clear;
+                        clears.push_back(std::move(clear));
+                    }
+
+                    const auto fallbackId =
+                        sampleLoader_->requestBatch(std::move(clears));
+
+                    if (fallbackId != 0u) {
+                        recallLoadRequestId_.store(
+                            fallbackId, std::memory_order_release);
+                    } else {
+                        recallPatternRemapPending_.store(
+                            false, std::memory_order_release);
+                        recallAudioPending_.store(
+                            false, std::memory_order_release);
+                        recallLoadRequestId_.store(
+                            0u, std::memory_order_release);
+                    }
+                });
 
         if (requestId == 0u) {
             recallPatternRemapPending_.store(
                 false, std::memory_order_release);
             recallAudioPending_.store(false, std::memory_order_release);
         } else {
-            recallLoadRequestId_.store(requestId, std::memory_order_release);
+            // The failure callback can theoretically run before requestBatch()
+            // returns and install a fallback request id. Do not overwrite it.
+            std::uint64_t expected = 0u;
+            recallLoadRequestId_.compare_exchange_strong(
+                expected, requestId,
+                std::memory_order_acq_rel,
+                std::memory_order_acquire);
 
             // If this recall was already consumed before the request id became
             // visible, process() recognizes activePublishTag()==requestId on
