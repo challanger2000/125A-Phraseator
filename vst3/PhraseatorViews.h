@@ -92,6 +92,8 @@ public:
                  VSTGUI::IControlListener* listener,
                  std::int32_t tag,
                  std::vector<std::string> labels);
+    SelectorView(const SelectorView& other);
+    VSTGUI::CBaseObject* newCopy() const override { return new SelectorView(*this); }
     void draw(VSTGUI::CDrawContext* context) override;
     VSTGUI::CMouseEventResult onMouseDown(
         VSTGUI::CPoint& where,
@@ -108,6 +110,8 @@ public:
                std::string offLabel,
                std::string onLabel,
                bool compact=false);
+    ToggleView(const ToggleView& other);
+    VSTGUI::CBaseObject* newCopy() const override { return new ToggleView(*this); }
     void draw(VSTGUI::CDrawContext* context) override;
     VSTGUI::CMouseEventResult onMouseDown(
         VSTGUI::CPoint& where,
@@ -126,6 +130,8 @@ public:
                  std::string label,
                  bool compact=false,
                  bool accent=false);
+    ActionButton(const ActionButton& other);
+    VSTGUI::CBaseObject* newCopy() const override { return new ActionButton(*this); }
     void draw(VSTGUI::CDrawContext* context) override;
     VSTGUI::CMouseEventResult onMouseDown(
         VSTGUI::CPoint& where,

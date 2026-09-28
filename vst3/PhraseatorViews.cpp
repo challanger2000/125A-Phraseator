@@ -680,6 +680,11 @@ SelectorView::SelectorView(const VSTGUI::CRect& size,
     setWantsFocus(true);
 }
 
+SelectorView::SelectorView(const SelectorView& other)
+: VSTGUI::CControl(other),
+  labels_(other.labels_) {
+}
+
 void SelectorView::draw(VSTGUI::CDrawContext* context) {
     const auto r=getViewSize();
     const std::size_t count=labels_.empty()?1u:labels_.size();
@@ -743,6 +748,13 @@ ToggleView::ToggleView(const VSTGUI::CRect& size,
     setWantsFocus(true);
 }
 
+ToggleView::ToggleView(const ToggleView& other)
+: VSTGUI::CControl(other),
+  offLabel_(other.offLabel_),
+  onLabel_(other.onLabel_),
+  compact_(other.compact_) {
+}
+
 void ToggleView::draw(VSTGUI::CDrawContext* context) {
     const auto r=getViewSize();
     const bool on=getValueNormalized()>=0.5f;
@@ -794,6 +806,13 @@ ActionButton::ActionButton(const VSTGUI::CRect& size,
   accent_(accent) {
     setTransparency(true);
     setWantsFocus(true);
+}
+
+ActionButton::ActionButton(const ActionButton& other)
+: VSTGUI::CControl(other),
+  label_(other.label_),
+  compact_(other.compact_),
+  accent_(other.accent_) {
 }
 
 void ActionButton::draw(VSTGUI::CDrawContext* context) {
@@ -918,8 +937,8 @@ VSTGUI::CView* createCustomView(VSTGUI::UTF8StringPtr name,
         return new ActionButton(rect,controller,tag,"X",true,false);
 
     if(std::strcmp(name,"PhraseMute")==0 &&
-       tag>=static_cast<Steinberg::int32_t>(kSourceMuteBase) &&
-       tag<static_cast<Steinberg::int32_t>(kSourceMuteBase+kSourceMuteCount))
+       tag>=static_cast<Steinberg::int32>(kSourceMuteBase) &&
+       tag<static_cast<Steinberg::int32>(kSourceMuteBase+kSourceMuteCount))
         return new ToggleView(rect,editor,tag,"ON","MUTE",true);
 
     if(std::strcmp(name,"PhrasePitchToKey")==0)
