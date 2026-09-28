@@ -87,6 +87,7 @@ private:
     std::unique_ptr<SampleLoadWorker> sampleLoader_;
     std::array<SourceRecallEntry, kMaxSources> sourceRecall_ {};
     mutable std::mutex sourceRecallMutex_;
+    std::atomic<std::uint64_t> sourceRecallEpoch_ {1u};
     PatternFragmentSnapshot recallPatternSnapshot_ {};
     std::atomic<bool> recallPatternRemapPending_ {false};
 
