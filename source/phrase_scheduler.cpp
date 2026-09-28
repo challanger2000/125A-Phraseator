@@ -2,13 +2,26 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace phraseator {
 
+namespace {
+
+std::size_t patternIndexForAbsoluteStep(std::int64_t absoluteStep) noexcept {
+    const auto count = static_cast<std::int64_t>(kStepCount);
+    auto wrapped = absoluteStep % count;
+    if (wrapped < 0)
+        wrapped += count;
+    return static_cast<std::size_t>(wrapped);
+}
+
+} // namespace
+
 void PhraseScheduler::resetPlaybackState() noexcept {
     player_.reset();
-    lastTriggeredAbsoluteStep_ = 0u;
-    pendingAbsoluteStep_ = 0u;
+    lastTriggeredAbsoluteStep_ = 0;
+    pendingAbsoluteStep_ = 0;
     pendingStepPosition_ = 0.0;
     nextRatchetStepPosition_ = 0.0;
     ratchetIntervalSteps_ = 0.0;
@@ -50,9 +63,9 @@ void PhraseScheduler::triggerStep(
 }
 
 double PhraseScheduler::stepTriggerPosition(
-    std::uint64_t absoluteStep) const noexcept {
+    std::int64_t absoluteStep) const noexcept {
 
-    const auto stepIndex = static_cast<std::size_t>(absoluteStep % kStepCount);
+    const auto stepIndex = patternIndexForAbsoluteStep(absoluteStep);
     const auto& step = pattern_[stepIndex];
     const double offset =
         std::clamp(static_cast<double>(step.timingOffset), 0.0, 0.49);
@@ -60,11 +73,11 @@ double PhraseScheduler::stepTriggerPosition(
 }
 
 void PhraseScheduler::scheduleRatchets(
-    std::uint64_t absoluteStep,
+    std::int64_t absoluteStep,
     double actualTriggerStepPosition,
     double currentStepPosition) noexcept {
 
-    const auto stepIndex = static_cast<std::size_t>(absoluteStep % kStepCount);
+    const auto stepIndex = patternIndexForAbsoluteStep(absoluteStep);
     const auto& step = pattern_[stepIndex];
 
     const auto repeats = static_cast<std::uint8_t>(
@@ -89,13 +102,13 @@ void PhraseScheduler::scheduleRatchets(
 }
 
 void PhraseScheduler::triggerAbsoluteStep(
-    std::uint64_t absoluteStep,
+    std::int64_t absoluteStep,
     double triggerStepPosition,
     const SourcePool& pool,
     const std::array<AudioBufferView, kMaxSources>& buffers) noexcept {
 
     triggerStep(
-        static_cast<std::size_t>(absoluteStep % kStepCount), pool, buffers);
+        patternIndexForAbsoluteStep(absoluteStep), pool, buffers);
     lastTriggeredAbsoluteStep_ = absoluteStep;
     hasTriggeredStep_ = true;
     hasPendingStep_ = false;
@@ -104,7 +117,7 @@ void PhraseScheduler::triggerAbsoluteStep(
 }
 
 void PhraseScheduler::scheduleAbsoluteStep(
-    std::uint64_t absoluteStep,
+    std::int64_t absoluteStep,
     double currentStepPosition,
     const SourcePool& pool,
     const std::array<AudioBufferView, kMaxSources>& buffers) noexcept {
@@ -155,7 +168,7 @@ bool PhraseScheduler::processBlock(
     }
 
     bool producedAudio = false;
-    const double blockStart = std::max(0.0, startStepPosition);
+    const double blockStart = startStepPosition;
 
     // Host seek/loop wrap is detected in musical time. A tempo change alone
     // does not create a discontinuity because the accumulated step position
@@ -168,7 +181,18 @@ bool PhraseScheduler::processBlock(
         resetPlaybackState();
     }
 
-    const auto startAbsoluteStep = static_cast<std::uint64_t>(
+    constexpr double kMinStepPosition =
+        static_cast<double>(std::numeric_limits<std::int64_t>::min()) + 2.0;
+    constexpr double kMaxStepPosition =
+        static_cast<double>(std::numeric_limits<std::int64_t>::max()) - 2.0;
+    if (blockStart < kMinStepPosition || blockStart > kMaxStepPosition) {
+        resetPlaybackState();
+        timelineValid_ = false;
+        expectedNextStepPosition_ = 0.0;
+        return false;
+    }
+
+    const auto startAbsoluteStep = static_cast<std::int64_t>(
         std::floor(blockStart));
 
     if ((!hasTriggeredStep_ ||
@@ -178,8 +202,8 @@ bool PhraseScheduler::processBlock(
         scheduleAbsoluteStep(startAbsoluteStep, blockStart, pool, buffers);
     }
 
-    double nextBoundary = static_cast<double>(startAbsoluteStep + 1u);
-    auto nextAbsoluteStep = startAbsoluteStep + 1u;
+    double nextBoundary = static_cast<double>(startAbsoluteStep) + 1.0;
+    auto nextAbsoluteStep = startAbsoluteStep + 1;
     // Step timingOffset is stored as float. Tolerate only its tiny
     // representation error; do not use a half-sample epsilon here because
     // genuine fractional-sample grid boundaries (e.g. 5512.5 @ 44.1 kHz)
@@ -210,8 +234,7 @@ bool PhraseScheduler::processBlock(
                stepPosition + eventTolerance >= nextRatchetStepPosition_ &&
                stepPosition < nextBoundary) {
             triggerStep(
-                static_cast<std::size_t>(
-                    lastTriggeredAbsoluteStep_ % kStepCount),
+                patternIndexForAbsoluteStep(lastTriggeredAbsoluteStep_),
                 pool,
                 buffers);
             nextRatchetStepPosition_ += ratchetIntervalSteps_;
