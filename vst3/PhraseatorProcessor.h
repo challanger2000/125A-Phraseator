@@ -68,6 +68,7 @@ private:
     bool patternHasActiveSteps() const noexcept;
     void refreshSchedulerPattern() noexcept;
     void handleMidiEvent(const Steinberg::Vst::Event& event) noexcept;
+    void promoteConsumedSourceRecallLocked();
 
     struct PendingProjectState {
         ProjectState state {};
@@ -88,6 +89,13 @@ private:
         std::string utf8Path;
     };
 
+    struct PendingSourceRecallUpdate {
+        bool valid {false};
+        std::uint64_t requestId {0u};
+        std::size_t sourceIndex {0u};
+        SourceRecallEntry entry {};
+    };
+
     ProjectState state_ {};
     AtomicSnapshot<PendingProjectState> pendingProjectState_ {};
     AtomicSnapshot<ProjectState> publishedProjectState_ {};
@@ -99,6 +107,7 @@ private:
     SampleBankExchange sampleBanks_ {};
     std::unique_ptr<SampleLoadWorker> sampleLoader_;
     std::array<SourceRecallEntry, kMaxSources> sourceRecall_ {};
+    PendingSourceRecallUpdate pendingSourceRecallUpdate_ {};
     mutable std::mutex sourceRecallMutex_;
     mutable std::mutex stateIoMutex_;
     std::atomic<std::uint64_t> sourceRecallEpoch_ {1u};
