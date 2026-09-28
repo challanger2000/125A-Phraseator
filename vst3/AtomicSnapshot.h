@@ -33,22 +33,22 @@ public:
         std::memcpy(packed.data(), &value, sizeof(T));
 
         // Single-writer seqlock: odd while publishing, even when coherent.
-        sequence_.fetch_add(1u, std::memory_order_acq_rel);
+        sequence_.fetch_add(1u, std::memory_order_seq_cst);
         for (std::size_t i = 0; i < kWordCount; ++i)
-            words_[i].store(packed[i], std::memory_order_relaxed);
-        return sequence_.fetch_add(1u, std::memory_order_release) + 1u;
+            words_[i].store(packed[i], std::memory_order_seq_cst);
+        return sequence_.fetch_add(1u, std::memory_order_seq_cst) + 1u;
     }
 
     bool tryLoad(T& value, std::uint64_t& sequence) const noexcept {
-        const auto before = sequence_.load(std::memory_order_acquire);
+        const auto before = sequence_.load(std::memory_order_seq_cst);
         if ((before & 1u) != 0u)
             return false;
 
         std::array<std::uint64_t, kWordCount> packed {};
         for (std::size_t i = 0; i < kWordCount; ++i)
-            packed[i] = words_[i].load(std::memory_order_relaxed);
+            packed[i] = words_[i].load(std::memory_order_seq_cst);
 
-        const auto after = sequence_.load(std::memory_order_acquire);
+        const auto after = sequence_.load(std::memory_order_seq_cst);
         if (before != after || (after & 1u) != 0u)
             return false;
 
@@ -58,7 +58,7 @@ public:
     }
 
     std::uint64_t sequence() const noexcept {
-        return sequence_.load(std::memory_order_acquire);
+        return sequence_.load(std::memory_order_seq_cst);
     }
 
 private:
