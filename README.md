@@ -50,3 +50,5 @@ The UI should remain simple even when the internal rules are sophisticated. Phra
 - Second audit checkpoint: stale fragment rejection, authoritative mute spans, WAVE_FORMAT_EXTENSIBLE, overlap-safe MIDI note tracking, delay bypass/re-enable, denormal guards, source-specific mute choke, bank-swap voice reset, ratchet independence, and recall-status cleanup.
 
 - Third audit checkpoint: async recall publication tagging/gating, stale-command cleanup, parameter-flush edge preservation, fragment-boundary interpolation, legacy slice-release composition, and overlap-safe state transitions.
+
+- Deep audit: component setState/getState now use a fixed lock-free snapshot mailbox so UI-thread project save/recall does not race the realtime-owned ProjectState.
