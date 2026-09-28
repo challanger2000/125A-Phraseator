@@ -14,6 +14,8 @@ void PhraseEngine::setSeed(std::uint32_t seed) {
 }
 
 float PhraseEngine::clamp01(float value) noexcept {
+    if (!std::isfinite(value))
+        return 0.0f;
     return std::clamp(value, 0.0f, 1.0f);
 }
 
