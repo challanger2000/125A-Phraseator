@@ -52,3 +52,5 @@ The UI should remain simple even when the internal rules are sophisticated. Phra
 - Third audit checkpoint: async recall publication tagging/gating, stale-command cleanup, parameter-flush edge preservation, fragment-boundary interpolation, legacy slice-release composition, and overlap-safe state transitions.
 
 - Deep audit: component setState/getState now use a fixed lock-free snapshot mailbox so UI-thread project save/recall does not race the realtime-owned ProjectState.
+
+- Timing audit: phrase scheduling now uses musical 16th-step phase; CONTINUE prefers host PPQ/projectTimeMusic and RETRIGGER keeps a local musical phase, preventing historical sample-time reinterpretation across tempo changes.
