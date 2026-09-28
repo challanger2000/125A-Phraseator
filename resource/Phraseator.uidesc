@@ -19,7 +19,7 @@
 
     <view class="CView" custom-view-name="PhraseLogo" origin="34,20" size="88,44" mouse-enabled="false"/>
     <view class="CTextLabel" origin="320,20" size="400,25" title="PHRASEATOR" transparent="true" font-color="Text" font="Title" text-alignment="center"/>
-    <view class="CTextLabel" origin="300,46" size="440,14" title="GENERATIVE SAMPLE PHRASE ENGINE · V0.1" transparent="true" font-color="Muted" font="Small" text-alignment="center"/>
+    <view class="CTextLabel" origin="300,46" size="440,14" title="GENERATIVE SAMPLE PHRASE ENGINE · V1.0" transparent="true" font-color="Muted" font="Small" text-alignment="center"/>
     <view class="CView" custom-view-name="PhraseUIScale" origin="934,28" size="68,24"/>
 
     <view class="CTextLabel" origin="70,98" size="200,16" title="SOURCE MATERIAL" transparent="true" font-color="Accent" font="Section" text-alignment="center"/>

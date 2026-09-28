@@ -26,7 +26,7 @@ Load arbitrary one-shot WAV samples, then generate musically useful rhythmic phr
 
 Phraseator V1 deliberately does not act as a loop slicer. Loop import, AUTO loop classification and visible LOOP controls are excluded so the workflow stays focused and predictable.
 
-The UI should remain simple even when the internal rules are sophisticated. Phraseator deliberately does not include an internal sample browser; host/OS drag-and-drop plus explicit LOAD buttons cover the V0.1 workflow.
+The UI should remain simple even when the internal rules are sophisticated. Phraseator deliberately does not include an internal sample browser; host/OS drag-and-drop plus explicit LOAD buttons cover the V1 workflow.
 
 ## Control model
 
