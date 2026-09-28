@@ -1640,6 +1640,20 @@ bool Processor::readProjectState(IBStream* state) noexcept {
     recallPatternRemapPending_.store(
         hasRecallIdentity, std::memory_order_release);
 
+    // A recalled project state is authoritative. Drop UI/MIDI actions
+    // queued by the previous state so they cannot mutate the newly recalled
+    // pattern on the next audio block.
+    generateCommandPending_.store(false, std::memory_order_release);
+    variateCommandPending_.store(false, std::memory_order_release);
+    for (auto& edit : patternEditPending_)
+        edit.store(-1, std::memory_order_release);
+    generateTrigger_ = 0.0;
+    variateTrigger_ = 0.0;
+    heldMidiNotes_.clear();
+    activeMidiNote_ = -1;
+    midiTransposeSemitones_ = 0.0f;
+    midiPhraseTimeSamples_ = 0.0;
+
     sourceRecallEpoch_.fetch_add(1u, std::memory_order_acq_rel);
     state_ = candidate;
     {
