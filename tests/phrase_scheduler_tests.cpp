@@ -417,5 +417,21 @@ int main() {
         CHECK(std::fabs(l[6000] - 0.25f * centerGain) < 1.0e-5f);
     }
 
+
+    {
+        // Malformed callers must not be able to force an effectively
+        // unbounded boundary catch-up loop inside one audio sample.
+        float l[4] {1.0f, 1.0f, 1.0f, 1.0f};
+        float r[4] {1.0f, 1.0f, 1.0f, 1.0f};
+        PhraseScheduler guarded;
+        guarded.prepare(48000.0);
+        CHECK(!guarded.processBlock(
+            pool, buffers, 0.0, 1000000000.0, true, l, r, 4u));
+        for (int i = 0; i < 4; ++i) {
+            CHECK(l[i] == 0.0f);
+            CHECK(r[i] == 0.0f);
+        }
+    }
+
     return 0;
 }
