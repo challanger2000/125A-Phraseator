@@ -570,5 +570,79 @@ int main() {
             CHECK(varied[i].repeats == base[i].repeats);
     }
 
+
+    {
+        // With only one selectable sample, VARIATE must still scale with depth
+        // by changing rhythm positions. Ratchets are properties of absolute
+        // steps and must remain untouched.
+        Pattern base {};
+        for (std::size_t i = 0; i < base.size(); ++i)
+            base[i].repeats = static_cast<std::uint8_t>((i % 4u) + 1u);
+
+        const std::size_t activeSteps[] {0u, 2u, 4u, 6u, 8u, 10u, 12u, 14u};
+        for (const auto i : activeSteps) {
+            base[i].active = true;
+            base[i].fragment = 0u;
+        }
+
+        GenerationSettings settings;
+        settings.variation = 0.50f;
+        settings.fragmentCount = 1u;
+        settings.sourceSpansAuthoritative = true;
+        settings.sourceSpanCount = 1u;
+        settings.sourceSpans[0] = {0u, 1u};
+
+        PhraseEngine engine(0x51A61Eu);
+        const auto varied = engine.vary(base, settings);
+
+        int sourcePositionsChanged = 0;
+        int newlyActive = 0;
+        for (std::size_t i = 0; i < base.size(); ++i) {
+            CHECK(varied[i].repeats == base[i].repeats);
+            if (base[i].active != varied[i].active)
+                ++sourcePositionsChanged;
+            if (!base[i].active && varied[i].active)
+                ++newlyActive;
+            if (varied[i].active)
+                CHECK(varied[i].fragment == 0u);
+        }
+
+        // ceil(0.50 * 8) = 4 selected hits. With eight free steps available,
+        // all four are relocated: four old positions off + four new positions on.
+        CHECK(sourcePositionsChanged == 8);
+        CHECK(newlyActive == 4);
+    }
+
+    {
+        // Fully occupied one-sample phrase has nowhere to move selected hits.
+        // VARIATE must still create audible structural change without touching
+        // per-step ratchets.
+        Pattern base {};
+        for (std::size_t i = 0; i < base.size(); ++i) {
+            base[i].active = true;
+            base[i].fragment = 0u;
+            base[i].repeats = static_cast<std::uint8_t>((i % 4u) + 1u);
+        }
+
+        GenerationSettings settings;
+        settings.variation = 0.25f;
+        settings.fragmentCount = 1u;
+        settings.sourceSpansAuthoritative = true;
+        settings.sourceSpanCount = 1u;
+        settings.sourceSpans[0] = {0u, 1u};
+
+        PhraseEngine engine(0x51A62Eu);
+        const auto varied = engine.vary(base, settings);
+
+        int inactive = 0;
+        for (std::size_t i = 0; i < base.size(); ++i) {
+            CHECK(varied[i].repeats == base[i].repeats);
+            if (!varied[i].active)
+                ++inactive;
+        }
+
+        CHECK(inactive == 4); // ceil(0.25 * 16)
+    }
+
     return 0;
 }
