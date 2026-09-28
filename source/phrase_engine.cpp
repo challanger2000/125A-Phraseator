@@ -340,7 +340,30 @@ Pattern PhraseEngine::vary(const Pattern& input, const GenerationSettings& raw) 
         if (!changedFragment && raw.fragmentCount > 1u) {
             for (int attempt = 0; attempt < 16 && !changedFragment; ++attempt) {
                 candidateFragment = chooseFragment(raw);
-                changedFragment = candidateFragment != original.fragment;
+                changedFragment =
+                    candidateFragment != original.fragment &&
+                    fragmentSelectable(candidateFragment, raw);
+            }
+
+            // Do not let probability decide whether VARIATE can perform the
+            // requested source mutation. If random selection happened to hit
+            // the original repeatedly, deterministically find any other
+            // selectable fragment before falling back to rhythm variation.
+            if (!changedFragment) {
+                const auto totalFragments = std::clamp<std::uint16_t>(
+                    raw.fragmentCount,
+                    1u,
+                    static_cast<std::uint16_t>(kMaxFragments));
+                for (std::uint16_t fragment = 0u;
+                     fragment < totalFragments;
+                     ++fragment) {
+                    if (fragment != original.fragment &&
+                        fragmentSelectable(fragment, raw)) {
+                        candidateFragment = fragment;
+                        changedFragment = true;
+                        break;
+                    }
+                }
             }
         }
 
