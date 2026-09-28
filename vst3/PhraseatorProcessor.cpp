@@ -545,9 +545,21 @@ void Processor::applyNormalizedParameter(ParamID id, double rawValue) noexcept {
         case static_cast<ParamID>(ParameterId::LockPattern):
             state_.lockPattern = value >= 0.5;
             break;
-        case static_cast<ParamID>(ParameterId::RestartMode):
-            state_.restartOnNote = value >= 0.5;
+        case static_cast<ParamID>(ParameterId::RestartMode): {
+            const bool nextRestartOnNote = value >= 0.5;
+            if (nextRestartOnNote != state_.restartOnNote) {
+                state_.restartOnNote = nextRestartOnNote;
+
+                // Entering RETRIGGER while a MIDI gate is already held must
+                // start a fresh local phrase immediately. Repeated automation
+                // points with the same value must not cause spurious resets.
+                if (state_.restartOnNote && activeMidiNote_ >= 0) {
+                    midiPhraseStepPosition_ = 0.0;
+                    scheduler_.reset();
+                }
+            }
             break;
+        }
         case static_cast<ParamID>(ParameterId::GenerateTrigger): {
             const bool rising = generateTrigger_ < 0.5 && value >= 0.5;
             generateTrigger_ = value;
