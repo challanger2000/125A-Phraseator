@@ -86,5 +86,23 @@ int main() {
         CHECK(source->detectedRootMidi < 0.0f);
     }
 
+
+    {
+        SourcePool numeric;
+        CHECK(numeric.setOneShot(
+            0u, 3u, 100u, 48000.0, false, true, 500.0f));
+        const auto* source = numeric.source(0u);
+        CHECK(source != nullptr);
+        CHECK(!source->tonal);
+        CHECK(source->detectedRootMidi < 0.0f);
+
+        CHECK(numeric.setOneShot(
+            1u, 4u, 100u, 48000.0, false, true, 127.0f));
+        source = numeric.source(1u);
+        CHECK(source != nullptr);
+        CHECK(source->tonal);
+        CHECK(source->detectedRootMidi == 127.0f);
+    }
+
     return 0;
 }
