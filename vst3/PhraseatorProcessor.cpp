@@ -496,8 +496,7 @@ tresult PLUGIN_API Processor::setProcessing(TBool state) {
         refreshSchedulerPattern();
     }
 
-    AudioEffect::setProcessing(state);
-    return kResultTrue;
+    return AudioEffect::setProcessing(state);
 }
 
 void Processor::applyNormalizedParameter(ParamID id, double rawValue) noexcept {

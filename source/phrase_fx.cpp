@@ -81,10 +81,15 @@ void PhraseFx::prepare(double sampleRate) {
 }
 
 void PhraseFx::reset() noexcept {
-    std::fill(delayLeft_.begin(), delayLeft_.end(), 0.0f);
-    std::fill(delayRight_.begin(), delayRight_.end(), 0.0f);
-    std::fill(delayGenerations_.begin(), delayGenerations_.end(), 0u);
-    delayGeneration_ = 1u;
+    // setProcessing() may be called on the realtime audio thread. Invalidate
+    // the old delay history logically instead of clearing rate-sized buffers.
+    // The practically unreachable generation wrap is the only case that needs
+    // a physical generation-table clear.
+    ++delayGeneration_;
+    if (delayGeneration_ == 0u) {
+        std::fill(delayGenerations_.begin(), delayGenerations_.end(), 0u);
+        delayGeneration_ = 1u;
+    }
 
     writeIndex_ = 0u;
     delayCurrent_ = delayTarget_;

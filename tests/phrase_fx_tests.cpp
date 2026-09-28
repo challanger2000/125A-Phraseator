@@ -442,5 +442,32 @@ int main() {
         CHECK(hp100 <= hp25 + 1.0e-9);
     }
 
+    {
+        // Lifecycle reset must discard an existing delay tail without
+        // requiring a physical full-buffer clear.
+        PhraseFx measured;
+        measured.prepare(48000.0);
+        measured.setDelayAmount(1.0f);
+        measured.setDelayDivision(2);
+
+        std::vector<float> exciteL(1000u, 0.0f);
+        std::vector<float> exciteR(1000u, 0.0f);
+        exciteL[0] = 1.0f;
+        CHECK(measured.processBlock(
+            exciteL.data(), exciteR.data(), exciteL.size(), 120.0));
+
+        measured.reset();
+
+        std::vector<float> afterL(13000u, 0.0f);
+        std::vector<float> afterR(13000u, 0.0f);
+        measured.processBlock(
+            afterL.data(), afterR.data(), afterL.size(), 120.0);
+
+        for (float x : afterL)
+            CHECK(std::fabs(x) < 1.0e-6f);
+        for (float x : afterR)
+            CHECK(std::fabs(x) < 1.0e-6f);
+    }
+
     return 0;
 }
