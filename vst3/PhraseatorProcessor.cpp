@@ -1901,10 +1901,12 @@ void Processor::queueRecallLoads() noexcept {
 }
 
 tresult PLUGIN_API Processor::setState(IBStream* state) {
+    std::lock_guard<std::mutex> stateIoLock(stateIoMutex_);
     return readProjectState(state) ? kResultOk : kResultFalse;
 }
 
 tresult PLUGIN_API Processor::getState(IBStream* state) {
+    std::lock_guard<std::mutex> stateIoLock(stateIoMutex_);
     ProjectState snapshot {};
 
     PendingProjectState pending {};
