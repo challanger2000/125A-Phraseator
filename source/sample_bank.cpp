@@ -52,8 +52,14 @@ void applyConservativeAutoLevel(OwnedAudioSource& audio) noexcept {
 
     constexpr double kTargetActiveRms = 0.18;
     constexpr double kPeakCeiling = 0.89;
-    double gain = std::min(kTargetActiveRms / rms, kPeakCeiling / peak);
-    gain = std::clamp(gain, 0.10, 4.0);
+
+    // The 0.10 floor is a musical normalization preference, never a safety
+    // override. Extremely hot float WAVs may require more attenuation to
+    // honor the hard peak ceiling.
+    const double musicalGain =
+        std::clamp(kTargetActiveRms / rms, 0.10, 4.0);
+    const double peakSafeGain = kPeakCeiling / peak;
+    const double gain = std::min(musicalGain, peakSafeGain);
 
     for (auto& x : audio.left)
         x = static_cast<float>(x * gain);
