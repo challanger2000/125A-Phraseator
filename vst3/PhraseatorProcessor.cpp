@@ -972,11 +972,23 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
         while (recallAudioPending_.load(std::memory_order_acquire)) {
             const auto expectedTag =
                 recallLoadRequestId_.load(std::memory_order_acquire);
+            const auto activeTag = sampleBanks_.activePublishTag();
+            const auto pendingTag = sampleBanks_.pendingPublishTag();
 
             if (expectedTag != 0u &&
-                (sampleBanks_.activePublishTag() == expectedTag ||
-                 sampleBanks_.pendingPublishTag() == expectedTag)) {
+                (activeTag == expectedTag || pendingTag == expectedTag)) {
                 break;
+            }
+
+            // A stale publication can occupy the two-bank exchange while the
+            // recall worker waits for a writable bank. During offline render
+            // no audio has been emitted yet, so consume that unrelated bank
+            // solely to release the writer. The full recall batch covers every
+            // slot and will replace it before rendering proceeds.
+            if (pendingTag != 0u &&
+                (expectedTag == 0u || pendingTag != expectedTag)) {
+                sampleBanks_.consumePending();
+                continue;
             }
 
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
