@@ -2,6 +2,7 @@
 
 #include "vstgui/lib/controls/cknob.h"
 #include "vstgui/lib/controls/ccontrol.h"
+#include "vstgui/lib/controls/coptionmenu.h"
 #include "vstgui/lib/cview.h"
 #include "vstgui/lib/dragging.h"
 #include "vstgui/plugin-bindings/vst3editor.h"
@@ -139,6 +140,20 @@ public:
         const VSTGUI::CButtonState& buttons) override;
 private:
     std::vector<std::string> labels_;
+};
+
+class MenuSelectorView final : public VSTGUI::COptionMenu {
+public:
+    MenuSelectorView(const VSTGUI::CRect& size,
+                     VSTGUI::IControlListener* listener,
+                     std::int32_t tag,
+                     std::vector<std::string> labels);
+    MenuSelectorView(const MenuSelectorView& other);
+    VSTGUI::CBaseObject* newCopy() const override { return new MenuSelectorView(*this); }
+    void draw(VSTGUI::CDrawContext* context) override;
+    VSTGUI::CMouseEventResult onMouseDown(
+        VSTGUI::CPoint& where,
+        const VSTGUI::CButtonState& buttons) override;
 };
 
 class ToggleView final : public VSTGUI::CControl {

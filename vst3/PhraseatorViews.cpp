@@ -877,6 +877,66 @@ VSTGUI::CMouseEventResult SelectorView::onMouseDown(
     return VSTGUI::kMouseDownEventHandledButDontNeedMovedOrUpEvents;
 }
 
+MenuSelectorView::MenuSelectorView(const VSTGUI::CRect& size,
+                                       VSTGUI::IControlListener* listener,
+                                       std::int32_t tag,
+                                       std::vector<std::string> labels)
+: VSTGUI::COptionMenu(size, listener, tag, nullptr, nullptr,
+                     VSTGUI::COptionMenu::kPopupStyle) {
+    setTransparency(true);
+    setWantsFocus(true);
+    for (const auto& label : labels)
+        addEntry(VSTGUI::UTF8String(label.c_str()));
+    if (!labels.empty())
+        setValue(0.0f);
+}
+
+MenuSelectorView::MenuSelectorView(const MenuSelectorView& other)
+: VSTGUI::COptionMenu(other) {
+}
+
+void MenuSelectorView::draw(VSTGUI::CDrawContext* context) {
+    const auto r = getViewSize();
+
+    context->setDrawMode(VSTGUI::kAntiAliasing);
+    VSTGUI::CRect shadow = r;
+    shadow.offset(0.0, 1.5);
+    context->setFillColor({2,4,6,210});
+    context->drawRect(shadow, VSTGUI::kDrawFilled);
+
+    context->setFillColor({18,24,31,255});
+    context->setFrameColor({69,83,99,230});
+    context->setLineWidth(1.0);
+    context->drawRect(r, VSTGUI::kDrawFilledAndStroked);
+
+    context->setFrameColor({86,154,220,150});
+    context->setLineWidth(1.3);
+    context->drawLine({r.left+5.0,r.bottom-3.0},{r.right-5.0,r.bottom-3.0});
+
+    const auto* current = getCurrent();
+    const auto label = current ? current->getTitle() : VSTGUI::UTF8String("");
+    context->setFont(VSTGUI::kNormalFont,
+                     std::min(9.0, std::max(7.0, r.getHeight()*0.34)),
+                     VSTGUI::kBoldFace);
+    context->setFontColor({232,238,244,255});
+    context->drawString(label, r, VSTGUI::kCenterText);
+
+    setDirty(false);
+}
+
+VSTGUI::CMouseEventResult MenuSelectorView::onMouseDown(
+    VSTGUI::CPoint& where,
+    const VSTGUI::CButtonState& buttons) {
+
+    if (!getViewSize().pointInside(where))
+        return VSTGUI::kMouseEventNotHandled;
+
+    if (resetToDefaultOnCtrlClick(this, buttons))
+        return VSTGUI::kMouseDownEventHandledButDontNeedMovedOrUpEvents;
+
+    return VSTGUI::COptionMenu::onMouseDown(where, buttons);
+}
+
 ToggleView::ToggleView(const VSTGUI::CRect& size,
                        VSTGUI::IControlListener* listener,
                        std::int32_t tag,
@@ -1121,13 +1181,13 @@ VSTGUI::CView* createCustomView(VSTGUI::UTF8StringPtr name,
     if(std::strcmp(name,"PhraseMode")==0)
         return new SelectorView(rect,editor,tag,{"CONTINUE","RETRIGGER"});
     if(std::strcmp(name,"PhraseOctave")==0)
-        return new SelectorView(rect,editor,tag,{"OFF","+1","-1","+/-1"});
+        return new MenuSelectorView(rect,editor,tag,{"OFF","+1","-1","+/-1"});
     if(std::strcmp(name,"PhraseKeyRoot")==0)
-        return new SelectorView(rect,editor,tag,{"C","C#","D","D#","E","F","F#","G","G#","A","A#","B"});
+        return new MenuSelectorView(rect,editor,tag,{"C","C#","D","D#","E","F","F#","G","G#","A","A#","B"});
     if(std::strcmp(name,"PhraseScale")==0)
-        return new SelectorView(rect,editor,tag,{"CHROM","MAJOR","MINOR"});
+        return new MenuSelectorView(rect,editor,tag,{"CHROM","MAJOR","MINOR"});
     if(std::strcmp(name,"PhraseDelayDivision")==0)
-        return new SelectorView(rect,editor,tag,{"OFF","1/4","1/8","1/8D","1/8T","1/16","1/16D","1/16T"});
+        return new MenuSelectorView(rect,editor,tag,{"OFF","1/4","1/8","1/8D","1/8T","1/16","1/16D","1/16T"});
     if(std::strcmp(name,"PhraseCutMode")==0)
         return new SelectorView(rect,editor,tag,{"LP","HP"});
 
