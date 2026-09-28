@@ -129,10 +129,13 @@ tresult PLUGIN_API Controller::initialize(FUnknown* context) {
         lock->appendString(STR16("Locked"));
         parameters.addParameter(lock);
     }
+    // GENERATE and VARIATE are edit actions, not reproducible timeline
+    // parameters. Keep their stable IDs for compatibility, but do not advertise
+    // them as host-automatable controls.
     parameters.addParameter(STR16("Generate"), nullptr, 1, 0.0,
-                            ParameterInfo::kCanAutomate, pid(ParameterId::GenerateTrigger));
+                            0, pid(ParameterId::GenerateTrigger));
     parameters.addParameter(STR16("Variate"), nullptr, 1, 0.0,
-                            ParameterInfo::kCanAutomate, pid(ParameterId::VariateTrigger));
+                            0, pid(ParameterId::VariateTrigger));
     {
         auto* phraseMode = new StringListParameter(
             STR16("Phrase Mode"), pid(ParameterId::RestartMode));
