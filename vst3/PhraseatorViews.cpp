@@ -414,6 +414,9 @@ VSTGUI::CMouseEventResult RatchetView::onMouseDown(
     if (resetToDefaultOnCtrlClick(this, buttons))
         return VSTGUI::kMouseDownEventHandledButDontNeedMovedOrUpEvents;
 
+    if (buttons.isRightButton())
+        return VSTGUI::kMouseDownEventHandledButDontNeedMovedOrUpEvents;
+
     if (!buttons.isLeftButton())
         return VSTGUI::kMouseEventNotHandled;
 
@@ -1181,7 +1184,7 @@ VSTGUI::CView* createCustomView(VSTGUI::UTF8StringPtr name,
     if(std::strcmp(name,"PhraseMode")==0)
         return new SelectorView(rect,editor,tag,{"CONTINUE","RETRIGGER"});
     if(std::strcmp(name,"PhraseOctave")==0)
-        return new MenuSelectorView(rect,editor,tag,{"OFF","+1","-1","+/-1"});
+        return new SelectorView(rect,editor,tag,{"OFF","+1","-1","+/-1"});
     if(std::strcmp(name,"PhraseKeyRoot")==0)
         return new MenuSelectorView(rect,editor,tag,{"C","C#","D","D#","E","F","F#","G","G#","A","A#","B"});
     if(std::strcmp(name,"PhraseScale")==0)
