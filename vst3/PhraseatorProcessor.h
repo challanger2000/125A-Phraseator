@@ -100,6 +100,7 @@ private:
     std::unique_ptr<SampleLoadWorker> sampleLoader_;
     std::array<SourceRecallEntry, kMaxSources> sourceRecall_ {};
     mutable std::mutex sourceRecallMutex_;
+    mutable std::mutex stateIoMutex_;
     std::atomic<std::uint64_t> sourceRecallEpoch_ {1u};
     std::atomic<std::uint64_t> recallLoadRequestId_ {0u};
     std::atomic<bool> recallAudioPending_ {false};
