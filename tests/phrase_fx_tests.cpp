@@ -395,5 +395,52 @@ int main() {
         CHECK(std::fabs(l[1000]) > 0.001f || std::fabs(r[1000]) > 0.001f);
     }
 
+    {
+        // Low-rate boundary: every CUT target must remain Nyquist-safe and
+        // monotonic at the exact minimum supported host rate.
+        const auto measureLowRate = [](float amount, double frequency, int mode) {
+            PhraseFx measured;
+            measured.prepare(1000.0);
+            measured.setFilterMode(mode);
+            measured.setFilterAmount(amount);
+
+            constexpr std::size_t count = 4000u;
+            std::vector<float> l(count);
+            std::vector<float> r(count);
+            constexpr double twoPi = 6.28318530717958647692;
+
+            for (std::size_t i = 0; i < count; ++i) {
+                const float x = static_cast<float>(
+                    std::sin(twoPi * frequency * static_cast<double>(i) / 1000.0));
+                l[i] = x;
+                r[i] = x;
+            }
+
+            measured.processBlock(l.data(), r.data(), count, 120.0);
+
+            double inSq = 0.0;
+            double outSq = 0.0;
+            for (std::size_t i = count / 2u; i < count; ++i) {
+                const double x = std::sin(
+                    twoPi * frequency * static_cast<double>(i) / 1000.0);
+                inSq += x * x;
+                outSq += static_cast<double>(l[i]) * static_cast<double>(l[i]);
+            }
+            return std::sqrt(outSq / inSq);
+        };
+
+        const double lp25 = measureLowRate(0.25f, 400.0, 0);
+        const double lp100 = measureLowRate(1.0f, 400.0, 0);
+        CHECK(std::isfinite(lp25));
+        CHECK(std::isfinite(lp100));
+        CHECK(lp100 <= lp25 + 1.0e-9);
+
+        const double hp25 = measureLowRate(0.25f, 50.0, 1);
+        const double hp100 = measureLowRate(1.0f, 50.0, 1);
+        CHECK(std::isfinite(hp25));
+        CHECK(std::isfinite(hp100));
+        CHECK(hp100 <= hp25 + 1.0e-9);
+    }
+
     return 0;
 }

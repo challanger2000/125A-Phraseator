@@ -31,21 +31,24 @@ double delayQuarterMultiplier(std::int32_t division) noexcept {
 
 double musicalFilterCutoff(double amount, double sampleRate, std::int32_t mode) noexcept {
     amount = std::clamp(amount, 0.0, 1.0);
-    const double maxCutoff = std::min(20000.0, sampleRate * 0.45);
+    const double maxCutoff = std::max(1.0, std::min(20000.0, sampleRate * 0.45));
 
-    // 125A macro scaling:
+    // 125A macro scaling at normal production sample rates:
     // 0% bypass
     // 25% ~14 kHz: subtle
     // 50% ~8 kHz: musical
     // 75% ~3.5 kHz: obvious
     // 100% ~1.2 kHz: strong creative darkening
+    // At unusual low host rates, keep every target below Nyquist and preserve
+    // monotonic macro direction instead of asking the one-pole filter for an
+    // impossible cutoff.
     if (mode == 0) {
-        constexpr double minCutoff = 1200.0;
+        const double minCutoff = std::min(1200.0, maxCutoff);
         return maxCutoff * std::pow(minCutoff / maxCutoff, amount);
     }
 
-    constexpr double minCutoff = 20.0;
-    constexpr double maxHighPass = 4000.0;
+    const double minCutoff = std::min(20.0, maxCutoff);
+    const double maxHighPass = std::max(minCutoff, std::min(4000.0, maxCutoff));
     return minCutoff * std::pow(maxHighPass / minCutoff, amount);
 }
 
