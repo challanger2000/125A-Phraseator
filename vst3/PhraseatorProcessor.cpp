@@ -1779,7 +1779,12 @@ void Processor::queueRecallLoads() noexcept {
 
                     // Atomic recall failed (e.g. corrupt/unreadable WAV).
                     // Never leave the old project's samples active behind the
-                    // new state. Publish an empty bank asynchronously instead.
+                    // new state. Preserve the recalled pattern exactly, but
+                    // publish an empty bank asynchronously so missing audio
+                    // cannot corrupt or retarget its saved step structure.
+                    recallPatternRemapPending_.store(
+                        false, std::memory_order_release);
+
                     std::vector<SampleLoadRequest> clears;
                     clears.reserve(kMaxSources);
                     for (std::size_t i = 0; i < kMaxSources; ++i) {
