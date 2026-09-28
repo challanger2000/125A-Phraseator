@@ -545,5 +545,25 @@ int main() {
         }
     }
 
+
+    {
+        // VARIATE must never alter manual ratchet settings.
+        Pattern base {};
+        for (std::size_t i = 0; i < base.size(); ++i) {
+            base[i].active = true;
+            base[i].fragment = static_cast<std::uint16_t>(i & 1u);
+            base[i].repeats = static_cast<std::uint8_t>((i % 4u) + 1u);
+        }
+
+        GenerationSettings settings;
+        settings.variation = 1.0f;
+        settings.fragmentCount = 2u;
+
+        PhraseEngine engine(0xA11CE55u);
+        const auto varied = engine.vary(base, settings);
+        for (std::size_t i = 0; i < base.size(); ++i)
+            CHECK(varied[i].repeats == base[i].repeats);
+    }
+
     return 0;
 }
