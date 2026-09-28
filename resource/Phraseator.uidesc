@@ -58,7 +58,7 @@
     <view class="CView" custom-view-name="PhraseMute" origin="252,266" size="58,16" control-tag="1607"/>
 
     <view class="CTextLabel" origin="586,98" size="180,16" title="PHRASE · 16 STEPS" transparent="true" font-color="Accent" font="Section" text-alignment="center"/>
-    <view class="CTextLabel" origin="780,98" size="208,16" title="CLICK STEP = SOURCE · RIGHT CLICK = CLEAR" transparent="true" font-color="Muted" font="Small" text-alignment="right"/>
+    <view class="CTextLabel" origin="815,100" size="178,12" title="CLICK: SOURCE · RIGHT CLICK: CLEAR" transparent="true" font-color="Muted" font="Small" text-alignment="right"/>
     <view class="CView" custom-view-name="PhraseStep" control-tag="1400" origin="366,134" size="34,30"/>
     <view class="CView" custom-view-name="PhraseRatchet" control-tag="1700" origin="366,164" size="34,15"/>
     <view class="CView" custom-view-name="PhraseStep" control-tag="1401" origin="405,134" size="34,30"/>
@@ -101,7 +101,7 @@
 
     <view class="CTextLabel" origin="245,318" size="200,16" title="PHRASE CONTROL" transparent="true" font-color="Accent" font="Section" text-alignment="center"/>
     <view class="CTextLabel" origin="42,340" size="236,14" title="CREATE / VARIATE" transparent="true" font-color="Muted" font="Small" text-alignment="center"/>
-    <view class="CTextLabel" origin="302,340" size="340,14" title="LIVE SHAPE" transparent="true" font-color="Accent" font="Small" text-alignment="center"/>
+    <view class="CTextLabel" origin="302,340" size="340,14" title="LIVE SHAPE" transparent="true" font-color="Muted" font="Small" text-alignment="center"/>
 
     <view class="CView" custom-view-name="PhraseKnob" control-tag="1000" origin="42,360" size="62,54"/>
     <view class="CTextLabel" origin="34,412" size="78,14" title="DENSITY" transparent="true" font-color="Text" font="Label" text-alignment="center"/>

@@ -531,11 +531,6 @@ void SourceSlotView::draw(VSTGUI::CDrawContext* context) {
     context->setLineWidth(dragActive_ ? 1.8 : 1.0);
     context->drawRect(r,VSTGUI::kDrawFilledAndStroked);
 
-    VSTGUI::CRect inner=r; inner.inset(3.0,3.0);
-    context->setFrameColor({255,255,255,static_cast<uint8_t>(loaded?22:12)});
-    context->setLineWidth(1.0);
-    context->drawRect(inner,VSTGUI::kDrawStroked);
-
     const double d=5.0;
     VSTGUI::CRect led(r.right-9.0,r.top+4.0,r.right-9.0+d,r.top+4.0+d);
     context->setFillColor(
