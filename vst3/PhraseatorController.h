@@ -45,6 +45,7 @@ public:
                                       bool tonal = false,
                                       double detectedRootMidi = -1.0);
     Steinberg::tresult sendClearSample(Steinberg::int32 sourceIndex);
+    void setGuiZoom(double zoom);
     bool loadDroppedSample(const std::string& utf8Path,
                            Steinberg::int32 sourceIndex);
     Steinberg::tresult sendPatternStepEdit(Steinberg::int32 stepIndex,

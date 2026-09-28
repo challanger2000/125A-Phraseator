@@ -281,6 +281,12 @@ void Controller::valueChanged(VSTGUI::CControl* control) {
     control->invalid();
 }
 
+void Controller::setGuiZoom(double zoom) {
+    guiZoom_ = zoom >= 1.25 ? 1.5 : 1.0;
+    if (editor_ && std::abs(editor_->getZoomFactor() - guiZoom_) > 1.0e-9)
+        editor_->setZoomFactor(guiZoom_);
+}
+
 void Controller::willClose(VSTGUI::VST3Editor* editor) {
     if (editor_ == editor) editor_ = nullptr;
 }

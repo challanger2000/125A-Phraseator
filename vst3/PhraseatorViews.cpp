@@ -514,23 +514,46 @@ void SourceSlotView::draw(VSTGUI::CDrawContext* context) {
     const auto r = getViewSize();
     const double normalized =
         std::clamp(static_cast<double>(getValueNormalized()), 0.0, 1.0);
+    const bool loaded = normalized > 0.0;
+    const bool loopState = normalized > 0.75;
+    const char* label = dragActive_ ? "DROP" : (loaded ? (loopState ? "LOOP" : "ONE") : "WAV");
 
-    const char* label = normalized > 0.0 ? "SAMPLE" : "DROP WAV";
+    context->setDrawMode(VSTGUI::kAntiAliasing);
+    VSTGUI::CRect shadow=r; shadow.offset(0.0,2.0);
+    context->setFillColor({1,3,5,220});
+    context->drawRect(shadow,VSTGUI::kDrawFilled);
 
-    if (dragActive_) {
-        context->setFillColor({28, 55, 78, 255});
-        context->setFrameColor({86, 154, 220, 255});
-    } else {
-        context->setFillColor({8, 12, 17, 255});
-        context->setFrameColor({52, 65, 79, 255});
-    }
+    context->setFillColor(
+        dragActive_ ? VSTGUI::CColor{31,66,96,255}
+                    : (loaded ? VSTGUI::CColor{24,35,45,255}
+                              : VSTGUI::CColor{12,17,22,255}));
+    context->setFrameColor(
+        dragActive_ ? VSTGUI::CColor{110,190,249,255}
+                    : (loaded ? VSTGUI::CColor{72,111,145,240}
+                              : VSTGUI::CColor{53,65,79,230}));
     context->setLineWidth(dragActive_ ? 1.8 : 1.0);
-    context->drawRect(r, VSTGUI::kDrawFilledAndStroked);
-    context->setFont(VSTGUI::kNormalFontSmall);
-    context->setFontColor(dragActive_
-        ? VSTGUI::CColor{239, 243, 247, 255}
-        : VSTGUI::CColor{154, 168, 183, 255});
-    context->drawString(label, r, VSTGUI::kCenterText);
+    context->drawRect(r,VSTGUI::kDrawFilledAndStroked);
+
+    VSTGUI::CRect inner=r; inner.inset(3.0,3.0);
+    context->setFrameColor({255,255,255,static_cast<uint8_t>(loaded?22:12)});
+    context->setLineWidth(1.0);
+    context->drawRect(inner,VSTGUI::kDrawStroked);
+
+    const double d=5.0;
+    VSTGUI::CRect led(r.right-9.0,r.top+4.0,r.right-9.0+d,r.top+4.0+d);
+    context->setFillColor(
+        dragActive_ ? VSTGUI::CColor{184,224,255,255}
+                    : (loaded ? VSTGUI::CColor{86,176,235,255}
+                              : VSTGUI::CColor{21,31,40,255}));
+    context->setFrameColor({4,7,10,255});
+    context->drawEllipse(led,VSTGUI::kDrawFilledAndStroked);
+
+    context->setFont(VSTGUI::kNormalFont,7.2,VSTGUI::kBoldFace);
+    context->setFontColor(
+        dragActive_ ? VSTGUI::CColor{245,249,252,255}
+                    : (loaded ? VSTGUI::CColor{213,228,240,255}
+                              : VSTGUI::CColor{133,149,164,255}));
+    context->drawString(label,r,VSTGUI::kCenterText);
     setDirty(false);
 }
 
@@ -583,38 +606,66 @@ MacroKnob::MacroKnob(const VSTGUI::CRect& size,
 void MacroKnob::draw(VSTGUI::CDrawContext* context) {
     const auto r=getViewSize();
     const auto c=r.getCenter();
-    const double radius=std::min(r.getWidth(),r.getHeight())*0.31;
+    const double radius=std::min(r.getWidth(),r.getHeight())*0.30;
     const double n=std::clamp(static_cast<double>(getValueNormalized()),0.0,1.0);
     const double angle=(135.0+n*270.0)*kPi/180.0;
     context->setDrawMode(VSTGUI::kAntiAliasing);
 
-    for(int i=0;i<9;++i){
-        const double t=static_cast<double>(i)/8.0;
+    for(int i=0;i<11;++i){
+        const double t=static_cast<double>(i)/10.0;
         const double a=(135.0+270.0*t)*kPi/180.0;
-        context->setFrameColor((i==0||i==4||i==8)?VSTGUI::CColor{205,213,222,210}:kTick);
-        context->setLineWidth((i==0||i==4||i==8)?1.35:1.0);
-        context->drawLine({c.x+std::cos(a)*(radius+5),c.y+std::sin(a)*(radius+5)},
-                          {c.x+std::cos(a)*(radius+10),c.y+std::sin(a)*(radius+10)});
+        const bool major=(i==0||i==5||i==10);
+        context->setFrameColor(major?VSTGUI::CColor{205,216,226,190}:VSTGUI::CColor{103,118,133,125});
+        context->setLineWidth(major?1.3:0.8);
+        context->drawLine({c.x+std::cos(a)*(radius+5.0),c.y+std::sin(a)*(radius+5.0)},
+                          {c.x+std::cos(a)*(radius+(major?10.0:8.0)),c.y+std::sin(a)*(radius+(major?10.0:8.0))});
     }
 
-    context->setFillColor({18,22,28,255});
-    context->setFrameColor({63,73,84,255});
-    context->setLineWidth(1.2);
-    context->drawEllipse({c.x-radius,c.y-radius,c.x+radius,c.y+radius},VSTGUI::kDrawFilledAndStroked);
+    context->setFillColor({0,0,0,100});
+    context->drawEllipse({c.x-radius-5,c.y-radius-2,c.x+radius+5,c.y+radius+8},VSTGUI::kDrawFilled);
 
-    const double rr=radius+4.0;
+    const VSTGUI::CRect skirt(c.x-radius-3,c.y-radius-3,c.x+radius+3,c.y+radius+3);
+    context->setFillColor({54,61,69,255});
+    context->setFrameColor({103,113,124,210});
+    context->setLineWidth(1.0);
+    context->drawEllipse(skirt,VSTGUI::kDrawFilledAndStroked);
+
+    const double cap=radius*0.72;
+    const VSTGUI::CRect capRect(c.x-cap,c.y-cap,c.x+cap,c.y+cap);
+    context->setFillColor({16,21,27,255});
+    context->setFrameColor({6,8,11,255});
+    context->drawEllipse(capRect,VSTGUI::kDrawFilledAndStroked);
+
+    const double rr=radius+2.0;
     VSTGUI::CRect arc(c.x-rr,c.y-rr,c.x+rr,c.y+rr);
     if(n>0.001){
         context->setFrameColor(kAccent);
-        context->setLineWidth(2.5);
+        context->setLineWidth(2.3);
         context->drawArc(arc,135.f,static_cast<float>(135.0+n*270.0));
     }
 
-    const double p1=radius*0.18, p2=radius*0.78;
-    context->setFrameColor(kText);
-    context->setLineWidth(2.2);
+    const double p1=cap*0.15,p2=cap*0.82;
+    context->setFrameColor({236,242,247,255});
+    context->setLineWidth(2.0);
     context->drawLine({c.x+std::cos(angle)*p1,c.y+std::sin(angle)*p1},
                       {c.x+std::cos(angle)*p2,c.y+std::sin(angle)*p2});
+
+    const double tx=c.x+std::cos(angle)*(radius+2.0);
+    const double ty=c.y+std::sin(angle)*(radius+2.0);
+    context->setFillColor({123,191,241,255});
+    context->drawEllipse({tx-1.7,ty-1.7,tx+1.7,ty+1.7},VSTGUI::kDrawFilled);
+
+    if(isEditing()) {
+        char text[16]{};
+        std::snprintf(text,sizeof(text),"%d%%",static_cast<int>(std::lround(n*100.0)));
+        const VSTGUI::CRect badge(c.x-17,c.y-7,c.x+17,c.y+7);
+        context->setFillColor({7,11,15,235});
+        context->setFrameColor({86,154,220,220});
+        context->drawRect(badge,VSTGUI::kDrawFilledAndStroked);
+        context->setFont(VSTGUI::kNormalFont,7.0,VSTGUI::kBoldFace);
+        context->setFontColor({239,245,250,255});
+        context->drawString(text,badge,VSTGUI::kCenterText);
+    }
     setDirty(false);
 }
 
@@ -777,8 +828,10 @@ VSTGUI::CMouseEventResult ActionButton::onMouseDown(
     return VSTGUI::kMouseDownEventHandledButDontNeedMovedOrUpEvents;
 }
 
-UIScaleView::UIScaleView(const VSTGUI::CRect& size,VSTGUI::VST3Editor* editor)
-: VSTGUI::CView(size),editor_(editor) {
+UIScaleView::UIScaleView(const VSTGUI::CRect& size,
+                         VSTGUI::VST3Editor* editor,
+                         Controller* controller)
+: VSTGUI::CView(size),editor_(editor),controller_(controller) {
     setTransparency(true);
     setMouseEnabled(true);
     setWantsFocus(true);
@@ -804,7 +857,9 @@ VSTGUI::CMouseEventResult UIScaleView::onMouseDown(
     VSTGUI::CPoint& where,const VSTGUI::CButtonState& buttons) {
     if(!editor_ || !buttons.isLeftButton() || !getViewSize().pointInside(where))
         return VSTGUI::kMouseEventNotHandled;
-    editor_->setZoomFactor(editor_->getZoomFactor()>=1.25?1.0:1.5);
+    const double next=editor_->getZoomFactor()>=1.25?1.0:1.5;
+    if(controller_) controller_->setGuiZoom(next);
+    else editor_->setZoomFactor(next);
     invalid();
     return VSTGUI::kMouseDownEventHandledButDontNeedMovedOrUpEvents;
 }
@@ -851,7 +906,7 @@ VSTGUI::CView* createCustomView(VSTGUI::UTF8StringPtr name,
         return new MacroKnob(rect,editor,tag);
 
     if(std::strcmp(name,"PhraseUIScale")==0)
-        return new UIScaleView(rect,editor);
+        return new UIScaleView(rect,editor,controller);
 
     if(std::strcmp(name,"PhraseGenerate")==0 && tag>=0)
         return new ActionButton(rect,controller,tag,"GENERATE",false,true);

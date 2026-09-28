@@ -138,13 +138,16 @@ private:
 
 class UIScaleView final : public VSTGUI::CView {
 public:
-    UIScaleView(const VSTGUI::CRect& size, VSTGUI::VST3Editor* editor);
+    UIScaleView(const VSTGUI::CRect& size,
+                VSTGUI::VST3Editor* editor,
+                Controller* controller);
     void draw(VSTGUI::CDrawContext* context) override;
     VSTGUI::CMouseEventResult onMouseDown(
         VSTGUI::CPoint& where,
         const VSTGUI::CButtonState& buttons) override;
 private:
     VSTGUI::VST3Editor* editor_ {nullptr};
+    Controller* controller_ {nullptr};
 };
 
 void configureEditor(VSTGUI::VST3Editor* editor,
