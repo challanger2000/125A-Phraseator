@@ -380,11 +380,12 @@ tresult PLUGIN_API Processor::canProcessSampleSize(int32 symbolicSampleSize) {
 }
 
 tresult PLUGIN_API Processor::setupProcessing(ProcessSetup& setup) {
-    // Reject invalid/unreasonable host setup instead of silently running DSP
-    // at a different rate than the host. 768 kHz leaves generous headroom
-    // above normal production rates while bounding rate-derived allocations.
-    constexpr double kMinSupportedSampleRate = 4000.0;
-    constexpr double kMaxSupportedSampleRate = 768000.0;
+    // Reject only nonsensical setup values instead of silently running DSP at
+    // a different rate than the host. Steinberg's validator intentionally
+    // probes unusual rates (including ~1.23 kHz and ~1.23 MHz), so keep the
+    // accepted range broad while still bounding rate-derived allocations.
+    constexpr double kMinSupportedSampleRate = 1000.0;
+    constexpr double kMaxSupportedSampleRate = 2000000.0;
     if (!std::isfinite(setup.sampleRate) ||
         setup.sampleRate < kMinSupportedSampleRate ||
         setup.sampleRate > kMaxSupportedSampleRate) {
