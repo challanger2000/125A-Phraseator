@@ -434,6 +434,11 @@ tresult PLUGIN_API Controller::setComponentState(IBStream* state) {
                 ? 1.0 : 0.0);
     }
 
+    for (int32 i = 0; i < kSourceStatusCount; ++i) {
+        setParamNormalized(
+            static_cast<ParamID>(kSourceStatusBase + i), 0.0);
+    }
+
     for (int32 i = 0; i < kPatternViewCount; ++i) {
         int32 active = 0;
         int32 fragment = 0;
