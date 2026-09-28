@@ -236,6 +236,16 @@ SampleLoadWorkerResult SampleLoadWorker::execute(WorkItem& item) {
             return result;
         }
 
+        // Keep persisted metadata and the published SourcePool identical.
+        // Invalid/out-of-range pitch metadata is treated as unresolved and may
+        // be replaced by the offline detector below.
+        if (!std::isfinite(request.detectedRootMidi) ||
+            request.detectedRootMidi < 0.0f ||
+            request.detectedRootMidi > 127.0f) {
+            request.tonal = false;
+            request.detectedRootMidi = -1.0f;
+        }
+
         PreparedSource source;
         source.request = request;
 
