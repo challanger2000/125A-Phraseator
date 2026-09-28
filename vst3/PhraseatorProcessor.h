@@ -110,6 +110,7 @@ private:
 
     double sampleRate_ {48000.0};
     double fallbackProjectTimeSamples_ {0.0};
+    double fallbackProjectStepPosition_ {0.0};
     bool active_ {false};
     bool processing_ {false};
     double generateTrigger_ {0.0};
@@ -119,7 +120,7 @@ private:
     MidiNoteTracker heldMidiNotes_ {};
     int activeMidiNote_ {-1};
     float midiTransposeSemitones_ {0.0f};
-    double midiPhraseTimeSamples_ {0.0};
+    double midiPhraseStepPosition_ {0.0};
     std::atomic<bool> generateCommandPending_ {false};
     std::atomic<bool> variateCommandPending_ {false};
     std::array<std::atomic<int>, kStepCount> patternEditPending_ {};
