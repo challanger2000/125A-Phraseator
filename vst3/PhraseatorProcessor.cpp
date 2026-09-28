@@ -462,6 +462,10 @@ tresult PLUGIN_API Processor::setupProcessing(ProcessSetup& setup) {
 }
 
 tresult PLUGIN_API Processor::setActive(TBool state) {
+    const auto result = AudioEffect::setActive(state);
+    if (result != kResultOk)
+        return result;
+
     active_ = state != 0;
     if (!active_) {
         scheduler_.reset();
@@ -474,10 +478,14 @@ tresult PLUGIN_API Processor::setActive(TBool state) {
         midiPhraseStepPosition_ = 0.0;
         refreshSchedulerPattern();
     }
-    return AudioEffect::setActive(state);
+    return result;
 }
 
 tresult PLUGIN_API Processor::setProcessing(TBool state) {
+    const auto result = AudioEffect::setProcessing(state);
+    if (result != kResultOk)
+        return result;
+
     processing_ = state != 0;
     if (processing_) {
         scheduler_.reset();
@@ -496,7 +504,7 @@ tresult PLUGIN_API Processor::setProcessing(TBool state) {
         refreshSchedulerPattern();
     }
 
-    return AudioEffect::setProcessing(state);
+    return result;
 }
 
 void Processor::applyNormalizedParameter(ParamID id, double rawValue) noexcept {
