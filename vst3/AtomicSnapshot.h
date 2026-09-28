@@ -1,0 +1,69 @@
+#pragma once
+
+#include <array>
+#include <atomic>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <type_traits>
+
+namespace phraseator::vst3 {
+
+// Fixed-storage lock-free snapshot exchange for trivially-copyable realtime
+// state. Writers never allocate; realtime readers perform one bounded attempt.
+// UI readers may retry externally until a coherent sequence is observed.
+template <class T>
+class AtomicSnapshot {
+public:
+    static_assert(std::is_trivially_copyable_v<T>,
+                  "AtomicSnapshot requires trivially-copyable state");
+    static_assert(std::atomic<std::uint64_t>::is_always_lock_free,
+                  "Phraseator requires lock-free 64-bit atomics");
+
+    static constexpr std::size_t kWordCount =
+        (sizeof(T) + sizeof(std::uint64_t) - 1u) / sizeof(std::uint64_t);
+
+    AtomicSnapshot() noexcept {
+        for (auto& word : words_)
+            word.store(0u, std::memory_order_relaxed);
+    }
+
+    std::uint64_t store(const T& value) noexcept {
+        std::array<std::uint64_t, kWordCount> packed {};
+        std::memcpy(packed.data(), &value, sizeof(T));
+
+        // Single-writer seqlock: odd while publishing, even when coherent.
+        sequence_.fetch_add(1u, std::memory_order_acq_rel);
+        for (std::size_t i = 0; i < kWordCount; ++i)
+            words_[i].store(packed[i], std::memory_order_relaxed);
+        return sequence_.fetch_add(1u, std::memory_order_release) + 1u;
+    }
+
+    bool tryLoad(T& value, std::uint64_t& sequence) const noexcept {
+        const auto before = sequence_.load(std::memory_order_acquire);
+        if ((before & 1u) != 0u)
+            return false;
+
+        std::array<std::uint64_t, kWordCount> packed {};
+        for (std::size_t i = 0; i < kWordCount; ++i)
+            packed[i] = words_[i].load(std::memory_order_relaxed);
+
+        const auto after = sequence_.load(std::memory_order_acquire);
+        if (before != after || (after & 1u) != 0u)
+            return false;
+
+        std::memcpy(&value, packed.data(), sizeof(T));
+        sequence = after;
+        return true;
+    }
+
+    std::uint64_t sequence() const noexcept {
+        return sequence_.load(std::memory_order_acquire);
+    }
+
+private:
+    std::array<std::atomic<std::uint64_t>, kWordCount> words_ {};
+    std::atomic<std::uint64_t> sequence_ {0u};
+};
+
+} // namespace phraseator::vst3
