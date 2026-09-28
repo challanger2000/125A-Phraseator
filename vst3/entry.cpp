@@ -5,7 +5,7 @@
 #include "PhraseatorProcessor.h"
 
 #define stringPluginName "125A Phraseator"
-#define stringPluginVersion "0.1.0"
+#define stringPluginVersion "1.0.0"
 
 BEGIN_FACTORY_DEF(
     "125A",
