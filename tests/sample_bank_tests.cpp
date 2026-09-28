@@ -37,11 +37,13 @@ int main() {
     // Publish does not mutate the realtime-visible bank until the audio thread consumes it.
     CHECK(exchange.commitWrite(writeIndex, 10101u));
     CHECK(exchange.activeBank().sourcePool().fragmentCount() == 0u);
+    CHECK(exchange.pendingPublishTag() == 10101u);
 
     std::uint64_t firstTag = 0u;
     CHECK(exchange.consumePending(&firstTag));
     CHECK(firstTag == 10101u);
     CHECK(exchange.activePublishTag() == 10101u);
+    CHECK(exchange.pendingPublishTag() == 0u);
     CHECK(exchange.activeIndex() == 1);
     CHECK(exchange.activeBank().sourcePool().fragmentCount() == 1u);
     CHECK(exchange.activeBank().buffers()[0].valid());
