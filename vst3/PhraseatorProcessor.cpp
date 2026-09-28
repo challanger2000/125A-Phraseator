@@ -482,10 +482,9 @@ tresult PLUGIN_API Processor::setActive(TBool state) {
 }
 
 tresult PLUGIN_API Processor::setProcessing(TBool state) {
-    const auto result = AudioEffect::setProcessing(state);
-    if (result != kResultOk)
-        return result;
-
+    // AudioEffect::setProcessing() is a default helper implementation and may
+    // return kNotImplemented. This processor implements the transition itself,
+    // so acknowledge a successfully handled start/stop explicitly.
     processing_ = state != 0;
     if (processing_) {
         scheduler_.reset();
@@ -504,7 +503,7 @@ tresult PLUGIN_API Processor::setProcessing(TBool state) {
         refreshSchedulerPattern();
     }
 
-    return result;
+    return kResultOk;
 }
 
 void Processor::applyNormalizedParameter(ParamID id, double rawValue) noexcept {
