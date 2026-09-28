@@ -209,7 +209,13 @@ void PhraseEngine::assignMusicalFragments(
     bool havePrevious = false;
     std::uint16_t previous = 0;
     const float repeatAmount = clamp01(raw.repeat);
-    const float previousProbability = 0.18f + 0.42f * repeatAmount;
+
+    // 125A macro contract: 0% means no deliberate motif reuse. Natural
+    // repetition can still occur by chance when chooseFragment() selects the
+    // same material again. Increasing the macro progressively introduces
+    // local previous-hit and quarter-anchor reuse.
+    const float previousProbability = 0.42f * repeatAmount;
+    const float anchorProbability = 0.52f * repeatAmount;
 
     for (std::size_t i = 0; i < pattern.size(); ++i) {
         auto& step = pattern[i];
@@ -219,13 +225,15 @@ void PhraseEngine::assignMusicalFragments(
         const auto anchor = quarterAnchor[i / 4u];
 
         if ((i % 4u) == 0u) {
-            step.fragment = anchor;
+            step.fragment = repeatAmount > 0.0f
+                ? anchor
+                : chooseFragment(raw);
         } else {
             const float draw = randomUnit();
 
             if (havePrevious && draw < previousProbability) {
                 step.fragment = previous;
-            } else if (draw < previousProbability + 0.52f) {
+            } else if (draw < previousProbability + anchorProbability) {
                 step.fragment = anchor;
             } else {
                 step.fragment = chooseFragment(raw);
