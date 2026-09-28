@@ -1,6 +1,7 @@
 #pragma once
 
 #include "public.sdk/source/vst/vstaudioeffect.h"
+#include "AtomicSnapshot.h"
 #include "pluginterfaces/vst/ivstevents.h"
 
 #include "../source/phrase_engine.h"
@@ -51,7 +52,10 @@ private:
     void readParameterChanges(Steinberg::Vst::IParameterChanges* changes) noexcept;
     void applyNormalizedParameter(Steinberg::Vst::ParamID id, double value) noexcept;
     bool readProjectState(Steinberg::IBStream* stream) noexcept;
-    bool writeProjectState(Steinberg::IBStream* stream) const noexcept;
+    bool writeProjectState(Steinberg::IBStream* stream,
+                           const ProjectState& snapshot) const noexcept;
+    void consumePendingProjectState() noexcept;
+    void publishRuntimeState() noexcept;
     void syncEngineFromState() noexcept;
     GenerationSettings currentGenerationSettings() const noexcept;
     void generatePattern() noexcept;
@@ -65,6 +69,12 @@ private:
     bool patternHasActiveSteps() const noexcept;
     void refreshSchedulerPattern() noexcept;
     void handleMidiEvent(const Steinberg::Vst::Event& event) noexcept;
+
+    struct PendingProjectState {
+        ProjectState state {};
+        PatternFragmentSnapshot recallPatternSnapshot {};
+        bool hasRecallIdentity {false};
+    };
 
     struct SourceRecallEntry {
         bool occupied {false};
@@ -80,6 +90,10 @@ private:
     };
 
     ProjectState state_ {};
+    AtomicSnapshot<PendingProjectState> pendingProjectState_ {};
+    AtomicSnapshot<ProjectState> publishedProjectState_ {};
+    std::atomic<std::uint64_t> appliedPendingStateSequence_ {0u};
+    bool runtimeStateDirty_ {true};
     PhraseEngine engine_ {state_.randomSeed};
     PhraseScheduler scheduler_ {};
     PhraseFx fx_ {};
