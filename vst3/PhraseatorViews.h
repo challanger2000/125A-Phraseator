@@ -14,6 +14,12 @@ class Controller;
 
 namespace phraseator::vst3::gui {
 
+class FaceplateView final : public VSTGUI::CView {
+public:
+    explicit FaceplateView(const VSTGUI::CRect& size);
+    void draw(VSTGUI::CDrawContext* context) override;
+};
+
 class LogoView final : public VSTGUI::CView {
 public:
     explicit LogoView(const VSTGUI::CRect& size);
