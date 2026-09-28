@@ -56,7 +56,6 @@ private:
                            const ProjectState& snapshot) const noexcept;
     void consumePendingProjectState() noexcept;
     void publishRuntimeState() noexcept;
-    void syncEngineFromState() noexcept;
     GenerationSettings currentGenerationSettings() const noexcept;
     void generatePattern() noexcept;
     void varyPattern() noexcept;
