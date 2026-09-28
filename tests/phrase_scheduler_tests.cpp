@@ -433,5 +433,45 @@ int main() {
         }
     }
 
+
+    {
+        // Stronger preroll continuity contract: a long voice started in
+        // negative musical time must survive the -1 -> 0 boundary when the
+        // step at zero is empty. A hidden scheduler reset at zero would turn
+        // the second half silent even though no new active step occurred.
+        SourcePool prerollPool;
+        constexpr std::uint32_t frames = 12000u;
+        CHECK(prerollPool.setOneShot(0, 70u, frames, 48000.0, false));
+
+        static float tone[frames];
+        for (auto& x : tone)
+            x = 0.5f;
+
+        std::array<AudioBufferView, kMaxSources> prerollBuffers {};
+        prerollBuffers[0] = {tone, nullptr, frames, false};
+
+        Pattern p {};
+        p[15].active = true;
+        p[15].fragment = 0u;
+        p[15].velocity = 1.0f;
+        p[0].active = false;
+
+        PhraseScheduler sch;
+        sch.setPattern(p);
+        sch.prepare(48000.0);
+
+        std::vector<float> l(6001u);
+        std::vector<float> rr(6001u);
+        CHECK(sch.processBlock(
+            prerollPool, prerollBuffers,
+            -0.5, 1.0 / 6000.0, true,
+            l.data(), rr.data(), l.size()));
+
+        CHECK(std::fabs(l[0] - 0.5f * centerGain) < 1.0e-4f);
+        CHECK(std::fabs(l[2999] - 0.5f * centerGain) < 1.0e-4f);
+        CHECK(std::fabs(l[3000] - 0.5f * centerGain) < 1.0e-4f);
+        CHECK(std::fabs(l[6000] - 0.5f * centerGain) < 1.0e-4f);
+    }
+
     return 0;
 }
