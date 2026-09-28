@@ -437,9 +437,15 @@ tresult PLUGIN_API Processor::setupProcessing(ProcessSetup& setup) {
     if (baseResult != kResultOk)
         return baseResult;
 
+    try {
+        scheduler_.prepare(setup.sampleRate);
+        fx_.prepare(setup.sampleRate);
+    } catch (...) {
+        // Never allow allocation/setup failures to escape across the VST3 ABI.
+        return kResultFalse;
+    }
+
     sampleRate_ = setup.sampleRate;
-    scheduler_.prepare(sampleRate_);
-    fx_.prepare(sampleRate_);
     fallbackProjectTimeSamples_ = 0.0;
     fallbackProjectStepPosition_ = 0.0;
 
