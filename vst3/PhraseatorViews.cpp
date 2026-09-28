@@ -768,7 +768,11 @@ void ToggleView::draw(VSTGUI::CDrawContext* context) {
     context->drawEllipse(led,VSTGUI::kDrawFilledAndStroked);
 
     const auto& label=on?onLabel_:offLabel_;
-    VSTGUI::CRect tr=r; tr.left+=compact_?11.0:15.0;
+    VSTGUI::CRect tr=r;
+    // Keep compact source-mute labels clear of their LED, but center all
+    // normal toggles (FREE/LOCK, OFF/ON) geometrically in the full control.
+    if(compact_)
+        tr.left+=11.0;
     context->setFont(VSTGUI::kNormalFont,compact_?7.0:8.2,VSTGUI::kBoldFace);
     context->setFontColor(on?VSTGUI::CColor{239,246,252,255}:VSTGUI::CColor{174,186,198,255});
     context->drawString(VSTGUI::UTF8String(label.c_str()),tr,VSTGUI::kCenterText);
