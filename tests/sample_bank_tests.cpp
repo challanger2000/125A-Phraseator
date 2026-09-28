@@ -2,6 +2,7 @@
 #include "test_common.h"
 
 #include <cmath>
+#include <limits>
 
 
 using namespace phraseator;
@@ -162,6 +163,35 @@ int main() {
         CHECK(silenceView.valid());
         for (std::uint32_t i = 0; i < silenceView.frames; ++i)
             CHECK(silenceView.left[i] == 0.0f);
+    }
+
+
+    {
+        // Non-finite decoded samples must never enter the realtime bank.
+        SampleBank safeBank;
+        OwnedAudioSource dirty;
+        dirty.sampleRate = 48000u;
+        dirty.stereo = true;
+        dirty.left = {
+            0.5f,
+            std::numeric_limits<float>::quiet_NaN(),
+            std::numeric_limits<float>::infinity(),
+            -0.5f
+        };
+        dirty.right = {
+            -0.5f,
+            -std::numeric_limits<float>::infinity(),
+            std::numeric_limits<float>::quiet_NaN(),
+            0.5f
+        };
+
+        CHECK(safeBank.setOneShot(0, 601u, std::move(dirty)));
+        const auto view = safeBank.buffers()[0];
+        CHECK(view.valid());
+        for (std::uint32_t i = 0; i < view.frames; ++i) {
+            CHECK(std::isfinite(view.left[i]));
+            CHECK(std::isfinite(view.right[i]));
+        }
     }
 
     return 0;
