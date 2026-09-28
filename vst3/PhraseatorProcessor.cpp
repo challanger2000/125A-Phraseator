@@ -24,6 +24,10 @@
 
 namespace phraseator::vst3 {
 
+static_assert(
+    kStateVersion == static_cast<Steinberg::int32>(ProjectState::kCurrentVersion),
+    "VST3 and core project-state versions must stay identical");
+
 using namespace Steinberg;
 using namespace Steinberg::Vst;
 
