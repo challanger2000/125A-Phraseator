@@ -29,7 +29,7 @@ int main() {
 
     PhraseScheduler scheduler;
     scheduler.setPattern(pattern);
-    scheduler.prepare(48000.0, 120.0);
+    scheduler.prepare(48000.0);
 
     const float centerGain = std::sqrt(0.5f);
 
@@ -38,7 +38,7 @@ int main() {
     std::vector<float> left(3001u);
     std::vector<float> right(3001u);
     const bool firstBlockProduced = scheduler.processBlock(
-        pool, buffers, 0.0, true, left.data(), right.data(), left.size());
+        pool, buffers, 0.0, (1.0 / 6000.0), true, left.data(), right.data(), left.size());
 
     CHECK(firstBlockProduced);
     CHECK(std::fabs(left[0] - centerGain) < 1.0e-5f);
@@ -49,7 +49,7 @@ int main() {
     // Step 1 is delayed by 20% of one 16th = 1200 samples.
     std::vector<float> grooveLeft(1201u);
     std::vector<float> grooveRight(1201u);
-    scheduler.processBlock(pool, buffers, 6000.0, true,
+    scheduler.processBlock(pool, buffers, 1.0, (1.0 / 6000.0), true,
                            grooveLeft.data(), grooveRight.data(), grooveLeft.size());
 
     CHECK(std::fabs(grooveLeft[0]) < 1.0e-8f);
@@ -57,7 +57,7 @@ int main() {
     CHECK(std::fabs(grooveLeft[1200] - centerGain) < 1.0e-5f);
 
     const bool stoppedProduced = scheduler.processBlock(
-        pool, buffers, 8000.0, false, grooveLeft.data(), grooveRight.data(), 8u);
+        pool, buffers, (8000.0 / 6000.0), (1.0 / 6000.0), false, grooveLeft.data(), grooveRight.data(), 8u);
     CHECK(!stoppedProduced);
     for (std::size_t i = 0; i < 8u; ++i)
         CHECK(grooveLeft[i] == 0.0f);
@@ -87,18 +87,18 @@ int main() {
 
         PhraseScheduler seekScheduler;
         seekScheduler.setPattern(seekPattern);
-        seekScheduler.prepare(48000.0, 120.0);
+        seekScheduler.prepare(48000.0);
 
         float seekL[2] {};
         float seekR[2] {};
         CHECK(seekScheduler.processBlock(
-            seekPool, seekBuffers, 0.0, true, seekL, seekR, 2u));
+            seekPool, seekBuffers, 0.0, (1.0 / 6000.0), true, seekL, seekR, 2u));
         CHECK(std::fabs(seekL[0] - centerGain) < 1.0e-5f);
 
         float jumpedL[1] {};
         float jumpedR[1] {};
         const bool jumpedProduced = seekScheduler.processBlock(
-            seekPool, seekBuffers, 30000.0, true,
+            seekPool, seekBuffers, 5.0, (1.0 / 6000.0), true,
             jumpedL, jumpedR, 1u);
 
         CHECK(!jumpedProduced);
@@ -139,12 +139,12 @@ int main() {
 
         PhraseScheduler chokeScheduler;
         chokeScheduler.setPattern(chokePattern);
-        chokeScheduler.prepare(48000.0, 120.0);
+        chokeScheduler.prepare(48000.0);
 
         std::vector<float> l(12120u);
         std::vector<float> r(12120u);
         CHECK(chokeScheduler.processBlock(
-            chokePool, chokeBuffers, 0.0, true, l.data(), r.data(), l.size()));
+            chokePool, chokeBuffers, 0.0, (1.0 / 6000.0), true, l.data(), r.data(), l.size()));
 
         CHECK(std::fabs(l[6000] - 0.5f * centerGain) < 1.0e-4f);
         CHECK(std::fabs(l[11999] - 0.5f * centerGain) < 1.0e-4f);
@@ -185,22 +185,22 @@ int main() {
 
         PhraseScheduler modeScheduler;
         modeScheduler.setPattern(modePattern);
-        modeScheduler.prepare(48000.0, 120.0);
+        modeScheduler.prepare(48000.0);
 
         float continueL[1] {};
         float continueR[1] {};
         CHECK(modeScheduler.processBlock(
-            modePool, modeBuffers, 6000.0, true,
+            modePool, modeBuffers, 1.0, (1.0 / 6000.0), true,
             continueL, continueR, 1u));
         CHECK(std::fabs(continueL[0] - 0.25f * centerGain) < 1.0e-5f);
 
         modeScheduler.reset();
-        modeScheduler.prepare(48000.0, 120.0);
+        modeScheduler.prepare(48000.0);
 
         float retriggerL[1] {};
         float retriggerR[1] {};
         CHECK(modeScheduler.processBlock(
-            modePool, modeBuffers, 0.0, true,
+            modePool, modeBuffers, 0.0, (1.0 / 6000.0), true,
             retriggerL, retriggerR, 1u));
         CHECK(std::fabs(retriggerL[0] - centerGain) < 1.0e-5f);
     }
@@ -226,12 +226,12 @@ int main() {
 
             PhraseScheduler sch;
             sch.setPattern(p);
-            sch.prepare(48000.0, 120.0);
+            sch.prepare(48000.0);
 
             std::vector<float> l(6000u);
             std::vector<float> rr(6000u);
             CHECK(sch.processBlock(
-                ratchetPool, ratchetBuffers, 0.0, true,
+                ratchetPool, ratchetBuffers, 0.0, (1.0 / 6000.0), true,
                 l.data(), rr.data(), l.size()));
 
             int impulses = 0;
@@ -268,16 +268,75 @@ int main() {
 
         PhraseScheduler sch;
         sch.setPattern(invalidPattern);
-        sch.prepare(48000.0, 120.0);
+        sch.prepare(48000.0);
 
         float l[16] {};
         float rr[16] {};
         const bool produced = sch.processBlock(
-            invalidPool, invalidBuffers, 0.0, true, l, rr, 16u);
+            invalidPool, invalidBuffers, 0.0, (1.0 / 6000.0), true, l, rr, 16u);
 
         CHECK(!produced);
         for (float x : l) CHECK(x == 0.0f);
         for (float x : rr) CHECK(x == 0.0f);
+    }
+
+
+    {
+        // Tempo changes must not reinterpret historical sample time. The
+        // scheduler runs in musical step units: after half a step at 120 BPM,
+        // continuing at 60 BPM from the same musical position keeps the same
+        // voice alive and reaches step 1 only after another half-step.
+        SourcePool tempoPool;
+        constexpr std::uint32_t frames = 20000u;
+        CHECK(tempoPool.setOneShot(0, 50u, frames, 48000.0, false));
+        CHECK(tempoPool.setOneShot(1, 51u, frames, 48000.0, false));
+
+        static float first[frames];
+        static float second[frames];
+        for (std::uint32_t i = 0; i < frames; ++i) {
+            first[i] = 0.5f;
+            second[i] = 0.25f;
+        }
+
+        std::array<AudioBufferView, kMaxSources> tempoBuffers {};
+        tempoBuffers[0] = {first, nullptr, frames, false};
+        tempoBuffers[1] = {second, nullptr, frames, false};
+
+        Pattern p {};
+        p[0].active = true;
+        p[0].fragment = 0u;
+        p[0].velocity = 1.0f;
+        p[1].active = true;
+        p[1].fragment = 1u;
+        p[1].velocity = 1.0f;
+
+        PhraseScheduler sch;
+        sch.setPattern(p);
+        sch.prepare(48000.0);
+
+        // 3000 samples @120 BPM = 0.5 sixteenth steps.
+        std::vector<float> aL(3000u);
+        std::vector<float> aR(3000u);
+        CHECK(sch.processBlock(
+            tempoPool, tempoBuffers,
+            0.0, 1.0 / 6000.0, true,
+            aL.data(), aR.data(), aL.size()));
+        CHECK(std::fabs(aL.back() - 0.5f * centerGain) < 1.0e-4f);
+
+        // At 60 BPM a full sixteenth is 12000 samples. Starting from musical
+        // position 0.5, another 6000 samples reaches step 1 exactly.
+        std::vector<float> bL(6001u);
+        std::vector<float> bR(6001u);
+        CHECK(sch.processBlock(
+            tempoPool, tempoBuffers,
+            0.5, 1.0 / 12000.0, true,
+            bL.data(), bR.data(), bL.size()));
+
+        CHECK(std::fabs(bL[0] - 0.5f * centerGain) < 1.0e-4f);
+        CHECK(std::fabs(bL[5999] - 0.5f * centerGain) < 1.0e-4f);
+        CHECK(bL[6000] > 0.25f * centerGain);
+        CHECK(std::fabs(bL[6000] -
+              (0.5f + 0.25f) * centerGain) < 1.0e-3f);
     }
 
     return 0;
