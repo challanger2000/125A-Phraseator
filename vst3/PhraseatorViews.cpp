@@ -152,6 +152,8 @@ void FaceplateView::draw(VSTGUI::CDrawContext* context) {
     well(350,204,638,70);
 
     line(36,342,654,342,{86,154,220,60},1.0);
+    // Clear functional split: structural generation controls vs live playback shaping.
+    line(292,350,292,478,{86,154,220,72},1.0);
     line(698,342,1004,342,{86,154,220,50},1.0);
     line(698,438,1004,438,{86,154,220,50},1.0);
 
@@ -510,6 +512,8 @@ void SourceSlotView::draw(VSTGUI::CDrawContext* context) {
     const bool loaded = normalized > 0.0;
     const bool loopState = normalized > 0.75;
     const char* label = dragActive_ ? "DROP" : (loaded ? (loopState ? "LOOP" : "ONE") : "WAV");
+    const int sourceNumber = std::clamp(
+        getTag() - static_cast<std::int32_t>(kSourceStatusBase) + 1, 1, 8);
 
     context->setDrawMode(VSTGUI::kAntiAliasing);
     VSTGUI::CRect shadow=r; shadow.offset(0.0,2.0);
@@ -540,6 +544,13 @@ void SourceSlotView::draw(VSTGUI::CDrawContext* context) {
                               : VSTGUI::CColor{21,31,40,255}));
     context->setFrameColor({4,7,10,255});
     context->drawEllipse(led,VSTGUI::kDrawFilledAndStroked);
+
+    char sourceText[4]{};
+    std::snprintf(sourceText,sizeof(sourceText),"%d",sourceNumber);
+    VSTGUI::CRect nr(r.left+5.0,r.top+3.0,r.left+16.0,r.top+13.0);
+    context->setFont(VSTGUI::kNormalFont,6.8,VSTGUI::kBoldFace);
+    context->setFontColor({128,147,164,255});
+    context->drawString(sourceText,nr,VSTGUI::kLeftText);
 
     context->setFont(VSTGUI::kNormalFont,7.2,VSTGUI::kBoldFace);
     context->setFontColor(
