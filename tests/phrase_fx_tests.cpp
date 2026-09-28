@@ -344,5 +344,35 @@ int main() {
         CHECK(std::fabs(tailR.back()) < 1.0e-18f);
     }
 
+
+    {
+        // Slow-tempo boundary: at 20 BPM a quarter note is exactly 3 seconds.
+        // The internal delay buffer must not clamp it shorter.
+        PhraseFx slow;
+        slow.prepare(48000.0);
+        slow.setDelayAmount(1.0f);
+        slow.setDelayDivision(1); // 1/4
+
+        std::vector<float> settleL(48000u, 0.0f);
+        std::vector<float> settleR(48000u, 0.0f);
+        slow.processBlock(
+            settleL.data(), settleR.data(), settleL.size(), 20.0);
+
+        constexpr std::size_t expected = 144000u;
+        std::vector<float> l(expected + 2u, 0.0f);
+        std::vector<float> r(expected + 2u, 0.0f);
+        l[0] = 1.0f;
+        CHECK(slow.processBlock(l.data(), r.data(), l.size(), 20.0));
+
+        float peak = 0.0f;
+        for (int offset = -1; offset <= 1; ++offset) {
+            const auto index = static_cast<std::size_t>(
+                static_cast<long long>(expected) + offset);
+            peak = std::max(peak, std::fabs(l[index]));
+            peak = std::max(peak, std::fabs(r[index]));
+        }
+        CHECK(peak > 0.001f);
+    }
+
     return 0;
 }
