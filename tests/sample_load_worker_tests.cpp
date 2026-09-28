@@ -189,7 +189,10 @@ int main() {
     CHECK(completionCalled.load(std::memory_order_acquire));
     CHECK(completionOk.load(std::memory_order_acquire));
 
-    CHECK(exchange.consumePending());
+    std::uint64_t publishedRequest = 0u;
+    CHECK(exchange.consumePending(&publishedRequest));
+    CHECK(publishedRequest == oneShotId);
+    CHECK(exchange.activePublishTag() == oneShotId);
     const auto* source0 = exchange.activeBank().sourcePool().source(0u);
     CHECK(source0 != nullptr);
     CHECK(source0->sliceCount == 1u);
