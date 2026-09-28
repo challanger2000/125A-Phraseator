@@ -39,26 +39,26 @@ private:
                      const SourcePool& pool,
                      const std::array<AudioBufferView, kMaxSources>& buffers) noexcept;
 
-    void triggerAbsoluteStep(std::uint64_t absoluteStep,
+    void triggerAbsoluteStep(std::int64_t absoluteStep,
                              double triggerStepPosition,
                              const SourcePool& pool,
                              const std::array<AudioBufferView, kMaxSources>& buffers) noexcept;
 
-    void scheduleAbsoluteStep(std::uint64_t absoluteStep,
+    void scheduleAbsoluteStep(std::int64_t absoluteStep,
                               double currentStepPosition,
                               const SourcePool& pool,
                               const std::array<AudioBufferView, kMaxSources>& buffers) noexcept;
 
-    void scheduleRatchets(std::uint64_t absoluteStep,
+    void scheduleRatchets(std::int64_t absoluteStep,
                           double actualTriggerStepPosition,
                           double currentStepPosition) noexcept;
 
-    double stepTriggerPosition(std::uint64_t absoluteStep) const noexcept;
+    double stepTriggerPosition(std::int64_t absoluteStep) const noexcept;
 
     Pattern pattern_ {};
     FragmentPlayer player_ {};
-    std::uint64_t lastTriggeredAbsoluteStep_ {0u};
-    std::uint64_t pendingAbsoluteStep_ {0u};
+    std::int64_t lastTriggeredAbsoluteStep_ {0};
+    std::int64_t pendingAbsoluteStep_ {0};
     double pendingStepPosition_ {0.0};
     double nextRatchetStepPosition_ {0.0};
     double ratchetIntervalSteps_ {0.0};
