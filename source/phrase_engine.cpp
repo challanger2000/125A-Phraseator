@@ -401,9 +401,11 @@ Pattern PhraseEngine::vary(const Pattern& input, const GenerationSettings& raw) 
             if (input[i].active) {
                 output[i].active = false;
             } else {
+                const auto preservedRepeats = output[i].repeats;
                 auto candidate = makeStep(i, raw);
                 candidate.active = true;
                 candidate.fragment = chooseVariedFragment(input, output, i, raw);
+                candidate.repeats = preservedRepeats;
                 output[i] = candidate;
             }
         }
