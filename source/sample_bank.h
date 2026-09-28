@@ -68,6 +68,12 @@ public:
         return activePublishTag_.load(std::memory_order_acquire);
     }
 
+    std::uint64_t pendingPublishTag() const noexcept {
+        if (pendingIndex_.load(std::memory_order_acquire) < 0)
+            return 0u;
+        return pendingPublishTag_.load(std::memory_order_acquire);
+    }
+
 private:
     std::array<SampleBank, 2> banks_ {};
     std::atomic<int> activeIndex_ {0};
