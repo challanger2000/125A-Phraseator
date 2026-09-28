@@ -14,10 +14,12 @@
 #include "pluginterfaces/vst/vstspeaker.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <filesystem>
 #include <iterator>
 #include <string>
+#include <thread>
 #include <vector>
 
 namespace phraseator::vst3 {
@@ -883,6 +885,25 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
 
     if (data.outputs[0].numChannels < 2)
         return kResultFalse;
+
+    if (data.processMode == ProcessModes::kOffline &&
+        recallAudioPending_.load(std::memory_order_acquire)) {
+        // Steinberg explicitly allows offline processing to slow down so a
+        // sample-based plug-in can have its streamed/prepared data ready.
+        // Realtime and prefetch modes never enter this wait.
+        while (recallAudioPending_.load(std::memory_order_acquire)) {
+            const auto expectedTag =
+                recallLoadRequestId_.load(std::memory_order_acquire);
+
+            if (expectedTag != 0u &&
+                (sampleBanks_.activePublishTag() == expectedTag ||
+                 sampleBanks_.pendingPublishTag() == expectedTag)) {
+                break;
+            }
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+    }
 
     double tempo = 120.0;
     double projectTime = fallbackProjectTimeSamples_;
