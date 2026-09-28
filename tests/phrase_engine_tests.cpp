@@ -644,5 +644,32 @@ int main() {
         CHECK(inactive == 4); // ceil(0.25 * 16)
     }
 
+
+    {
+        // Creative VARIATE may activate previously empty steps, but ratchets
+        // remain a manual property of each absolute step position.
+        Pattern base {};
+        for (std::size_t i = 0; i < base.size(); ++i) {
+            base[i].active = (i % 2u) == 0u;
+            base[i].fragment = 0u;
+            base[i].repeats = static_cast<std::uint8_t>((i % 4u) + 1u);
+        }
+
+        GenerationSettings settings;
+        settings.variation = 1.0f;
+        settings.fragmentCount = 2u;
+
+        PhraseEngine engine(0xA11CE56u);
+        const auto varied = engine.vary(base, settings);
+
+        bool activatedFormerlyEmpty = false;
+        for (std::size_t i = 0; i < base.size(); ++i) {
+            CHECK(varied[i].repeats == base[i].repeats);
+            activatedFormerlyEmpty =
+                activatedFormerlyEmpty || (!base[i].active && varied[i].active);
+        }
+        CHECK(activatedFormerlyEmpty);
+    }
+
     return 0;
 }
