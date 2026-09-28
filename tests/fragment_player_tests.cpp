@@ -325,5 +325,38 @@ int main() {
         CHECK(std::fabs(second.left - 0.75f) < 1.0e-5f);
     }
 
+    {
+        // Live PAN automation on a running voice must not create a one-sample
+        // gain jump. The dormant state may snap, but an active voice ramps.
+        SourcePool panPool;
+        constexpr std::uint32_t frames = 1024u;
+        CHECK(panPool.setOneShot(0, 101u, frames, 48000.0, false));
+
+        static float tone[frames];
+        for (auto& x : tone)
+            x = 1.0f;
+
+        std::array<AudioBufferView, kMaxSources> panBuffers {};
+        panBuffers[0] = {tone, nullptr, frames, false};
+
+        FragmentPlayer p;
+        p.prepare(48000.0);
+        p.setPanAmount(0.0f);
+        CHECK(p.trigger(
+            panPool, panBuffers, {0u, 0u}, 1.0f, 1.0f, 0.0f));
+
+        const auto before = p.processSample(panPool, panBuffers);
+        p.setPanAmount(1.0f);
+        const auto after = p.processSample(panPool, panBuffers);
+
+        CHECK(std::fabs(after.left - before.left) < 0.05f);
+        CHECK(std::fabs(after.right - before.right) < 0.05f);
+
+        StereoFrame settled {};
+        for (int i = 0; i < 800; ++i)
+            settled = p.processSample(panPool, panBuffers);
+        CHECK(settled.right > settled.left);
+    }
+
     return 0;
 }

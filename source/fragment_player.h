@@ -57,7 +57,8 @@ private:
 
     std::array<VoiceState, kMaxVoices> voices_ {};
     double outputSampleRate_ {48000.0};
-    float panAmount_ {1.0f};
+    float panAmountTarget_ {1.0f};
+    float panAmountCurrent_ {1.0f};
 };
 
 } // namespace phraseator
