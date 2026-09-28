@@ -1377,7 +1377,8 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
     return kResultOk;
 }
 
-bool Processor::writeProjectState(IBStream* state,\n                                  const ProjectState& snapshot) const noexcept {
+bool Processor::writeProjectState(IBStream* state,
+                                  const ProjectState& snapshot) const noexcept {
     if (!state)
         return false;
 
