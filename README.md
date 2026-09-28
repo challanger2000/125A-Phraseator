@@ -56,3 +56,5 @@ The UI should remain simple even when the internal rules are sophisticated. Phra
 - Timing audit: phrase scheduling now uses musical 16th-step phase; CONTINUE prefers host PPQ/projectTimeMusic and RETRIGGER keeps a local musical phase, preventing historical sample-time reinterpretation across tempo changes.
 
 - Fourth deep audit: held-note mode switching, source-recall save coherence, setup-allocation containment, and signed preroll/negative-PPQ scheduling.
+
+- Fifth audit checkpoint: latest host-mode, source-recall coherence, preroll continuity, non-automatable edit actions, ABI exception containment, and scheduler runaway-rate guard validated together.
