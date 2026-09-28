@@ -14,149 +14,130 @@
     <font name="Label" font-name="Arial" size="9" bold="true" italic="false"/>
     <font name="Small" font-name="Arial" size="8" bold="false" italic="false"/>
   </fonts>
-  <template name="view" class="CViewContainer" origin="0,0" size="1040,640" transparent="false" background-color="Background">
-    <view class="CView" custom-view-name="PhraseFaceplate" origin="0,0" size="1040,640" mouse-enabled="false"/>
+  <template name="view" class="CViewContainer" origin="0,0" size="1040,520" transparent="false" background-color="Background">
+    <view class="CView" custom-view-name="PhraseFaceplate" origin="0,0" size="1040,520" mouse-enabled="false"/>
 
-    <!-- Header -->
     <view class="CView" custom-view-name="PhraseLogo" origin="34,20" size="88,44" mouse-enabled="false"/>
     <view class="CTextLabel" origin="142,20" size="300,25" title="PHRASEATOR" transparent="true" font-color="Text" font="Title" text-alignment="left"/>
     <view class="CTextLabel" origin="142,46" size="390,14" title="GENERATIVE SAMPLE PHRASE ENGINE · V0.1" transparent="true" font-color="Muted" font="Small" text-alignment="left"/>
     <view class="CView" custom-view-name="PhraseUIScale" origin="934,28" size="68,24"/>
 
-    <!-- SOURCE MATERIAL: 4 + 4 drum-style drop pads -->
     <view class="CTextLabel" origin="36,98" size="250,16" title="SOURCE MATERIAL · DROP WAV / LOAD" transparent="true" font-color="Muted" font="Section"/>
+    <view class="CTextLabel" origin="34,126" size="18,12" title="1" transparent="true" font-color="Muted" font="Small"/>
+    <view class="CView" custom-view-name="PhraseSourceSlot" control-tag="1500" origin="36,140" size="58,38"/>
+    <view class="CView" custom-view-name="PhraseClear" control-tag="2200" origin="36,180" size="20,14"/>
+    <view class="CView" custom-view-name="PhraseLoadOne" control-tag="2000" origin="58,180" size="36,14"/>
+    <view class="CView" custom-view-name="PhraseMute" origin="36,196" size="58,16" control-tag="1600"/>
+    <view class="CTextLabel" origin="106,126" size="18,12" title="2" transparent="true" font-color="Muted" font="Small"/>
+    <view class="CView" custom-view-name="PhraseSourceSlot" control-tag="1501" origin="108,140" size="58,38"/>
+    <view class="CView" custom-view-name="PhraseClear" control-tag="2201" origin="108,180" size="20,14"/>
+    <view class="CView" custom-view-name="PhraseLoadOne" control-tag="2001" origin="130,180" size="36,14"/>
+    <view class="CView" custom-view-name="PhraseMute" origin="108,196" size="58,16" control-tag="1601"/>
+    <view class="CTextLabel" origin="178,126" size="18,12" title="3" transparent="true" font-color="Muted" font="Small"/>
+    <view class="CView" custom-view-name="PhraseSourceSlot" control-tag="1502" origin="180,140" size="58,38"/>
+    <view class="CView" custom-view-name="PhraseClear" control-tag="2202" origin="180,180" size="20,14"/>
+    <view class="CView" custom-view-name="PhraseLoadOne" control-tag="2002" origin="202,180" size="36,14"/>
+    <view class="CView" custom-view-name="PhraseMute" origin="180,196" size="58,16" control-tag="1602"/>
+    <view class="CTextLabel" origin="250,126" size="18,12" title="4" transparent="true" font-color="Muted" font="Small"/>
+    <view class="CView" custom-view-name="PhraseSourceSlot" control-tag="1503" origin="252,140" size="58,38"/>
+    <view class="CView" custom-view-name="PhraseClear" control-tag="2203" origin="252,180" size="20,14"/>
+    <view class="CView" custom-view-name="PhraseLoadOne" control-tag="2003" origin="274,180" size="36,14"/>
+    <view class="CView" custom-view-name="PhraseMute" origin="252,196" size="58,16" control-tag="1603"/>
+    <view class="CTextLabel" origin="34,208" size="18,12" title="5" transparent="true" font-color="Muted" font="Small"/>
+    <view class="CView" custom-view-name="PhraseSourceSlot" control-tag="1504" origin="36,222" size="58,38"/>
+    <view class="CView" custom-view-name="PhraseClear" control-tag="2204" origin="36,262" size="20,14"/>
+    <view class="CView" custom-view-name="PhraseLoadOne" control-tag="2004" origin="58,262" size="36,14"/>
+    <view class="CView" custom-view-name="PhraseMute" origin="36,278" size="58,16" control-tag="1604"/>
+    <view class="CTextLabel" origin="106,208" size="18,12" title="6" transparent="true" font-color="Muted" font="Small"/>
+    <view class="CView" custom-view-name="PhraseSourceSlot" control-tag="1505" origin="108,222" size="58,38"/>
+    <view class="CView" custom-view-name="PhraseClear" control-tag="2205" origin="108,262" size="20,14"/>
+    <view class="CView" custom-view-name="PhraseLoadOne" control-tag="2005" origin="130,262" size="36,14"/>
+    <view class="CView" custom-view-name="PhraseMute" origin="108,278" size="58,16" control-tag="1605"/>
+    <view class="CTextLabel" origin="178,208" size="18,12" title="7" transparent="true" font-color="Muted" font="Small"/>
+    <view class="CView" custom-view-name="PhraseSourceSlot" control-tag="1506" origin="180,222" size="58,38"/>
+    <view class="CView" custom-view-name="PhraseClear" control-tag="2206" origin="180,262" size="20,14"/>
+    <view class="CView" custom-view-name="PhraseLoadOne" control-tag="2006" origin="202,262" size="36,14"/>
+    <view class="CView" custom-view-name="PhraseMute" origin="180,278" size="58,16" control-tag="1606"/>
+    <view class="CTextLabel" origin="250,208" size="18,12" title="8" transparent="true" font-color="Muted" font="Small"/>
+    <view class="CView" custom-view-name="PhraseSourceSlot" control-tag="1507" origin="252,222" size="58,38"/>
+    <view class="CView" custom-view-name="PhraseClear" control-tag="2207" origin="252,262" size="20,14"/>
+    <view class="CView" custom-view-name="PhraseLoadOne" control-tag="2007" origin="274,262" size="36,14"/>
+    <view class="CView" custom-view-name="PhraseMute" origin="252,278" size="58,16" control-tag="1607"/>
 
-    <view class="CTextLabel" origin="38,128" size="18,12" title="1" transparent="true" font-color="Muted" font="Small"/>
-    <view class="CView" custom-view-name="PhraseSourceSlot" control-tag="1500" origin="40,142" size="50,34"/>
-    <view class="CView" custom-view-name="PhraseClear" control-tag="2200" origin="40,178" size="18,12"/>
-    <view class="CView" custom-view-name="PhraseLoadOne" control-tag="2000" origin="60,178" size="30,12"/>
-    <view class="CView" custom-view-name="PhraseMute" origin="40,192" size="50,14" control-tag="1600"/>
-
-    <view class="CTextLabel" origin="108,128" size="18,12" title="2" transparent="true" font-color="Muted" font="Small"/>
-    <view class="CView" custom-view-name="PhraseSourceSlot" control-tag="1501" origin="110,142" size="50,34"/>
-    <view class="CView" custom-view-name="PhraseClear" control-tag="2201" origin="110,178" size="18,12"/>
-    <view class="CView" custom-view-name="PhraseLoadOne" control-tag="2001" origin="130,178" size="30,12"/>
-    <view class="CView" custom-view-name="PhraseMute" origin="110,192" size="50,14" control-tag="1601"/>
-
-    <view class="CTextLabel" origin="178,128" size="18,12" title="3" transparent="true" font-color="Muted" font="Small"/>
-    <view class="CView" custom-view-name="PhraseSourceSlot" control-tag="1502" origin="180,142" size="50,34"/>
-    <view class="CView" custom-view-name="PhraseClear" control-tag="2202" origin="180,178" size="18,12"/>
-    <view class="CView" custom-view-name="PhraseLoadOne" control-tag="2002" origin="200,178" size="30,12"/>
-    <view class="CView" custom-view-name="PhraseMute" origin="180,192" size="50,14" control-tag="1602"/>
-
-    <view class="CTextLabel" origin="248,128" size="18,12" title="4" transparent="true" font-color="Muted" font="Small"/>
-    <view class="CView" custom-view-name="PhraseSourceSlot" control-tag="1503" origin="250,142" size="50,34"/>
-    <view class="CView" custom-view-name="PhraseClear" control-tag="2203" origin="250,178" size="18,12"/>
-    <view class="CView" custom-view-name="PhraseLoadOne" control-tag="2003" origin="270,178" size="30,12"/>
-    <view class="CView" custom-view-name="PhraseMute" origin="250,192" size="50,14" control-tag="1603"/>
-
-    <view class="CTextLabel" origin="38,210" size="18,12" title="5" transparent="true" font-color="Muted" font="Small"/>
-    <view class="CView" custom-view-name="PhraseSourceSlot" control-tag="1504" origin="40,224" size="50,34"/>
-    <view class="CView" custom-view-name="PhraseClear" control-tag="2204" origin="40,260" size="18,12"/>
-    <view class="CView" custom-view-name="PhraseLoadOne" control-tag="2004" origin="60,260" size="30,12"/>
-    <view class="CView" custom-view-name="PhraseMute" origin="40,274" size="50,14" control-tag="1604"/>
-
-    <view class="CTextLabel" origin="108,210" size="18,12" title="6" transparent="true" font-color="Muted" font="Small"/>
-    <view class="CView" custom-view-name="PhraseSourceSlot" control-tag="1505" origin="110,224" size="50,34"/>
-    <view class="CView" custom-view-name="PhraseClear" control-tag="2205" origin="110,260" size="18,12"/>
-    <view class="CView" custom-view-name="PhraseLoadOne" control-tag="2005" origin="130,260" size="30,12"/>
-    <view class="CView" custom-view-name="PhraseMute" origin="110,274" size="50,14" control-tag="1605"/>
-
-    <view class="CTextLabel" origin="178,210" size="18,12" title="7" transparent="true" font-color="Muted" font="Small"/>
-    <view class="CView" custom-view-name="PhraseSourceSlot" control-tag="1506" origin="180,224" size="50,34"/>
-    <view class="CView" custom-view-name="PhraseClear" control-tag="2206" origin="180,260" size="18,12"/>
-    <view class="CView" custom-view-name="PhraseLoadOne" control-tag="2006" origin="200,260" size="30,12"/>
-    <view class="CView" custom-view-name="PhraseMute" origin="180,274" size="50,14" control-tag="1606"/>
-
-    <view class="CTextLabel" origin="248,210" size="18,12" title="8" transparent="true" font-color="Muted" font="Small"/>
-    <view class="CView" custom-view-name="PhraseSourceSlot" control-tag="1507" origin="250,224" size="50,34"/>
-    <view class="CView" custom-view-name="PhraseClear" control-tag="2207" origin="250,260" size="18,12"/>
-    <view class="CView" custom-view-name="PhraseLoadOne" control-tag="2007" origin="270,260" size="30,12"/>
-    <view class="CView" custom-view-name="PhraseMute" origin="250,274" size="50,14" control-tag="1607"/>
-
-    <!-- Pattern: dominant 16-step field -->
     <view class="CTextLabel" origin="350,98" size="180,16" title="PHRASE · 16 STEPS" transparent="true" font-color="Accent" font="Section"/>
     <view class="CTextLabel" origin="780,98" size="208,16" title="CLICK STEP = SOURCE · RIGHT CLICK = CLEAR" transparent="true" font-color="Muted" font="Small" text-alignment="right"/>
-    <view class="CView" custom-view-name="PhraseStep" control-tag="1400" origin="350,136" size="32,34"/>
-    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1700" origin="350,170" size="32,14"/>
-    <view class="CView" custom-view-name="PhraseStep" control-tag="1401" origin="390,136" size="32,34"/>
-    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1701" origin="390,170" size="32,14"/>
-    <view class="CView" custom-view-name="PhraseStep" control-tag="1402" origin="430,136" size="32,34"/>
-    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1702" origin="430,170" size="32,14"/>
-    <view class="CView" custom-view-name="PhraseStep" control-tag="1403" origin="470,136" size="32,34"/>
-    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1703" origin="470,170" size="32,14"/>
-    <view class="CView" custom-view-name="PhraseStep" control-tag="1404" origin="510,136" size="32,34"/>
-    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1704" origin="510,170" size="32,14"/>
-    <view class="CView" custom-view-name="PhraseStep" control-tag="1405" origin="550,136" size="32,34"/>
-    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1705" origin="550,170" size="32,14"/>
-    <view class="CView" custom-view-name="PhraseStep" control-tag="1406" origin="590,136" size="32,34"/>
-    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1706" origin="590,170" size="32,14"/>
-    <view class="CView" custom-view-name="PhraseStep" control-tag="1407" origin="630,136" size="32,34"/>
-    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1707" origin="630,170" size="32,14"/>
-    <view class="CView" custom-view-name="PhraseStep" control-tag="1408" origin="670,136" size="32,34"/>
-    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1708" origin="670,170" size="32,14"/>
-    <view class="CView" custom-view-name="PhraseStep" control-tag="1409" origin="710,136" size="32,34"/>
-    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1709" origin="710,170" size="32,14"/>
-    <view class="CView" custom-view-name="PhraseStep" control-tag="1410" origin="750,136" size="32,34"/>
-    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1710" origin="750,170" size="32,14"/>
-    <view class="CView" custom-view-name="PhraseStep" control-tag="1411" origin="790,136" size="32,34"/>
-    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1711" origin="790,170" size="32,14"/>
-    <view class="CView" custom-view-name="PhraseStep" control-tag="1412" origin="830,136" size="32,34"/>
-    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1712" origin="830,170" size="32,14"/>
-    <view class="CView" custom-view-name="PhraseStep" control-tag="1413" origin="870,136" size="32,34"/>
-    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1713" origin="870,170" size="32,14"/>
-    <view class="CView" custom-view-name="PhraseStep" control-tag="1414" origin="910,136" size="32,34"/>
-    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1714" origin="910,170" size="32,14"/>
-    <view class="CView" custom-view-name="PhraseStep" control-tag="1415" origin="950,136" size="32,34"/>
-    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1715" origin="950,170" size="32,14"/>
+    <view class="CView" custom-view-name="PhraseStep" control-tag="1400" origin="350,134" size="34,30"/>
+    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1700" origin="350,164" size="34,15"/>
+    <view class="CView" custom-view-name="PhraseStep" control-tag="1401" origin="389,134" size="34,30"/>
+    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1701" origin="389,164" size="34,15"/>
+    <view class="CView" custom-view-name="PhraseStep" control-tag="1402" origin="428,134" size="34,30"/>
+    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1702" origin="428,164" size="34,15"/>
+    <view class="CView" custom-view-name="PhraseStep" control-tag="1403" origin="467,134" size="34,30"/>
+    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1703" origin="467,164" size="34,15"/>
+    <view class="CView" custom-view-name="PhraseStep" control-tag="1404" origin="506,134" size="34,30"/>
+    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1704" origin="506,164" size="34,15"/>
+    <view class="CView" custom-view-name="PhraseStep" control-tag="1405" origin="545,134" size="34,30"/>
+    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1705" origin="545,164" size="34,15"/>
+    <view class="CView" custom-view-name="PhraseStep" control-tag="1406" origin="584,134" size="34,30"/>
+    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1706" origin="584,164" size="34,15"/>
+    <view class="CView" custom-view-name="PhraseStep" control-tag="1407" origin="623,134" size="34,30"/>
+    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1707" origin="623,164" size="34,15"/>
+    <view class="CView" custom-view-name="PhraseStep" control-tag="1408" origin="662,134" size="34,30"/>
+    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1708" origin="662,164" size="34,15"/>
+    <view class="CView" custom-view-name="PhraseStep" control-tag="1409" origin="701,134" size="34,30"/>
+    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1709" origin="701,164" size="34,15"/>
+    <view class="CView" custom-view-name="PhraseStep" control-tag="1410" origin="740,134" size="34,30"/>
+    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1710" origin="740,164" size="34,15"/>
+    <view class="CView" custom-view-name="PhraseStep" control-tag="1411" origin="779,134" size="34,30"/>
+    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1711" origin="779,164" size="34,15"/>
+    <view class="CView" custom-view-name="PhraseStep" control-tag="1412" origin="818,134" size="34,30"/>
+    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1712" origin="818,164" size="34,15"/>
+    <view class="CView" custom-view-name="PhraseStep" control-tag="1413" origin="857,134" size="34,30"/>
+    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1713" origin="857,164" size="34,15"/>
+    <view class="CView" custom-view-name="PhraseStep" control-tag="1414" origin="896,134" size="34,30"/>
+    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1714" origin="896,164" size="34,15"/>
+    <view class="CView" custom-view-name="PhraseStep" control-tag="1415" origin="935,134" size="34,30"/>
+    <view class="CView" custom-view-name="PhraseRatchet" control-tag="1715" origin="935,164" size="34,15"/>
 
-    <view class="CView" custom-view-name="PhraseGenerate" control-tag="1300" origin="366,220" size="180,40"/>
-    <view class="CView" custom-view-name="PhraseVariate" control-tag="1301" origin="558,220" size="120,40"/>
-    <view class="CTextLabel" origin="696,214" size="116,12" title="PATTERN LOCK" transparent="true" font-color="Muted" font="Small" text-alignment="center"/>
-    <view class="CView" custom-view-name="PhraseLock" origin="696,230" size="116,24" control-tag="1302"/>
-    <view class="CTextLabel" origin="830,214" size="142,12" title="PHRASE MODE" transparent="true" font-color="Muted" font="Small" text-alignment="center"/>
-    <view class="CView" custom-view-name="PhraseMode" origin="830,230" size="142,24" control-tag="1303"/>
+    <view class="CView" custom-view-name="PhraseGenerate" control-tag="1300" origin="366,216" size="180,36"/>
+    <view class="CView" custom-view-name="PhraseVariate" control-tag="1301" origin="558,216" size="120,36"/>
+    <view class="CTextLabel" origin="696,210" size="116,12" title="PATTERN LOCK" transparent="true" font-color="Muted" font="Small" text-alignment="center"/>
+    <view class="CView" custom-view-name="PhraseLock" origin="696,226" size="116,24" control-tag="1302"/>
+    <view class="CTextLabel" origin="830,210" size="142,12" title="PHRASE MODE" transparent="true" font-color="Muted" font="Small" text-alignment="center"/>
+    <view class="CView" custom-view-name="PhraseMode" origin="830,226" size="142,24" control-tag="1303"/>
 
-    <!-- Phrase shaping -->
-    <view class="CTextLabel" origin="36,320" size="220,16" title="PHRASE SHAPE" transparent="true" font-color="Accent" font="Section"/>
-    <view class="CTextLabel" origin="442,320" size="208,16" title="CREATE + LIVE MUSICAL CONTROL" transparent="true" font-color="Muted" font="Small" text-alignment="right"/>
+    <view class="CTextLabel" origin="36,318" size="220,16" title="PHRASE SHAPE" transparent="true" font-color="Accent" font="Section"/>
+    <view class="CTextLabel" origin="442,318" size="208,16" title="CREATE + LIVE MUSICAL CONTROL" transparent="true" font-color="Muted" font="Small" text-alignment="right"/>
 
-    <view class="CView" custom-view-name="PhraseKnob" control-tag="1000" origin="42,360" size="66,58"/>
-    <view class="CTextLabel" origin="34,414" size="82,14" title="DENSITY" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
-    <view class="CView" custom-view-name="PhraseKnob" control-tag="1001" origin="130,360" size="66,58"/>
-    <view class="CTextLabel" origin="116,414" size="94,14" title="VARIATE DEPTH" transparent="true" font-color="Text" font="Small" text-alignment="center"/>
-    <view class="CView" custom-view-name="PhraseKnob" control-tag="1002" origin="218,360" size="66,58"/>
-    <view class="CTextLabel" origin="210,414" size="82,14" title="MOTIF REUSE" transparent="true" font-color="Text" font="Small" text-alignment="center"/>
+    <view class="CView" custom-view-name="PhraseKnob" control-tag="1000" origin="42,350" size="62,54"/>
+    <view class="CTextLabel" origin="34,402" size="78,14" title="DENSITY" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
+    <view class="CView" custom-view-name="PhraseKnob" control-tag="1001" origin="128,350" size="62,54"/>
+    <view class="CTextLabel" origin="112,402" size="94,14" title="VARIATE DEPTH" transparent="true" font-color="Text" font="Small" text-alignment="center"/>
+    <view class="CView" custom-view-name="PhraseKnob" control-tag="1002" origin="214,350" size="62,54"/>
+    <view class="CTextLabel" origin="204,402" size="82,14" title="MOTIF REUSE" transparent="true" font-color="Text" font="Small" text-alignment="center"/>
+    <view class="CView" custom-view-name="PhraseKnob" control-tag="1006" origin="308,350" size="58,52"/>
+    <view class="CTextLabel" origin="300,402" size="74,14" title="VELOCITY" transparent="true" font-color="Text" font="Small" text-alignment="center"/>
+    <view class="CView" custom-view-name="PhraseKnob" control-tag="1003" origin="382,350" size="58,52"/>
+    <view class="CTextLabel" origin="378,402" size="66,14" title="PITCH" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
+    <view class="CView" custom-view-name="PhraseKnob" control-tag="1004" origin="456,350" size="58,52"/>
+    <view class="CTextLabel" origin="452,402" size="66,14" title="PAN" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
+    <view class="CView" custom-view-name="PhraseKnob" control-tag="1005" origin="530,350" size="58,52"/>
+    <view class="CTextLabel" origin="524,402" size="70,14" title="GROOVE" transparent="true" font-color="Text" font="Small" text-alignment="center"/>
+    <view class="CTextLabel" origin="42,442" size="54,14" title="OCTAVE" transparent="true" font-color="Muted" font="Small"/>
+    <view class="CView" custom-view-name="PhraseOctave" origin="96,438" size="104,24" control-tag="1007"/>
 
-    <view class="CView" custom-view-name="PhraseKnob" control-tag="1006" origin="318,360" size="60,54"/>
-    <view class="CTextLabel" origin="312,414" size="72,14" title="VELOCITY" transparent="true" font-color="Text" font="Small" text-alignment="center"/>
-    <view class="CView" custom-view-name="PhraseKnob" control-tag="1003" origin="394,360" size="60,54"/>
-    <view class="CTextLabel" origin="390,414" size="68,14" title="PITCH" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
-    <view class="CView" custom-view-name="PhraseKnob" control-tag="1004" origin="470,360" size="60,54"/>
-    <view class="CTextLabel" origin="466,414" size="68,14" title="PAN" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
-    <view class="CView" custom-view-name="PhraseKnob" control-tag="1005" origin="546,360" size="60,54"/>
-    <view class="CTextLabel" origin="542,414" size="68,14" title="GROOVE" transparent="true" font-color="Text" font="Small" text-alignment="center"/>
-
-    <view class="CTextLabel" origin="42,454" size="54,14" title="OCTAVE" transparent="true" font-color="Muted" font="Small"/>
-    <view class="CView" custom-view-name="PhraseOctave" origin="96,450" size="104,24" control-tag="1007"/>
-
-    <!-- Pitch/key -->
-    <view class="CTextLabel" origin="698,320" size="180,16" title="PITCH TO KEY" transparent="true" font-color="Accent" font="Section"/>
-    <view class="CView" custom-view-name="PhrasePitchToKey" origin="700,354" size="118,24" control-tag="1102"/>
+    <view class="CTextLabel" origin="698,318" size="180,16" title="PITCH TO KEY" transparent="true" font-color="Accent" font="Section"/>
+    <view class="CView" custom-view-name="PhrasePitchToKey" origin="700,350" size="118,24" control-tag="1102"/>
     <view class="CTextLabel" origin="838,354" size="40,14" title="ROOT" transparent="true" font-color="Muted" font="Small"/>
     <view class="CView" custom-view-name="PhraseKeyRoot" origin="878,350" size="54,24" control-tag="1100"/>
     <view class="CView" custom-view-name="PhraseScale" origin="942,350" size="60,24" control-tag="1101"/>
-    <view class="CTextLabel" origin="700,394" size="302,14" title="CHROMATIC / MAJOR / MINOR · LIVE" transparent="true" font-color="Muted" font="Small" text-alignment="center"/>
 
-    <!-- Finish -->
-    <view class="CTextLabel" origin="698,454" size="180,16" title="FINISH" transparent="true" font-color="Accent" font="Section"/>
-    <view class="CView" custom-view-name="PhraseKnob" control-tag="1200" origin="724,482" size="66,58"/>
-    <view class="CTextLabel" origin="724,534" size="66,14" title="DELAY" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
-    <view class="CView" custom-view-name="PhraseDelayDivision" origin="800,496" size="76,24" control-tag="1201"/>
-    <view class="CView" custom-view-name="PhraseKnob" control-tag="1204" origin="894,482" size="66,58"/>
-    <view class="CTextLabel" origin="894,534" size="66,14" title="CUT" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
-    <view class="CView" custom-view-name="PhraseCutMode" origin="966,496" size="42,24" control-tag="1205"/>
-
-    <view class="CTextLabel" origin="20,590" size="1000,18" title="MATERIAL → PHRASE → SHAPE → FINISH" transparent="true" font-color="Muted" font="Small" text-alignment="center"/>
+    <view class="CTextLabel" origin="698,418" size="180,16" title="FINISH" transparent="true" font-color="Accent" font="Section"/>
+    <view class="CView" custom-view-name="PhraseKnob" control-tag="1200" origin="724,438" size="54,48"/>
+    <view class="CTextLabel" origin="718,480" size="66,14" title="DELAY" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
+    <view class="CView" custom-view-name="PhraseDelayDivision" origin="794,450" size="80,24" control-tag="1201"/>
+    <view class="CView" custom-view-name="PhraseKnob" control-tag="1204" origin="892,438" size="54,48"/>
+    <view class="CTextLabel" origin="886,480" size="66,14" title="CUT" transparent="true" font-color="Text" font="Label" text-alignment="center"/>
+    <view class="CView" custom-view-name="PhraseCutMode" origin="960,450" size="48,24" control-tag="1205"/>
   </template>
 </vstgui-ui-description>

@@ -84,14 +84,13 @@ void FaceplateView::draw(VSTGUI::CDrawContext* context) {
         context->setLineWidth(width);
         context->drawLine({ox+x1,oy+y1},{ox+x2,oy+y2});
     };
-    const auto panel = [&](double x,double y,double w,double h,double radius=8.0) {
+    const auto panel = [&](double x,double y,double w,double h) {
         const auto rr=rect(x,y,w,h);
         context->setFillColor({15,20,27,255});
         context->drawRect(rr,VSTGUI::kDrawFilled);
         context->setFrameColor({59,72,87,215});
         context->setLineWidth(1.0);
         context->drawRect(rr,VSTGUI::kDrawStroked);
-        (void)radius;
     };
     const auto well = [&](double x,double y,double w,double h) {
         const auto shadow=rect(x+1,y+2,w,h);
@@ -116,63 +115,57 @@ void FaceplateView::draw(VSTGUI::CDrawContext* context) {
     context->setFillColor({5,8,12,255});
     context->drawRect(r,VSTGUI::kDrawFilled);
 
-    // One continuous 125A instrument chassis. Structural separation is clear,
-    // but deliberately calmer than the analogue MixEngine hardware language.
-    const auto chassis=rect(8,8,1024,624);
+    const auto chassis=rect(8,8,1024,504);
     context->setFillColor({20,26,34,255});
     context->setFrameColor({3,5,7,255});
     context->setLineWidth(2.0);
     context->drawRect(chassis,VSTGUI::kDrawFilledAndStroked);
 
-    // Very restrained brushed surface: enough depth without "sci-fi" decoration.
-    for(int y=14;y<628;y+=5)
+    for(int y=14;y<508;y+=5)
         line(12,y,1028,y,{205,216,227,static_cast<uint8_t>((y%20)==0?9:3)},1.0);
 
     panel(20,16,1000,52);
     line(30,72,1010,72,{86,154,220,76},1.3);
 
-    // Source material bay: 4 + 4 drum-style pads.
     panel(20,84,300,210);
-    // Pattern is the visual centre and receives the widest uninterrupted field.
     panel(332,84,688,210);
 
-    // Lower work areas: musical shaping first, pitch/key and finish secondary.
-    panel(20,306,650,254);
-    panel(682,306,338,122);
-    panel(682,440,338,120);
+    // Lower half is intentionally compact after checking the real 150% host view.
+    panel(20,306,650,190);
+    panel(682,306,338,88);
+    panel(682,406,338,90);
 
-    // Eight recessed source pad wells, four per row.
-    constexpr double px[4] = {36,106,176,246};
+    // Larger, simpler 4+4 source bays.
+    constexpr double px[4] = {32,104,176,248};
     for(int row=0;row<2;++row)
         for(int col=0;col<4;++col)
-            well(px[col],126+row*82,58,66);
+            well(px[col],124+row*82,64,72);
 
-    // Pattern step bed: 16 equal cells with quarter-note visual grouping.
+    // Compact step pads: wider than before, less vertical "fader slot" appearance.
     for(int i=0;i<16;++i) {
-        const double x=350+i*40.0;
-        well(x,132,32,52);
+        const double x=350+i*39.0;
+        well(x,130,34,50);
         if(i>0 && i%4==0)
-            line(x-8,124,x-8,190,{86,154,220,72},1.0);
+            line(x-7,124,x-7,186,{86,154,220,72},1.0);
     }
 
-    // Global edit strip under the pattern.
-    well(350,210,638,62);
+    well(350,204,638,70);
 
-    // Lower section datum lines.
-    line(36,344,654,344,{86,154,220,60},1.0);
-    line(698,344,1004,344,{86,154,220,50},1.0);
-    line(698,476,1004,476,{86,154,220,50},1.0);
+    line(36,342,654,342,{86,154,220,60},1.0);
+    line(698,342,1004,342,{86,154,220,50},1.0);
+    line(698,438,1004,438,{86,154,220,50},1.0);
 
     for(auto p : {VSTGUI::CPoint{16,16},VSTGUI::CPoint{1024,16},
-                  VSTGUI::CPoint{16,624},VSTGUI::CPoint{1024,624},
+                  VSTGUI::CPoint{16,504},VSTGUI::CPoint{1024,504},
                   VSTGUI::CPoint{28,92},VSTGUI::CPoint{312,92},
                   VSTGUI::CPoint{340,92},VSTGUI::CPoint{1012,92},
-                  VSTGUI::CPoint{28,552},VSTGUI::CPoint{662,552},
-                  VSTGUI::CPoint{690,552},VSTGUI::CPoint{1012,552}})
+                  VSTGUI::CPoint{28,488},VSTGUI::CPoint{662,488},
+                  VSTGUI::CPoint{690,488},VSTGUI::CPoint{1012,488}})
         screw(p.x,p.y);
 
     setDirty(false);
 }
+
 
 LogoView::LogoView(const VSTGUI::CRect& size) : CView(size) {
     setMouseEnabled(false);

@@ -241,7 +241,7 @@ tresult PLUGIN_API Controller::getState(IBStream* state) {
 IPlugView* PLUGIN_API Controller::createView(FIDString name) {
     if (!name || std::strcmp(name, ViewType::kEditor) != 0) return nullptr;
     auto* editor = new VSTGUI::VST3Editor(this, "view", "Phraseator.uidesc");
-    gui::configureEditor(editor, 1040.0, 640.0, guiZoom_);
+    gui::configureEditor(editor, 1040.0, 520.0, guiZoom_);
     editor_ = editor;
     return editor;
 }
