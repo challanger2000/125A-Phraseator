@@ -1,5 +1,40 @@
 #include "PhraseatorController.h"
 
+namespace {
+
+class PhraseatorEditor final : public VSTGUI::VST3Editor {
+public:
+    using VSTGUI::VST3Editor::VST3Editor;
+
+protected:
+    void onMouseEvent(VSTGUI::MouseEvent& event, VSTGUI::CFrame* frame) override {
+        if (event.type == VSTGUI::EventType::MouseDown &&
+            event.buttonState.isRight() &&
+            frame) {
+            VSTGUI::CPoint pos(event.mousePosition);
+            frame->getTransform().transform(pos);
+
+            Steinberg::Vst::ParamID paramId {};
+            if (findParameter(
+                    static_cast<Steinberg::int32>(pos.x),
+                    static_cast<Steinberg::int32>(pos.y),
+                    paramId) == Steinberg::kResultTrue &&
+                paramId >= static_cast<Steinberg::Vst::ParamID>(
+                    phraseator::vst3::kStepRatchetBase) &&
+                paramId < static_cast<Steinberg::Vst::ParamID>(
+                    phraseator::vst3::kStepRatchetBase +
+                    phraseator::vst3::kStepRatchetCount)) {
+                event.consumed = true;
+                return;
+            }
+        }
+
+        VSTGUI::VST3Editor::onMouseEvent(event, frame);
+    }
+};
+
+} // namespace
+
 #include "PhraseatorIDs.h"
 #include "../source/parameters.h"
 #include "../source/phrase_engine.h"
@@ -240,7 +275,7 @@ tresult PLUGIN_API Controller::getState(IBStream* state) {
 
 IPlugView* PLUGIN_API Controller::createView(FIDString name) {
     if (!name || std::strcmp(name, ViewType::kEditor) != 0) return nullptr;
-    auto* editor = new VSTGUI::VST3Editor(this, "view", "Phraseator.uidesc");
+    auto* editor = new PhraseatorEditor(this, "view", "Phraseator.uidesc");
     gui::configureEditor(editor, 1040.0, 520.0, guiZoom_);
     editor_ = editor;
     return editor;

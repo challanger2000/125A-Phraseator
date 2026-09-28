@@ -166,9 +166,9 @@ int main() {
         const double lpStrong10k = measureGain(1.0f, 10000.0, 0);
 
         CHECK(lpSubtle1k > 0.90);
-        CHECK(lpStrong1k > 0.60);
+        CHECK(lpStrong1k < 0.35);
         CHECK(lpSubtle10k > lpStrong10k);
-        CHECK(lpStrong10k < 0.20);
+        CHECK(lpStrong10k < 0.05);
 
         const double hpStrong100 = measureGain(1.0f, 100.0, 1);
         const double hpStrong1k = measureGain(1.0f, 1000.0, 1);

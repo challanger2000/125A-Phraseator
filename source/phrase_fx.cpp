@@ -43,7 +43,7 @@ double musicalFilterCutoff(double amount, double sampleRate, std::int32_t mode) 
     // monotonic macro direction instead of asking the one-pole filter for an
     // impossible cutoff.
     if (mode == 0) {
-        const double minCutoff = std::min(1200.0, maxCutoff);
+        const double minCutoff = std::min(250.0, maxCutoff);
         return maxCutoff * std::pow(minCutoff / maxCutoff, amount);
     }
 

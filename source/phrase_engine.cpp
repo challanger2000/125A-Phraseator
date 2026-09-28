@@ -189,7 +189,7 @@ Step PhraseEngine::makeStep(std::size_t stepIndex, const GenerationSettings& raw
 
     // Groove currently shifts weak 16ths only. Later versions can use swing templates.
     if ((stepIndex & 1u) != 0u) {
-        step.timingOffset = settings.groove * 0.20f;
+        step.timingOffset = settings.groove * 0.30f;
     }
 
     return step;

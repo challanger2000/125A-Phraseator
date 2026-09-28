@@ -832,7 +832,7 @@ void Processor::refreshSchedulerPattern() noexcept {
         step.pan = panDraw;
 
         step.timingOffset = (i & 1u) != 0u
-            ? state_.groove * 0.20f
+            ? state_.groove * 0.30f
             : 0.0f;
 
         step.pitchSemitones =
