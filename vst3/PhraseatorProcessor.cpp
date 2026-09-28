@@ -899,6 +899,47 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
     if (!recallRemapPending && hadOldFragments)
         patternSnapshot = snapshotPatternFragments(state_.pattern, oldPool);
 
+    // A very fast recall batch can already have been consumed by the audio
+    // thread before queueRecallLoads() stores its request id. On the next
+    // block, finalize that already-active recall here instead of waiting for
+    // another bank publication that may never come.
+    const auto queuedRecallTag =
+        recallLoadRequestId_.load(std::memory_order_acquire);
+    if (recallAudioPending_.load(std::memory_order_acquire) &&
+        queuedRecallTag != 0u &&
+        sampleBanks_.activePublishTag() == queuedRecallTag) {
+        scheduler_.reset();
+
+        const auto& recalledPool = sampleBanks_.activeBank().sourcePool();
+        for (std::size_t i = 0; i < state_.sources.size(); ++i) {
+            const bool muted = state_.sources[i].muted;
+            SourceState meta {};
+            meta.muted = muted;
+
+            if (const auto* source = recalledPool.source(i)) {
+                meta.occupied = true;
+                meta.sourceId = source->sourceId;
+                meta.sliceCount = source->sliceCount;
+                meta.tonal = source->tonal;
+                meta.detectedRootMidi = source->detectedRootMidi;
+            }
+
+            state_.sources[i] = meta;
+        }
+
+        if (recallPatternRemapPending_.exchange(
+                false, std::memory_order_acq_rel)) {
+            if (restorePatternFragments(
+                    state_.pattern, recallPatternSnapshot_, recalledPool)) {
+                patternViewDirty_ = true;
+            }
+        }
+
+        sourceStatusDirty_ = true;
+        recallAudioPending_.store(false, std::memory_order_release);
+        recallLoadRequestId_.store(0u, std::memory_order_release);
+    }
+
     std::uint64_t consumedPublishTag = 0u;
     if (sampleBanks_.consumePending(&consumedPublishTag)) {
         // Any active voice points into the previous bank's buffers. Never let
@@ -1682,12 +1723,9 @@ void Processor::queueRecallLoads() noexcept {
         } else {
             recallLoadRequestId_.store(requestId, std::memory_order_release);
 
-            // Extremely fast worker completion can publish before requestBatch
-            // returns. Recognize that already-active publication as well.
-            if (sampleBanks_.activePublishTag() == requestId) {
-                recallAudioPending_.store(false, std::memory_order_release);
-                recallLoadRequestId_.store(0u, std::memory_order_release);
-            }
+            // If this recall was already consumed before the request id became
+            // visible, process() recognizes activePublishTag()==requestId on
+            // its next block and performs the full audio-thread finalization.
         }
 
     } catch (...) {
