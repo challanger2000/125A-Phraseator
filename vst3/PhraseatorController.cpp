@@ -159,7 +159,7 @@ tresult PLUGIN_API Controller::initialize(FUnknown* context) {
     for (int32 i = 0; i < kPatternViewCount; ++i) {
         parameters.addParameter(
             kPatternStepTitles[i], nullptr, kPatternViewStepCount, 0.0,
-            ParameterInfo::kIsHidden,
+            ParameterInfo::kIsHidden | ParameterInfo::kIsReadOnly,
             static_cast<ParamID>(kPatternViewBase + i));
     }
 
@@ -196,7 +196,7 @@ tresult PLUGIN_API Controller::initialize(FUnknown* context) {
             kSourceStatusTitles[i],
             static_cast<ParamID>(kSourceStatusBase + i),
             nullptr,
-            ParameterInfo::kIsHidden);
+            ParameterInfo::kIsHidden | ParameterInfo::kIsReadOnly);
         status->appendString(STR16("EMPTY"));
         status->appendString(STR16("ONE"));
         status->appendString(STR16("LOOP"));
