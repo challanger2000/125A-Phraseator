@@ -1,5 +1,8 @@
 # State / Parameter Contract
 
+> **Current state:** Phraseator V1.0.0 currently serializes **state version 9**. This document records the compatibility evolution; earlier version sections remain for migration history. The current release pointer is [../CURRENT.md](../CURRENT.md), while the implementation and regression tests remain authoritative for exact field order and migration behavior.
+
+
 This file defines the compatibility baseline for Phraseator.
 
 ## Stable parameter IDs

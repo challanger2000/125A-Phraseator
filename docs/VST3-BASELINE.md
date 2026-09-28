@@ -1,5 +1,8 @@
 # VST3 Layer Baseline
 
+> **Release note:** This file contains engineering history from earlier development stages. The authoritative current product/release state is **V1.0.0**; see [../CURRENT.md](../CURRENT.md). Older V0.1 descriptions below are retained only as historical implementation notes and are not the current product surface.
+
+
 ## Architecture
 
 Phraseator uses the standard Steinberg processor/controller split.

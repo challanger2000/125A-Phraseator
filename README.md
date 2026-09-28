@@ -1,5 +1,20 @@
 # 125A Phraseator
 
+## Current release
+
+**125A Phraseator V1.0.0 - Windows x64 VST3**
+
+- Shipping source: `release-v1.0.0`
+- Shipping commit: `b01e7e9f58bcaf45572b311754711c2fa2ba6c6e`
+- Verified CI run: **#431**
+- Core tests: **16/16 PASS**
+- Steinberg VST3 Validator: **47/47 PASS**
+- Gumroad package: `125A_Phraseator_v1.0.0_Windows_x64_Gumroad.zip`
+- Gumroad package SHA-256: `4f3d5a42edf5e75ba571001b350292c81bd2b0c6747009dd20b26da1088da3bb`
+
+See [CURRENT.md](CURRENT.md) for the authoritative release pointer and verification notes.
+
+
 Generative sample phrase engine for VST3.
 
 ## Product idea
