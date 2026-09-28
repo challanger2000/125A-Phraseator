@@ -8,6 +8,8 @@ namespace phraseator {
 namespace {
 constexpr double kPi = 3.14159265358979323846;
 constexpr float kDenormalFloor = 1.0e-20f;
+constexpr double kMinTempoBpm = 20.0;
+constexpr double kMaxDelayQuarterMultiplier = 1.0;
 
 float killDenormal(float value) noexcept {
     return std::fabs(value) < kDenormalFloor ? 0.0f : value;
@@ -60,8 +62,13 @@ void PhraseFx::prepare(double sampleRate) {
         ? sampleRate
         : 48000.0;
 
+    // Longest supported division is 1/4. Size the buffer from the same
+    // minimum tempo accepted by processBlock so tempo sync never silently
+    // clamps at slow project tempos.
+    const double maxDelaySeconds =
+        (60.0 / kMinTempoBpm) * kMaxDelayQuarterMultiplier;
     const auto maxDelaySamples = static_cast<std::size_t>(
-        std::ceil(sampleRate_ * 2.1));
+        std::ceil(sampleRate_ * maxDelaySeconds));
 
     delayLeft_.assign(maxDelaySamples + 2u, 0.0f);
     delayRight_.assign(maxDelaySamples + 2u, 0.0f);
@@ -157,7 +164,7 @@ bool PhraseFx::processBlock(float* left,
         return false;
 
     const double tempo = (std::isfinite(tempoBpm) && tempoBpm > 1.0)
-        ? std::clamp(tempoBpm, 20.0, 400.0)
+        ? std::clamp(tempoBpm, kMinTempoBpm, 400.0)
         : 120.0;
 
     const double quarterSamples = sampleRate_ * 60.0 / tempo;
