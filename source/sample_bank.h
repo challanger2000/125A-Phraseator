@@ -51,10 +51,10 @@ class SampleBankExchange {
 public:
     int beginWrite() noexcept;
     SampleBank* writableBank(int index) noexcept;
-    bool commitWrite(int index) noexcept;
+    bool commitWrite(int index, std::uint64_t publishTag = 0u) noexcept;
     void cancelWrite(int index) noexcept;
 
-    bool consumePending() noexcept;
+    bool consumePending(std::uint64_t* publishTag = nullptr) noexcept;
 
     const SampleBank& activeBank() const noexcept {
         return banks_[static_cast<std::size_t>(activeIndex_.load(std::memory_order_acquire))];
@@ -64,11 +64,17 @@ public:
         return activeIndex_.load(std::memory_order_acquire);
     }
 
+    std::uint64_t activePublishTag() const noexcept {
+        return activePublishTag_.load(std::memory_order_acquire);
+    }
+
 private:
     std::array<SampleBank, 2> banks_ {};
     std::atomic<int> activeIndex_ {0};
     std::atomic<int> pendingIndex_ {-1};
     std::atomic<int> writerIndex_ {-1};
+    std::atomic<std::uint64_t> pendingPublishTag_ {0u};
+    std::atomic<std::uint64_t> activePublishTag_ {0u};
 };
 
 } // namespace phraseator
