@@ -1899,7 +1899,29 @@ tresult PLUGIN_API Processor::setState(IBStream* state) {
 }
 
 tresult PLUGIN_API Processor::getState(IBStream* state) {
-    return writeProjectState(state) ? kResultOk : kResultFalse;
+    ProjectState snapshot {};
+
+    PendingProjectState pending {};
+    std::uint64_t pendingSequence = 0u;
+    const bool pendingCoherent =
+        pendingProjectState_.tryLoad(pending, pendingSequence);
+    const auto appliedSequence =
+        appliedPendingStateSequence_.load(std::memory_order_acquire);
+
+    if (pendingCoherent &&
+        pendingSequence != 0u &&
+        pendingSequence != appliedSequence) {
+        // setState() has already accepted a newer project state but the audio
+        // thread has not reached the next block boundary yet. Save exactly
+        // that accepted state rather than the previous audio snapshot.
+        snapshot = pending.state;
+    } else {
+        std::uint64_t publishedSequence = 0u;
+        while (!publishedProjectState_.tryLoad(snapshot, publishedSequence))
+            std::this_thread::yield();
+    }
+
+    return writeProjectState(state, snapshot) ? kResultOk : kResultFalse;
 }
 
 } // namespace phraseator::vst3
