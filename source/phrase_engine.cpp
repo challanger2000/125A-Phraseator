@@ -334,13 +334,10 @@ Pattern PhraseEngine::vary(const Pattern& input, const GenerationSettings& raw) 
             }
         }
 
-        if (changedFragment) {
+        if (changedFragment)
             step.fragment = candidateFragment;
-        } else {
-            // If only one audible fragment/source can be selected, vary a
-            // phrase-level articulation detail instead of choosing silence.
-            step.repeats = original.repeats == 1u ? 2u : 1u;
-        }
+        // Ratchets are an independent manual per-step layer. VARIATE never
+        // repurposes them as a fallback when no alternate fragment exists.
     }
 
     // Only the top creative quarter may alter the on/off rhythm structure.
