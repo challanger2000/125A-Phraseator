@@ -20,6 +20,8 @@ enum class ParameterId : std::uint32_t {
 
     DelayAmount = 1200,
     DelayDivision = 1201,
+    // Legacy serialized IDs retained for state compatibility. V1 does not
+    // register or process Reverb/Drive controls.
     ReverbAmount = 1202,
     DriveAmount = 1203,
     FilterAmount = 1204,
