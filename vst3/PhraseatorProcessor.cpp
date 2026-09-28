@@ -91,6 +91,20 @@ double clamp01(double v) noexcept {
 
 }
 
+void Processor::promoteConsumedSourceRecallLocked() {
+    if (!pendingSourceRecallUpdate_.valid)
+        return;
+
+    if (sampleBanks_.activePublishTag() != pendingSourceRecallUpdate_.requestId)
+        return;
+
+    if (pendingSourceRecallUpdate_.sourceIndex < sourceRecall_.size()) {
+        sourceRecall_[pendingSourceRecallUpdate_.sourceIndex] =
+            std::move(pendingSourceRecallUpdate_.entry);
+    }
+    pendingSourceRecallUpdate_ = {};
+}
+
 Processor::Processor() {
     setControllerClass(kControllerUID);
     for (auto& edit : patternEditPending_)
@@ -247,8 +261,20 @@ tresult PLUGIN_API Processor::notify(IMessage* message) {
                 }
 
                 std::lock_guard<std::mutex> lock(sourceRecallMutex_);
-                if (sourceRecallEpoch_.load(std::memory_order_relaxed) == recallEpoch)
-                    sourceRecall_[targetIndex] = {};
+                if (sourceRecallEpoch_.load(std::memory_order_relaxed) != recallEpoch)
+                    return;
+
+                promoteConsumedSourceRecallLocked();
+
+                SourceRecallEntry cleared {};
+                if (sampleBanks_.activePublishTag() == result.requestId) {
+                    sourceRecall_[targetIndex] = std::move(cleared);
+                } else {
+                    pendingSourceRecallUpdate_.valid = true;
+                    pendingSourceRecallUpdate_.requestId = result.requestId;
+                    pendingSourceRecallUpdate_.sourceIndex = targetIndex;
+                    pendingSourceRecallUpdate_.entry = std::move(cleared);
+                }
             });
 
         return requestId != 0u ? kResultTrue : kResultFalse;
@@ -353,8 +379,19 @@ tresult PLUGIN_API Processor::notify(IMessage* message) {
             resolvedRecall.detectedRootMidi = resolved.detectedRootMidi;
 
             std::lock_guard<std::mutex> lock(sourceRecallMutex_);
-            if (sourceRecallEpoch_.load(std::memory_order_relaxed) == recallEpoch)
-                sourceRecall_[targetIndex] = resolvedRecall;
+            if (sourceRecallEpoch_.load(std::memory_order_relaxed) != recallEpoch)
+                return;
+
+            promoteConsumedSourceRecallLocked();
+
+            if (sampleBanks_.activePublishTag() == result.requestId) {
+                sourceRecall_[targetIndex] = std::move(resolvedRecall);
+            } else {
+                pendingSourceRecallUpdate_.valid = true;
+                pendingSourceRecallUpdate_.requestId = result.requestId;
+                pendingSourceRecallUpdate_.sourceIndex = targetIndex;
+                pendingSourceRecallUpdate_.entry = std::move(resolvedRecall);
+            }
         });
 
     if (requestId == 0u)
@@ -1832,6 +1869,7 @@ bool Processor::readProjectState(IBStream* state) noexcept {
     {
         std::lock_guard<std::mutex> lock(sourceRecallMutex_);
         sourceRecall_ = std::move(recallEntries);
+        pendingSourceRecallUpdate_ = {};
     }
 
     recallPreservePatternOnFailure_.store(false, std::memory_order_release);
@@ -1988,6 +2026,12 @@ tresult PLUGIN_API Processor::setState(IBStream* state) {
 
 tresult PLUGIN_API Processor::getState(IBStream* state) {
     std::lock_guard<std::mutex> stateIoLock(stateIoMutex_);
+
+    {
+        std::lock_guard<std::mutex> recallLock(sourceRecallMutex_);
+        promoteConsumedSourceRecallLocked();
+    }
+
     ProjectState snapshot {};
 
     PendingProjectState pending {};
