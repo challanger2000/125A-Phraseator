@@ -1077,7 +1077,7 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
         if ((ctx.state & ProcessContext::kProjectTimeMusicValid) != 0 &&
             std::isfinite(ctx.projectTimeMusic)) {
             projectStepPosition =
-                std::max(0.0, static_cast<double>(ctx.projectTimeMusic) * 4.0);
+                static_cast<double>(ctx.projectTimeMusic) * 4.0;
             projectMusicValid = true;
         }
 
@@ -1093,8 +1093,8 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
         // the current sample position and tempo; hosts providing PPQ take the
         // exact path above.
         if (std::fabs(projectTime - fallbackProjectTimeSamples_) > 0.5) {
-            projectStepPosition = std::max(
-                0.0, projectTime * stepsPerSample);
+            projectStepPosition =
+                projectTime * stepsPerSample;
         }
     }
 
