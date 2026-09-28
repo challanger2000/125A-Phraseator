@@ -48,3 +48,5 @@ The UI should remain simple even when the internal rules are sophisticated. Phra
 - Live PAN now updates already-running voices without retriggering; Pitch To Key is applied after MIDI transpose so Root/Scale remain the final pitch authority.
 
 - Second audit checkpoint: stale fragment rejection, authoritative mute spans, WAVE_FORMAT_EXTENSIBLE, overlap-safe MIDI note tracking, delay bypass/re-enable, denormal guards, source-specific mute choke, bank-swap voice reset, ratchet independence, and recall-status cleanup.
+
+- Third audit checkpoint: async recall publication tagging/gating, stale-command cleanup, parameter-flush edge preservation, fragment-boundary interpolation, legacy slice-release composition, and overlap-safe state transitions.
