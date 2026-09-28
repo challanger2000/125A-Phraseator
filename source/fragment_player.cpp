@@ -97,7 +97,7 @@ bool FragmentPlayer::trigger(const SourcePool& pool,
     // Preserve original sample pitch/duration across host sample rates.
     // Source-rate conversion and creative pitch transpose are multiplicative.
     const double sourceRate =
-        (std::isfinite(source->sampleRate) && source->sampleRate > 1000.0)
+        (std::isfinite(source->sampleRate) && source->sampleRate > 0.0)
         ? source->sampleRate
         : outputSampleRate_;
     const double rateRatio = sourceRate / outputSampleRate_;

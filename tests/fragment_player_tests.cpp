@@ -306,5 +306,24 @@ int main() {
         CHECK(std::fabs(second.left - 0.5f) < 1.0e-5f);
     }
 
+    {
+        // Valid low-rate WAV/source metadata must preserve source-rate
+        // conversion instead of being silently treated as host-rate audio.
+        SourcePool lowRatePool;
+        CHECK(lowRatePool.setOneShot(0, 100u, 4u, 500.0, false));
+        const float data[4] {1.0f, 0.5f, 0.0f, -0.5f};
+        std::array<AudioBufferView, kMaxSources> lowRateBuffers {};
+        lowRateBuffers[0] = {data, nullptr, 4u, false};
+
+        FragmentPlayer lowRatePlayer;
+        lowRatePlayer.prepare(1000.0);
+        CHECK(lowRatePlayer.trigger(
+            lowRatePool, lowRateBuffers, {0u, 0u}, 1.0f, -1.0f, 0.0f));
+        const auto first = lowRatePlayer.processSample(lowRatePool, lowRateBuffers);
+        const auto second = lowRatePlayer.processSample(lowRatePool, lowRateBuffers);
+        CHECK(std::fabs(first.left - 1.0f) < 1.0e-5f);
+        CHECK(std::fabs(second.left - 0.75f) < 1.0e-5f);
+    }
+
     return 0;
 }
