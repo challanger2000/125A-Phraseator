@@ -7,6 +7,7 @@
 #include "vstgui/plugin-bindings/vst3editor.h"
 #include "vstgui/uidescription/uiattributes.h"
 #include <string>
+#include <vector>
 
 namespace phraseator::vst3 {
 class Controller;
@@ -83,6 +84,67 @@ public:
               VSTGUI::IControlListener* listener,
               std::int32_t tag);
     void draw(VSTGUI::CDrawContext* context) override;
+};
+
+class SelectorView final : public VSTGUI::CControl {
+public:
+    SelectorView(const VSTGUI::CRect& size,
+                 VSTGUI::IControlListener* listener,
+                 std::int32_t tag,
+                 std::vector<std::string> labels);
+    void draw(VSTGUI::CDrawContext* context) override;
+    VSTGUI::CMouseEventResult onMouseDown(
+        VSTGUI::CPoint& where,
+        const VSTGUI::CButtonState& buttons) override;
+private:
+    std::vector<std::string> labels_;
+};
+
+class ToggleView final : public VSTGUI::CControl {
+public:
+    ToggleView(const VSTGUI::CRect& size,
+               VSTGUI::IControlListener* listener,
+               std::int32_t tag,
+               std::string offLabel,
+               std::string onLabel,
+               bool compact=false);
+    void draw(VSTGUI::CDrawContext* context) override;
+    VSTGUI::CMouseEventResult onMouseDown(
+        VSTGUI::CPoint& where,
+        const VSTGUI::CButtonState& buttons) override;
+private:
+    std::string offLabel_;
+    std::string onLabel_;
+    bool compact_ {false};
+};
+
+class ActionButton final : public VSTGUI::CControl {
+public:
+    ActionButton(const VSTGUI::CRect& size,
+                 VSTGUI::IControlListener* listener,
+                 std::int32_t tag,
+                 std::string label,
+                 bool compact=false,
+                 bool accent=false);
+    void draw(VSTGUI::CDrawContext* context) override;
+    VSTGUI::CMouseEventResult onMouseDown(
+        VSTGUI::CPoint& where,
+        const VSTGUI::CButtonState& buttons) override;
+private:
+    std::string label_;
+    bool compact_ {false};
+    bool accent_ {false};
+};
+
+class UIScaleView final : public VSTGUI::CView {
+public:
+    UIScaleView(const VSTGUI::CRect& size, VSTGUI::VST3Editor* editor);
+    void draw(VSTGUI::CDrawContext* context) override;
+    VSTGUI::CMouseEventResult onMouseDown(
+        VSTGUI::CPoint& where,
+        const VSTGUI::CButtonState& buttons) override;
+private:
+    VSTGUI::VST3Editor* editor_ {nullptr};
 };
 
 void configureEditor(VSTGUI::VST3Editor* editor,
