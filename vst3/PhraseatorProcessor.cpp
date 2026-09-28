@@ -591,6 +591,9 @@ void Processor::applyPitchToKey(Pattern& pattern) noexcept {
 }
 
 void Processor::generatePattern() noexcept {
+    if (recallAudioPending_.load(std::memory_order_acquire))
+        return;
+
     recallPatternRemapPending_.store(false, std::memory_order_release);
 
     const auto settings = currentGenerationSettings();
@@ -612,6 +615,9 @@ void Processor::generatePattern() noexcept {
 }
 
 void Processor::varyPattern() noexcept {
+    if (recallAudioPending_.load(std::memory_order_acquire))
+        return;
+
     recallPatternRemapPending_.store(false, std::memory_order_release);
     state_.pattern = engine_.vary(state_.pattern, currentGenerationSettings());
     refreshSchedulerPattern();
@@ -1587,6 +1593,7 @@ void Processor::queueRecallLoads() noexcept {
     recallAudioPending_.store(true, std::memory_order_release);
     recallLoadRequestId_.store(0u, std::memory_order_release);
     scheduler_.reset();
+    fx_.reset();
 
     if (!sampleLoader_) {
         recallPatternRemapPending_.store(false, std::memory_order_release);
