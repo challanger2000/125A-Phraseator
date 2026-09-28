@@ -194,5 +194,25 @@ int main() {
         }
     }
 
+
+    {
+        // Extreme finite float WAV amplitudes must still obey the absolute
+        // auto-level peak ceiling; the musical 0.10 gain floor cannot override
+        // safety attenuation.
+        SampleBank hotFloatBank;
+        OwnedAudioSource extreme;
+        extreme.sampleRate = 48000u;
+        extreme.stereo = false;
+        extreme.left = {100.0f, -100.0f, 50.0f, -50.0f};
+
+        CHECK(hotFloatBank.setOneShot(0, 701u, std::move(extreme)));
+        const auto view = hotFloatBank.buffers()[0];
+        CHECK(view.valid());
+        for (std::uint32_t i = 0; i < view.frames; ++i) {
+            CHECK(std::isfinite(view.left[i]));
+            CHECK(std::fabs(view.left[i]) <= 0.89f + 1.0e-5f);
+        }
+    }
+
     return 0;
 }
