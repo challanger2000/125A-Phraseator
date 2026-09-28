@@ -684,12 +684,6 @@ void Processor::varyPattern() noexcept {
     patternViewDirty_ = true;
 }
 
-void Processor::syncEngineFromState() noexcept {
-    engine_.setSeed(state_.randomSeed);
-    refreshSchedulerPattern();
-    patternViewDirty_ = true;
-}
-
 bool Processor::patternHasActiveSteps() const noexcept {
     for (const auto& step : state_.pattern) {
         if (step.active)
