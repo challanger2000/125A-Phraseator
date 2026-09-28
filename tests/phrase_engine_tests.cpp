@@ -333,7 +333,12 @@ int main() {
         const double highRatio =
             static_cast<double>(highAdjacentReuse) / static_cast<double>(highPairs);
 
-        CHECK(highRatio > lowRatio);
+        // With 12 equiprobable fragments, zero reuse should stay near
+        // the natural 1/12 coincidence rate. Full reuse must be materially
+        // above that baseline.
+        CHECK(lowRatio < 0.16);
+        CHECK(highRatio > 0.35);
+        CHECK(highRatio > lowRatio * 2.5);
     }
 
     {
