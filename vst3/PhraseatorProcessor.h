@@ -104,6 +104,7 @@ private:
     std::atomic<std::uint64_t> sourceRecallEpoch_ {1u};
     std::atomic<std::uint64_t> recallLoadRequestId_ {0u};
     std::atomic<bool> recallAudioPending_ {false};
+    std::atomic<bool> recallPreservePatternOnFailure_ {false};
     PatternFragmentSnapshot recallPatternSnapshot_ {};
     std::atomic<bool> recallPatternRemapPending_ {false};
 
