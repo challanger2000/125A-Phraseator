@@ -905,49 +905,66 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
         // it continue against newly published sample memory.
         scheduler_.reset();
 
+        const bool recallPending =
+            recallAudioPending_.load(std::memory_order_acquire);
         const auto expectedRecallTag =
             recallLoadRequestId_.load(std::memory_order_acquire);
-        if (expectedRecallTag != 0u && consumedPublishTag == expectedRecallTag) {
-            recallAudioPending_.store(false, std::memory_order_release);
-            recallLoadRequestId_.store(0u, std::memory_order_release);
-        }
+        const bool isExpectedRecallPublication =
+            recallPending &&
+            expectedRecallTag != 0u &&
+            consumedPublishTag == expectedRecallTag;
 
-        sourceStatusDirty_ = true;
-        const auto& newPool = sampleBanks_.activeBank().sourcePool();
+        // While project recall is waiting for its own batch, older async loads
+        // may still publish first. They are transient transport banks only:
+        // never let them rewrite recalled metadata or consume the one-shot
+        // recall pattern remap.
+        const bool staleDuringRecall =
+            recallPending && !isExpectedRecallPublication;
 
-        // Runtime source metadata belongs to the audio thread. The loader
-        // publishes only a completed bank; after the atomic swap we rebuild
-        // metadata from that bank while preserving the user's mute state.
-        for (std::size_t i = 0; i < state_.sources.size(); ++i) {
-            const bool muted = state_.sources[i].muted;
-            SourceState meta {};
-            meta.muted = muted;
-
-            if (const auto* source = newPool.source(i)) {
-                meta.occupied = true;
-                meta.sourceId = source->sourceId;
-                meta.sliceCount = source->sliceCount;
-                meta.tonal = source->tonal;
-                meta.detectedRootMidi = source->detectedRootMidi;
+        if (!staleDuringRecall) {
+            if (isExpectedRecallPublication) {
+                recallAudioPending_.store(false, std::memory_order_release);
+                recallLoadRequestId_.store(0u, std::memory_order_release);
             }
 
-            state_.sources[i] = meta;
-        }
+            sourceStatusDirty_ = true;
+            const auto& newPool = sampleBanks_.activeBank().sourcePool();
 
-        bool patternChanged = false;
+            // Runtime source metadata belongs to the audio thread. The loader
+            // publishes only a completed bank; after the atomic swap we rebuild
+            // metadata from that bank while preserving the user's mute state.
+            for (std::size_t i = 0; i < state_.sources.size(); ++i) {
+                const bool muted = state_.sources[i].muted;
+                SourceState meta {};
+                meta.muted = muted;
 
-        if (recallPatternRemapPending_.exchange(
-                false, std::memory_order_acq_rel)) {
-            patternChanged = restorePatternFragments(
-                state_.pattern, recallPatternSnapshot_, newPool);
-        } else if (hadOldFragments) {
-            patternChanged = restorePatternFragments(
-                state_.pattern, patternSnapshot, newPool);
-        }
+                if (const auto* source = newPool.source(i)) {
+                    meta.occupied = true;
+                    meta.sourceId = source->sourceId;
+                    meta.sliceCount = source->sliceCount;
+                    meta.tonal = source->tonal;
+                    meta.detectedRootMidi = source->detectedRootMidi;
+                }
 
-        if (patternChanged) {
-            scheduler_.setPattern(state_.pattern);
-            patternViewDirty_ = true;
+                state_.sources[i] = meta;
+            }
+
+            bool patternChanged = false;
+
+            if (isExpectedRecallPublication &&
+                recallPatternRemapPending_.exchange(
+                    false, std::memory_order_acq_rel)) {
+                patternChanged = restorePatternFragments(
+                    state_.pattern, recallPatternSnapshot_, newPool);
+            } else if (!recallPending && hadOldFragments) {
+                patternChanged = restorePatternFragments(
+                    state_.pattern, patternSnapshot, newPool);
+            }
+
+            if (patternChanged) {
+                scheduler_.setPattern(state_.pattern);
+                patternViewDirty_ = true;
+            }
         }
     }
 
