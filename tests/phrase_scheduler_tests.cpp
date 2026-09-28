@@ -339,5 +339,43 @@ int main() {
               (0.5f + 0.25f) * centerGain) < 1.0e-3f);
     }
 
+
+    {
+        // Musical scheduler timing remains sample-accurate at common host
+        // rates. At 120 BPM one 16th is sampleRate/8 samples.
+        for (const double rate : {44100.0, 96000.0}) {
+            SourcePool ratePool;
+            constexpr std::uint32_t frames = 4u;
+            CHECK(ratePool.setOneShot(
+                0, 60u, frames, rate, false));
+
+            const float click[frames] {1.0f, 0.0f, 0.0f, 0.0f};
+            std::array<AudioBufferView, kMaxSources> rateBuffers {};
+            rateBuffers[0] = {click, nullptr, frames, false};
+
+            Pattern p {};
+            p[0].active = true;
+            p[0].fragment = 0u;
+            p[0].velocity = 1.0f;
+            p[1] = p[0];
+
+            PhraseScheduler sch;
+            sch.setPattern(p);
+            sch.prepare(rate);
+
+            const auto samplesPerStep =
+                static_cast<std::size_t>(std::llround(rate / 8.0));
+            std::vector<float> l(samplesPerStep + 1u);
+            std::vector<float> rr(samplesPerStep + 1u);
+            CHECK(sch.processBlock(
+                ratePool, rateBuffers,
+                0.0, 8.0 / rate, true,
+                l.data(), rr.data(), l.size()));
+
+            CHECK(std::fabs(l[0] - centerGain) < 1.0e-5f);
+            CHECK(std::fabs(l[samplesPerStep] - centerGain) < 1.0e-5f);
+        }
+    }
+
     return 0;
 }
