@@ -380,15 +380,27 @@ tresult PLUGIN_API Processor::canProcessSampleSize(int32 symbolicSampleSize) {
 }
 
 tresult PLUGIN_API Processor::setupProcessing(ProcessSetup& setup) {
-    sampleRate_ = (std::isfinite(setup.sampleRate) && setup.sampleRate > 1000.0)
-        ? setup.sampleRate
-        : 48000.0;
+    // Reject invalid/unreasonable host setup instead of silently running DSP
+    // at a different rate than the host. 768 kHz leaves generous headroom
+    // above normal production rates while bounding rate-derived allocations.
+    constexpr double kMinSupportedSampleRate = 4000.0;
+    constexpr double kMaxSupportedSampleRate = 768000.0;
+    if (!std::isfinite(setup.sampleRate) ||
+        setup.sampleRate < kMinSupportedSampleRate ||
+        setup.sampleRate > kMaxSupportedSampleRate) {
+        return kResultFalse;
+    }
 
+    const auto baseResult = AudioEffect::setupProcessing(setup);
+    if (baseResult != kResultOk)
+        return baseResult;
+
+    sampleRate_ = setup.sampleRate;
     scheduler_.prepare(sampleRate_, 120.0);
     fx_.prepare(sampleRate_);
     fallbackProjectTimeSamples_ = 0.0;
 
-    return AudioEffect::setupProcessing(setup);
+    return kResultOk;
 }
 
 tresult PLUGIN_API Processor::setActive(TBool state) {
