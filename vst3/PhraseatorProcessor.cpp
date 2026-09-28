@@ -888,10 +888,19 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
     if (!recallRemapPending && hadOldFragments)
         patternSnapshot = snapshotPatternFragments(state_.pattern, oldPool);
 
-    if (sampleBanks_.consumePending()) {
+    std::uint64_t consumedPublishTag = 0u;
+    if (sampleBanks_.consumePending(&consumedPublishTag)) {
         // Any active voice points into the previous bank's buffers. Never let
         // it continue against newly published sample memory.
         scheduler_.reset();
+
+        const auto expectedRecallTag =
+            recallLoadRequestId_.load(std::memory_order_acquire);
+        if (expectedRecallTag != 0u && consumedPublishTag == expectedRecallTag) {
+            recallAudioPending_.store(false, std::memory_order_release);
+            recallLoadRequestId_.store(0u, std::memory_order_release);
+        }
+
         sourceStatusDirty_ = true;
         const auto& newPool = sampleBanks_.activeBank().sourcePool();
 
@@ -1144,7 +1153,9 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
         const std::size_t segmentSamples =
             static_cast<std::size_t>(segmentEnd - currentOffset);
 
-        const bool midiGateOpen = activeMidiNote_ >= 0;
+        const bool midiGateOpen =
+            activeMidiNote_ >= 0 &&
+            !recallAudioPending_.load(std::memory_order_acquire);
         // RETRIGGER ties scheduler lifetime to the MIDI gate. CONTINUE keeps
         // the phrase timeline running with the DAW even while no MIDI note is
         // held; only its direct audio is muted during the gate-off interval.
@@ -1573,8 +1584,13 @@ bool Processor::readProjectState(IBStream* state) noexcept {
 }
 
 void Processor::queueRecallLoads() noexcept {
+    recallAudioPending_.store(true, std::memory_order_release);
+    recallLoadRequestId_.store(0u, std::memory_order_release);
+    scheduler_.reset();
+
     if (!sampleLoader_) {
         recallPatternRemapPending_.store(false, std::memory_order_release);
+        recallAudioPending_.store(false, std::memory_order_release);
         return;
     }
 
@@ -1633,10 +1649,21 @@ void Processor::queueRecallLoads() noexcept {
         if (requestId == 0u) {
             recallPatternRemapPending_.store(
                 false, std::memory_order_release);
+            recallAudioPending_.store(false, std::memory_order_release);
+        } else {
+            recallLoadRequestId_.store(requestId, std::memory_order_release);
+
+            // Extremely fast worker completion can publish before requestBatch
+            // returns. Recognize that already-active publication as well.
+            if (sampleBanks_.activePublishTag() == requestId) {
+                recallAudioPending_.store(false, std::memory_order_release);
+                recallLoadRequestId_.store(0u, std::memory_order_release);
+            }
         }
 
     } catch (...) {
         recallPatternRemapPending_.store(false, std::memory_order_release);
+        recallAudioPending_.store(false, std::memory_order_release);
         // Project state remains intact even if asynchronous source restoration
         // cannot be queued. The host must never crash on a recall failure.
     }
