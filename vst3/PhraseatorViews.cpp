@@ -608,6 +608,66 @@ bool SourceSlotView::onDrop(VSTGUI::DragEventData data) {
     return controller_->loadDroppedSample(path, sourceIndex);
 }
 
+
+SourceDropView::SourceDropView(const VSTGUI::CRect& size,
+                               std::int32_t sourceStatusTag,
+                               Controller* controller)
+: VSTGUI::CView(size),
+  sourceStatusTag_(sourceStatusTag),
+  controller_(controller) {
+    setTransparency(true);
+    setMouseEnabled(true);
+}
+
+void SourceDropView::draw(VSTGUI::CDrawContext* context) {
+    if (dragActive_) {
+        const auto r = getViewSize();
+        context->setDrawMode(VSTGUI::kAntiAliasing);
+        context->setFrameColor({110,190,249,255});
+        context->setLineWidth(1.8);
+        context->drawRect(r, VSTGUI::kDrawStroked);
+    }
+    setDirty(false);
+}
+
+VSTGUI::DragOperation SourceDropView::onDragEnter(VSTGUI::DragEventData data) {
+    std::string path;
+    if (!SourceSlotView::extractWavePath(data.drag, path))
+        return VSTGUI::DragOperation::None;
+    dragActive_ = true;
+    invalid();
+    return VSTGUI::DragOperation::Copy;
+}
+
+VSTGUI::DragOperation SourceDropView::onDragMove(VSTGUI::DragEventData data) {
+    std::string path;
+    return SourceSlotView::extractWavePath(data.drag, path)
+        ? VSTGUI::DragOperation::Copy
+        : VSTGUI::DragOperation::None;
+}
+
+void SourceDropView::onDragLeave(VSTGUI::DragEventData) {
+    dragActive_ = false;
+    invalid();
+}
+
+bool SourceDropView::onDrop(VSTGUI::DragEventData data) {
+    std::string path;
+    const bool valid = SourceSlotView::extractWavePath(data.drag, path);
+    dragActive_ = false;
+    invalid();
+
+    if (!valid || !controller_)
+        return false;
+
+    const auto sourceIndex =
+        sourceStatusTag_ - static_cast<std::int32_t>(kSourceStatusBase);
+    if (sourceIndex < 0 || sourceIndex >= kSourceStatusCount)
+        return false;
+
+    return controller_->loadDroppedSample(path, sourceIndex);
+}
+
 MacroKnob::MacroKnob(const VSTGUI::CRect& size,
                      VSTGUI::IControlListener* listener,
                      std::int32_t tag)
@@ -951,6 +1011,14 @@ VSTGUI::CView* createCustomView(VSTGUI::UTF8StringPtr name,
        tag >= static_cast<Steinberg::int32>(kSourceStatusBase) &&
        tag < static_cast<Steinberg::int32>(kSourceStatusBase + kSourceStatusCount))
         return new SourceSlotView(rect, editor, tag, controller);
+
+    // Source status is intentionally read-only. VSTGUI disables mouse input on
+    // controls bound to read-only parameters, so drag/drop must live on a
+    // separate unbound CView overlay.
+    if(std::strcmp(name,"PhraseSourceDrop")==0 &&
+       tag >= static_cast<Steinberg::int32>(kSourceStatusBase) &&
+       tag < static_cast<Steinberg::int32>(kSourceStatusBase + kSourceStatusCount))
+        return new SourceDropView(rect, tag, controller);
 
     if(std::strcmp(name,"PhraseKnob")==0 && tag>=0)
         return new MacroKnob(rect,editor,tag);

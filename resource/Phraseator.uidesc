@@ -25,34 +25,42 @@
     <view class="CTextLabel" origin="70,98" size="200,16" title="SOURCE MATERIAL" transparent="true" font-color="Accent" font="Section" text-alignment="center"/>
     <view class="CTextLabel" origin="90,114" size="160,12" title="DROP WAV / LOAD" transparent="true" font-color="Muted" font="Small" text-alignment="center"/>
     <view class="CView" custom-view-name="PhraseSourceSlot" control-tag="1500" origin="36,128" size="58,38"/>
+    <view class="CView" custom-view-name="PhraseSourceDrop" control-tag="1500" origin="36,128" size="58,38" transparent="true"/>
     <view class="CView" custom-view-name="PhraseClear" control-tag="2200" origin="36,168" size="20,14"/>
     <view class="CView" custom-view-name="PhraseLoadOne" control-tag="2000" origin="58,168" size="36,14"/>
     <view class="CView" custom-view-name="PhraseMute" origin="36,184" size="58,16" control-tag="1600"/>
     <view class="CView" custom-view-name="PhraseSourceSlot" control-tag="1501" origin="108,128" size="58,38"/>
+    <view class="CView" custom-view-name="PhraseSourceDrop" control-tag="1501" origin="108,128" size="58,38" transparent="true"/>
     <view class="CView" custom-view-name="PhraseClear" control-tag="2201" origin="108,168" size="20,14"/>
     <view class="CView" custom-view-name="PhraseLoadOne" control-tag="2001" origin="130,168" size="36,14"/>
     <view class="CView" custom-view-name="PhraseMute" origin="108,184" size="58,16" control-tag="1601"/>
     <view class="CView" custom-view-name="PhraseSourceSlot" control-tag="1502" origin="180,128" size="58,38"/>
+    <view class="CView" custom-view-name="PhraseSourceDrop" control-tag="1502" origin="180,128" size="58,38" transparent="true"/>
     <view class="CView" custom-view-name="PhraseClear" control-tag="2202" origin="180,168" size="20,14"/>
     <view class="CView" custom-view-name="PhraseLoadOne" control-tag="2002" origin="202,168" size="36,14"/>
     <view class="CView" custom-view-name="PhraseMute" origin="180,184" size="58,16" control-tag="1602"/>
     <view class="CView" custom-view-name="PhraseSourceSlot" control-tag="1503" origin="252,128" size="58,38"/>
+    <view class="CView" custom-view-name="PhraseSourceDrop" control-tag="1503" origin="252,128" size="58,38" transparent="true"/>
     <view class="CView" custom-view-name="PhraseClear" control-tag="2203" origin="252,168" size="20,14"/>
     <view class="CView" custom-view-name="PhraseLoadOne" control-tag="2003" origin="274,168" size="36,14"/>
     <view class="CView" custom-view-name="PhraseMute" origin="252,184" size="58,16" control-tag="1603"/>
     <view class="CView" custom-view-name="PhraseSourceSlot" control-tag="1504" origin="36,210" size="58,38"/>
+    <view class="CView" custom-view-name="PhraseSourceDrop" control-tag="1504" origin="36,210" size="58,38" transparent="true"/>
     <view class="CView" custom-view-name="PhraseClear" control-tag="2204" origin="36,250" size="20,14"/>
     <view class="CView" custom-view-name="PhraseLoadOne" control-tag="2004" origin="58,250" size="36,14"/>
     <view class="CView" custom-view-name="PhraseMute" origin="36,266" size="58,16" control-tag="1604"/>
     <view class="CView" custom-view-name="PhraseSourceSlot" control-tag="1505" origin="108,210" size="58,38"/>
+    <view class="CView" custom-view-name="PhraseSourceDrop" control-tag="1505" origin="108,210" size="58,38" transparent="true"/>
     <view class="CView" custom-view-name="PhraseClear" control-tag="2205" origin="108,250" size="20,14"/>
     <view class="CView" custom-view-name="PhraseLoadOne" control-tag="2005" origin="130,250" size="36,14"/>
     <view class="CView" custom-view-name="PhraseMute" origin="108,266" size="58,16" control-tag="1605"/>
     <view class="CView" custom-view-name="PhraseSourceSlot" control-tag="1506" origin="180,210" size="58,38"/>
+    <view class="CView" custom-view-name="PhraseSourceDrop" control-tag="1506" origin="180,210" size="58,38" transparent="true"/>
     <view class="CView" custom-view-name="PhraseClear" control-tag="2206" origin="180,250" size="20,14"/>
     <view class="CView" custom-view-name="PhraseLoadOne" control-tag="2006" origin="202,250" size="36,14"/>
     <view class="CView" custom-view-name="PhraseMute" origin="180,266" size="58,16" control-tag="1606"/>
     <view class="CView" custom-view-name="PhraseSourceSlot" control-tag="1507" origin="252,210" size="58,38"/>
+    <view class="CView" custom-view-name="PhraseSourceDrop" control-tag="1507" origin="252,210" size="58,38" transparent="true"/>
     <view class="CView" custom-view-name="PhraseClear" control-tag="2207" origin="252,250" size="20,14"/>
     <view class="CView" custom-view-name="PhraseLoadOne" control-tag="2007" origin="274,250" size="36,14"/>
     <view class="CView" custom-view-name="PhraseMute" origin="252,266" size="58,16" control-tag="1607"/>

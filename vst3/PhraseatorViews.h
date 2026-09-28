@@ -72,8 +72,31 @@ public:
     bool onDrop(VSTGUI::DragEventData data) override;
     CLASS_METHODS(SourceSlotView, VSTGUI::CControl)
 
-private:
+public:
     static bool extractWavePath(VSTGUI::IDataPackage* drag, std::string& path);
+
+private:
+    Controller* controller_ {nullptr};
+    bool dragActive_ {false};
+};
+
+class SourceDropView final :
+    public VSTGUI::CView,
+    public VSTGUI::IDropTarget {
+public:
+    SourceDropView(const VSTGUI::CRect& size,
+                   std::int32_t sourceStatusTag,
+                   Controller* controller);
+
+    void draw(VSTGUI::CDrawContext* context) override;
+    VSTGUI::SharedPointer<VSTGUI::IDropTarget> getDropTarget() override { return this; }
+    VSTGUI::DragOperation onDragEnter(VSTGUI::DragEventData data) override;
+    VSTGUI::DragOperation onDragMove(VSTGUI::DragEventData data) override;
+    void onDragLeave(VSTGUI::DragEventData data) override;
+    bool onDrop(VSTGUI::DragEventData data) override;
+
+private:
+    std::int32_t sourceStatusTag_ {-1};
     Controller* controller_ {nullptr};
     bool dragActive_ {false};
 };
