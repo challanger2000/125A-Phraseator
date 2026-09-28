@@ -18,8 +18,8 @@
     <view class="CView" custom-view-name="PhraseFaceplate" origin="0,0" size="1040,520" mouse-enabled="false"/>
 
     <view class="CView" custom-view-name="PhraseLogo" origin="34,20" size="88,44" mouse-enabled="false"/>
-    <view class="CTextLabel" origin="142,20" size="300,25" title="PHRASEATOR" transparent="true" font-color="Text" font="Title" text-alignment="left"/>
-    <view class="CTextLabel" origin="142,46" size="390,14" title="GENERATIVE SAMPLE PHRASE ENGINE · V0.1" transparent="true" font-color="Muted" font="Small" text-alignment="left"/>
+    <view class="CTextLabel" origin="320,20" size="400,25" title="PHRASEATOR" transparent="true" font-color="Text" font="Title" text-alignment="center"/>
+    <view class="CTextLabel" origin="300,46" size="440,14" title="GENERATIVE SAMPLE PHRASE ENGINE · V0.1" transparent="true" font-color="Muted" font="Small" text-alignment="center"/>
     <view class="CView" custom-view-name="PhraseUIScale" origin="934,28" size="68,24"/>
 
     <view class="CTextLabel" origin="36,98" size="250,16" title="SOURCE MATERIAL · DROP WAV / LOAD" transparent="true" font-color="Muted" font="Section"/>
