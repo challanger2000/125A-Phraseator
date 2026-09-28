@@ -145,9 +145,12 @@ StereoFrame FragmentPlayer::processSample(const SourcePool& pool,
             continue;
         }
 
-        const float l = sampleLinear(buffer.left, buffer.frames, voice.position);
+        // Clamp interpolation to the current fragment region. Passing the
+        // region end as the effective frame count prevents the final
+        // fractional sample of a slice from reading into the next slice.
+        const float l = sampleLinear(buffer.left, voice.endFrame, voice.position);
         const float r = buffer.stereo
-            ? sampleLinear(buffer.right, buffer.frames, voice.position)
+            ? sampleLinear(buffer.right, voice.endFrame, voice.position)
             : l;
 
         // Phraseator PAN is a placement macro, not a stereo-balance control.
@@ -178,7 +181,7 @@ StereoFrame FragmentPlayer::processSample(const SourcePool& pool,
                 std::clamp(fromStart / voice.fadeFrames, 0.0, 1.0);
             const double fadeOut =
                 std::clamp(toEnd / voice.fadeFrames, 0.0, 1.0);
-            envelope = static_cast<float>(std::min(fadeIn, fadeOut));
+            envelope *= static_cast<float>(std::min(fadeIn, fadeOut));
         }
 
         out.left += mono * gL * envelope;
