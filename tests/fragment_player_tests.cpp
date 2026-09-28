@@ -287,5 +287,24 @@ int main() {
         CHECK(releaseLate.left >= 0.0f);
     }
 
+    {
+        // Boundary contract: Processor::setupProcessing accepts exactly
+        // 1000 Hz, so the player must not silently fall back to 48 kHz.
+        SourcePool boundaryPool;
+        CHECK(boundaryPool.setOneShot(0, 99u, 4u, 1000.0, false));
+        const float data[4] {1.0f, 0.5f, 0.0f, -0.5f};
+        std::array<AudioBufferView, kMaxSources> boundaryBuffers {};
+        boundaryBuffers[0] = {data, nullptr, 4u, false};
+
+        FragmentPlayer boundaryPlayer;
+        boundaryPlayer.prepare(1000.0);
+        CHECK(boundaryPlayer.trigger(
+            boundaryPool, boundaryBuffers, {0u, 0u}, 1.0f, -1.0f, 0.0f));
+        const auto first = boundaryPlayer.processSample(boundaryPool, boundaryBuffers);
+        const auto second = boundaryPlayer.processSample(boundaryPool, boundaryBuffers);
+        CHECK(std::fabs(first.left - 1.0f) < 1.0e-5f);
+        CHECK(std::fabs(second.left - 0.5f) < 1.0e-5f);
+    }
+
     return 0;
 }

@@ -58,7 +58,7 @@ float PhraseFx::clamp01(float value) noexcept {
 }
 
 void PhraseFx::prepare(double sampleRate) {
-    sampleRate_ = (std::isfinite(sampleRate) && sampleRate > 1000.0)
+    sampleRate_ = (std::isfinite(sampleRate) && sampleRate >= 1000.0)
         ? sampleRate
         : 48000.0;
 

@@ -374,5 +374,26 @@ int main() {
         CHECK(peak > 0.001f);
     }
 
+    {
+        // Boundary contract: exactly 1000 Hz is accepted by the processor.
+        // A quarter note at 60 BPM must therefore be exactly 1000 samples,
+        // not 48000 samples from an internal fallback rate.
+        PhraseFx boundary;
+        boundary.prepare(1000.0);
+        boundary.setDelayAmount(1.0f);
+        boundary.setDelayDivision(1);
+
+        std::vector<float> settleL(5000u, 0.0f);
+        std::vector<float> settleR(5000u, 0.0f);
+        boundary.processBlock(
+            settleL.data(), settleR.data(), settleL.size(), 60.0);
+
+        std::vector<float> l(1002u, 0.0f);
+        std::vector<float> r(1002u, 0.0f);
+        l[0] = 1.0f;
+        CHECK(boundary.processBlock(l.data(), r.data(), l.size(), 60.0));
+        CHECK(std::fabs(l[1000]) > 0.001f || std::fabs(r[1000]) > 0.001f);
+    }
+
     return 0;
 }

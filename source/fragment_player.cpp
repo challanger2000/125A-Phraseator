@@ -7,7 +7,7 @@ namespace phraseator {
 
 void FragmentPlayer::prepare(double outputSampleRate) noexcept {
     outputSampleRate_ =
-        (std::isfinite(outputSampleRate) && outputSampleRate > 1000.0)
+        (std::isfinite(outputSampleRate) && outputSampleRate >= 1000.0)
         ? outputSampleRate
         : 48000.0;
 }
