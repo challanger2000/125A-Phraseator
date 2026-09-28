@@ -316,6 +316,8 @@ Pattern PhraseEngine::vary(const Pattern& input, const GenerationSettings& raw) 
         static_cast<std::size_t>(std::ceil(amount * static_cast<float>(activeCount))),
         1u, activeCount);
 
+    bool changedPhrase = false;
+
     // Partial Fisher-Yates shuffle: choose distinct active steps without heap
     // allocation and without biasing variation toward the first phrase step.
     for (std::size_t i = 0; i < desiredMutations; ++i) {
@@ -342,13 +344,45 @@ Pattern PhraseEngine::vary(const Pattern& input, const GenerationSettings& raw) 
             }
         }
 
-        if (changedFragment)
+        if (changedFragment) {
             step.fragment = candidateFragment;
+            changedPhrase = true;
+        }
         // Ratchets are an independent manual per-step layer. VARIATE never
         // repurposes them as a fallback when no alternate fragment exists.
     }
 
-    // Only the top creative quarter may alter the on/off rhythm structure.
+    // With only one selectable fragment, a source-only mutation has no
+    // audible result. Move one selected hit to a free step instead, preserving
+    // per-step ratchet settings. If every step is occupied, remove one hit as
+    // the minimal audible fallback.
+    if (!changedPhrase && desiredMutations > 0u) {
+        const auto sourceStep = activeIndices[0];
+        std::size_t targetStep = kStepCount;
+
+        for (std::size_t distance = 1u; distance < kStepCount; ++distance) {
+            const auto candidate = (sourceStep + distance) % kStepCount;
+            if (!output[candidate].active) {
+                targetStep = candidate;
+                break;
+            }
+        }
+
+        if (targetStep < kStepCount) {
+            const auto targetRepeats = output[targetStep].repeats;
+            const auto movedFragment = output[sourceStep].fragment;
+            output[sourceStep].active = false;
+            output[targetStep].active = true;
+            output[targetStep].fragment = movedFragment;
+            output[targetStep].repeats = targetRepeats;
+        } else {
+            output[sourceStep].active = false;
+        }
+
+        changedPhrase = true;
+    }
+
+    // Only the top creative quarter may otherwise alter the on/off rhythm structure.
     if (amount > 0.75f) {
         const float structuralChance = (amount - 0.75f) * 1.6f;
         for (std::size_t i = 0; i < output.size(); ++i) {
