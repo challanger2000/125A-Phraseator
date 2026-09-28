@@ -181,7 +181,12 @@ tresult PLUGIN_API Processor::initialize(FUnknown* context) {
     addAudioOutput(STR16("Stereo Out"), SpeakerArr::kStereo);
     addEventInput(STR16("Event In"), 16);
 
-    sampleLoader_ = std::make_unique<SampleLoadWorker>(sampleBanks_);
+    try {
+        sampleLoader_ = std::make_unique<SampleLoadWorker>(sampleBanks_);
+    } catch (...) {
+        sampleLoader_.reset();
+        return kResultFalse;
+    }
 
     return kResultOk;
 }
@@ -195,6 +200,7 @@ tresult PLUGIN_API Processor::notify(IMessage* message) {
     if (!message)
         return kInvalidArgument;
 
+    try {
     if (FIDStringsEqual(message->getMessageID(), kMsgGenerate)) {
         generateCommandPending_.store(true, std::memory_order_release);
         return kResultTrue;
@@ -398,6 +404,9 @@ tresult PLUGIN_API Processor::notify(IMessage* message) {
         return kResultFalse;
 
     return kResultTrue;
+    } catch (...) {
+        return kResultFalse;
+    }
 }
 
 tresult PLUGIN_API Processor::setBusArrangements(
