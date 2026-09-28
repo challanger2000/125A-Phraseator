@@ -17,7 +17,7 @@ Load arbitrary one-shot WAV samples, then generate musically useful rhythmic phr
 - Controlled variation rather than blind randomization
 - Optional pitch-to-key behavior with Chromatic / Major / Minor
 - Discrete octave selector: OFF / +1 / -1 / +/-1
-- Density, Variate Depth, Repeat, Velocity, Pitch, Pan and Groove controls
+- Density, Variate Depth, Motif Reuse, Velocity, Pitch, Pan and Groove controls
 - PAN 0 is true mono/center; higher PAN settings create generated placement
 - Simple built-in Delay and Cut processing
 - Pattern locking and manual source assignment per step
@@ -30,8 +30,8 @@ The UI should remain simple even when the internal rules are sophisticated. Phra
 
 ## Control model
 
-- **CREATE / CHANGE PHRASE:** Density, Repeat and Variate Depth define or mutate the phrase structure.
-- **LIVE SHAPE:** Pitch, Octave, Velocity, Pan, Groove and Pitch To Key act immediately on the current phrase during playback. They do not require Generate and do not replace the current pattern.
+- **CREATE / CHANGE PHRASE:** Density, Motif Reuse and Variate Depth define or mutate the phrase structure.
+- **LIVE SHAPE:** Pitch, Octave, Velocity, Pan, Groove and Pitch To Key do not require Generate and do not replace the current pattern. PAN is continuous on active voices; trigger-bound pitch, octave, velocity, groove and key changes apply at the next musical event.
 
 
 ## Step articulation
