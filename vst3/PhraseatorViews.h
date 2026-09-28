@@ -20,6 +20,9 @@ class FaceplateView final : public VSTGUI::CView {
 public:
     explicit FaceplateView(const VSTGUI::CRect& size);
     void draw(VSTGUI::CDrawContext* context) override;
+    VSTGUI::CMouseEventResult onMouseDown(
+        VSTGUI::CPoint& where,
+        const VSTGUI::CButtonState& buttons) override;
 };
 
 class LogoView final : public VSTGUI::CView {

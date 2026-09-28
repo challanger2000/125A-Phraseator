@@ -813,6 +813,18 @@ void MacroKnob::draw(VSTGUI::CDrawContext* context) {
     setDirty(false);
 }
 
+VSTGUI::CMouseEventResult MacroKnob::onMouseDown(
+    VSTGUI::CPoint& where,
+    const VSTGUI::CButtonState& buttons) {
+    if (!getViewSize().pointInside(where))
+        return VSTGUI::kMouseEventNotHandled;
+
+    if (resetToDefaultOnCtrlClick(this, buttons))
+        return VSTGUI::kMouseDownEventHandledButDontNeedMovedOrUpEvents;
+
+    return VSTGUI::CKnob::onMouseDown(where, buttons);
+}
+
 
 SelectorView::SelectorView(const VSTGUI::CRect& size,
                            VSTGUI::IControlListener* listener,
