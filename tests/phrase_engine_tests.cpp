@@ -2,6 +2,7 @@
 #include "test_common.h"
 
 #include <cmath>
+#include <limits>
 
 using namespace phraseator;
 
@@ -669,6 +670,29 @@ int main() {
                 activatedFormerlyEmpty || (!base[i].active && varied[i].active);
         }
         CHECK(activatedFormerlyEmpty);
+    }
+
+
+    {
+        // Non-finite macro input must collapse to neutral/off behavior instead
+        // of propagating NaN into probability or live generation fields.
+        GenerationSettings bad;
+        bad.density = std::numeric_limits<float>::quiet_NaN();
+        bad.repeat = std::numeric_limits<float>::infinity();
+        bad.pitch = std::numeric_limits<float>::quiet_NaN();
+        bad.pan = std::numeric_limits<float>::infinity();
+        bad.groove = std::numeric_limits<float>::quiet_NaN();
+        bad.velocity = std::numeric_limits<float>::quiet_NaN();
+        bad.fragmentCount = 2u;
+
+        PhraseEngine safe(0xBAD125Au);
+        const auto pattern = safe.generate(bad);
+        for (const auto& step : pattern) {
+            CHECK(std::isfinite(step.velocity));
+            CHECK(std::isfinite(step.pitchSemitones));
+            CHECK(std::isfinite(step.pan));
+            CHECK(std::isfinite(step.timingOffset));
+        }
     }
 
     return 0;
