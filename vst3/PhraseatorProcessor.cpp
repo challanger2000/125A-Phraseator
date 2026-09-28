@@ -927,10 +927,13 @@ void Processor::emitSourceStatusParameters(ProcessData& data,
 }
 
 tresult PLUGIN_API Processor::process(ProcessData& data) {
+    consumePendingProjectState();
+
     if (data.numOutputs <= 0 || data.outputs == nullptr || data.numSamples <= 0) {
         // Parameter-only flush calls still need to leave the component in the
         // final host-provided state even though there is no audio to segment.
         readParameterChanges(data.inputParameterChanges);
+        publishRuntimeState();
         emitPatternViewParameters(data, 0);
         emitSourceStatusParameters(data, 0);
         return kResultOk;
@@ -1013,6 +1016,7 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
 
             state_.sources[i] = meta;
         }
+        runtimeStateDirty_ = true;
 
         if (recallPatternRemapPending_.exchange(
                 false, std::memory_order_acq_rel)) {
@@ -1076,6 +1080,7 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
 
                 state_.sources[i] = meta;
             }
+            runtimeStateDirty_ = true;
 
             bool patternChanged = false;
 
@@ -1143,6 +1148,7 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
     }
 
     if (patternEdited) {
+        runtimeStateDirty_ = true;
         refreshSchedulerPattern();
         patternViewDirty_ = true;
     }
@@ -1366,6 +1372,7 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
     emitPatternViewParameters(data, data.numSamples - 1);
     emitSourceStatusParameters(data, data.numSamples - 1);
     fallbackProjectTimeSamples_ = projectTime + static_cast<double>(data.numSamples);
+    publishRuntimeState();
 
     return kResultOk;
 }
