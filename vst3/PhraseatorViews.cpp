@@ -618,6 +618,197 @@ void MacroKnob::draw(VSTGUI::CDrawContext* context) {
     setDirty(false);
 }
 
+
+SelectorView::SelectorView(const VSTGUI::CRect& size,
+                           VSTGUI::IControlListener* listener,
+                           std::int32_t tag,
+                           std::vector<std::string> labels)
+: VSTGUI::CControl(size,listener,tag),
+  labels_(std::move(labels)) {
+    setTransparency(true);
+    setWantsFocus(true);
+}
+
+void SelectorView::draw(VSTGUI::CDrawContext* context) {
+    const auto r=getViewSize();
+    const std::size_t count=labels_.empty()?1u:labels_.size();
+    const int index=count<=1u?0:std::clamp(
+        static_cast<int>(std::lround(getValueNormalized()*static_cast<double>(count-1u))),
+        0,static_cast<int>(count-1u));
+    const std::string label=labels_.empty()?std::string{}:labels_[static_cast<std::size_t>(index)];
+
+    context->setDrawMode(VSTGUI::kAntiAliasing);
+    VSTGUI::CRect shadow=r; shadow.offset(0.0,1.5);
+    context->setFillColor({2,4,6,210});
+    context->drawRect(shadow,VSTGUI::kDrawFilled);
+    context->setFillColor({18,24,31,255});
+    context->setFrameColor({69,83,99,230});
+    context->setLineWidth(1.0);
+    context->drawRect(r,VSTGUI::kDrawFilledAndStroked);
+
+    // Small blue datum rail: recognisable Phraseator selector language.
+    context->setFrameColor({86,154,220,150});
+    context->setLineWidth(1.3);
+    context->drawLine({r.left+5.0,r.bottom-3.0},{r.right-5.0,r.bottom-3.0});
+
+    context->setFont(VSTGUI::kNormalFont, std::min(9.0,std::max(7.0,r.getHeight()*0.34)), VSTGUI::kBoldFace);
+    context->setFontColor({232,238,244,255});
+    context->drawString(VSTGUI::UTF8String(label.c_str()),r,VSTGUI::kCenterText);
+    setDirty(false);
+}
+
+VSTGUI::CMouseEventResult SelectorView::onMouseDown(
+    VSTGUI::CPoint& where,const VSTGUI::CButtonState& buttons) {
+    if(!getViewSize().pointInside(where) || labels_.size()<2u)
+        return VSTGUI::kMouseEventNotHandled;
+    const bool backwards=buttons.isRightButton();
+    if(!buttons.isLeftButton() && !backwards)
+        return VSTGUI::kMouseEventNotHandled;
+
+    const int last=static_cast<int>(labels_.size()-1u);
+    int index=std::clamp(
+        static_cast<int>(std::lround(getValueNormalized()*static_cast<double>(last))),0,last);
+    index=backwards ? (index==0?last:index-1) : (index==last?0:index+1);
+
+    beginEdit();
+    setValueNormalized(static_cast<float>(index)/static_cast<float>(last));
+    valueChanged();
+    endEdit();
+    invalid();
+    return VSTGUI::kMouseDownEventHandledButDontNeedMovedOrUpEvents;
+}
+
+ToggleView::ToggleView(const VSTGUI::CRect& size,
+                       VSTGUI::IControlListener* listener,
+                       std::int32_t tag,
+                       std::string offLabel,
+                       std::string onLabel,
+                       bool compact)
+: VSTGUI::CControl(size,listener,tag),
+  offLabel_(std::move(offLabel)),
+  onLabel_(std::move(onLabel)),
+  compact_(compact) {
+    setTransparency(true);
+    setWantsFocus(true);
+}
+
+void ToggleView::draw(VSTGUI::CDrawContext* context) {
+    const auto r=getViewSize();
+    const bool on=getValueNormalized()>=0.5f;
+    context->setDrawMode(VSTGUI::kAntiAliasing);
+
+    VSTGUI::CRect shadow=r; shadow.offset(0.0,1.5);
+    context->setFillColor({1,3,5,220});
+    context->drawRect(shadow,VSTGUI::kDrawFilled);
+    context->setFillColor(on?VSTGUI::CColor{27,51,73,255}:VSTGUI::CColor{17,22,28,255});
+    context->setFrameColor(on?VSTGUI::CColor{86,154,220,245}:VSTGUI::CColor{66,78,92,220});
+    context->setLineWidth(on?1.4:1.0);
+    context->drawRect(r,VSTGUI::kDrawFilledAndStroked);
+
+    const double d=compact_?5.0:7.0;
+    const VSTGUI::CRect led(r.left+5.0,r.getCenter().y-d*.5,r.left+5.0+d,r.getCenter().y+d*.5);
+    context->setFillColor(on?VSTGUI::CColor{150,207,255,255}:VSTGUI::CColor{24,34,44,255});
+    context->setFrameColor({5,8,11,255});
+    context->drawEllipse(led,VSTGUI::kDrawFilledAndStroked);
+
+    const auto& label=on?onLabel_:offLabel_;
+    VSTGUI::CRect tr=r; tr.left+=compact_?11.0:15.0;
+    context->setFont(VSTGUI::kNormalFont,compact_?7.0:8.2,VSTGUI::kBoldFace);
+    context->setFontColor(on?VSTGUI::CColor{239,246,252,255}:VSTGUI::CColor{174,186,198,255});
+    context->drawString(VSTGUI::UTF8String(label.c_str()),tr,VSTGUI::kCenterText);
+    setDirty(false);
+}
+
+VSTGUI::CMouseEventResult ToggleView::onMouseDown(
+    VSTGUI::CPoint& where,const VSTGUI::CButtonState& buttons) {
+    if(!buttons.isLeftButton() || !getViewSize().pointInside(where))
+        return VSTGUI::kMouseEventNotHandled;
+    beginEdit();
+    setValueNormalized(getValueNormalized()>=0.5f?0.0f:1.0f);
+    valueChanged();
+    endEdit();
+    invalid();
+    return VSTGUI::kMouseDownEventHandledButDontNeedMovedOrUpEvents;
+}
+
+ActionButton::ActionButton(const VSTGUI::CRect& size,
+                           VSTGUI::IControlListener* listener,
+                           std::int32_t tag,
+                           std::string label,
+                           bool compact,
+                           bool accent)
+: VSTGUI::CControl(size,listener,tag),
+  label_(std::move(label)),
+  compact_(compact),
+  accent_(accent) {
+    setTransparency(true);
+    setWantsFocus(true);
+}
+
+void ActionButton::draw(VSTGUI::CDrawContext* context) {
+    const auto r=getViewSize();
+    context->setDrawMode(VSTGUI::kAntiAliasing);
+    VSTGUI::CRect shadow=r; shadow.offset(0.0,2.0);
+    context->setFillColor({1,2,4,230});
+    context->drawRect(shadow,VSTGUI::kDrawFilled);
+    context->setFillColor(accent_?VSTGUI::CColor{31,63,91,255}:VSTGUI::CColor{24,29,36,255});
+    context->setFrameColor(accent_?VSTGUI::CColor{95,173,235,255}:VSTGUI::CColor{78,88,101,230});
+    context->setLineWidth(accent_?1.4:1.0);
+    context->drawRect(r,VSTGUI::kDrawFilledAndStroked);
+    VSTGUI::CRect inner=r; inner.inset(2.0,2.0);
+    context->setFrameColor({255,255,255,18});
+    context->drawRect(inner,VSTGUI::kDrawStroked);
+    context->setFont(VSTGUI::kNormalFont,compact_?6.8:9.0,VSTGUI::kBoldFace);
+    context->setFontColor({239,243,247,255});
+    context->drawString(VSTGUI::UTF8String(label_.c_str()),r,VSTGUI::kCenterText);
+    setDirty(false);
+}
+
+VSTGUI::CMouseEventResult ActionButton::onMouseDown(
+    VSTGUI::CPoint& where,const VSTGUI::CButtonState& buttons) {
+    if(!buttons.isLeftButton() || !getViewSize().pointInside(where))
+        return VSTGUI::kMouseEventNotHandled;
+    beginEdit();
+    setValueNormalized(1.0f);
+    valueChanged();
+    endEdit();
+    // Action listener deliberately returns trigger controls to zero.
+    invalid();
+    return VSTGUI::kMouseDownEventHandledButDontNeedMovedOrUpEvents;
+}
+
+UIScaleView::UIScaleView(const VSTGUI::CRect& size,VSTGUI::VST3Editor* editor)
+: VSTGUI::CView(size),editor_(editor) {
+    setTransparency(true);
+    setMouseEnabled(true);
+    setWantsFocus(true);
+}
+
+void UIScaleView::draw(VSTGUI::CDrawContext* context) {
+    const auto r=getViewSize();
+    const double zoom=editor_?editor_->getZoomFactor():1.0;
+    const int percent=static_cast<int>(std::lround(zoom*100.0));
+    char text[20]{};
+    std::snprintf(text,sizeof(text),"UI %d%%",percent);
+    context->setFillColor({16,21,27,255});
+    context->setFrameColor({63,76,90,230});
+    context->setLineWidth(1.0);
+    context->drawRect(r,VSTGUI::kDrawFilledAndStroked);
+    context->setFont(VSTGUI::kNormalFont,7.5,VSTGUI::kBoldFace);
+    context->setFontColor({174,187,200,255});
+    context->drawString(VSTGUI::UTF8String(text),r,VSTGUI::kCenterText);
+    setDirty(false);
+}
+
+VSTGUI::CMouseEventResult UIScaleView::onMouseDown(
+    VSTGUI::CPoint& where,const VSTGUI::CButtonState& buttons) {
+    if(!editor_ || !buttons.isLeftButton() || !getViewSize().pointInside(where))
+        return VSTGUI::kMouseEventNotHandled;
+    editor_->setZoomFactor(editor_->getZoomFactor()>=1.25?1.0:1.5);
+    invalid();
+    return VSTGUI::kMouseDownEventHandledButDontNeedMovedOrUpEvents;
+}
+
 void configureEditor(VSTGUI::VST3Editor* editor,double width,double height,double zoom){
     if(!editor) return;
     editor->setAllowedZoomFactors(std::vector<double>{1.0,1.5});
@@ -659,14 +850,39 @@ VSTGUI::CView* createCustomView(VSTGUI::UTF8StringPtr name,
     if(std::strcmp(name,"PhraseKnob")==0 && tag>=0)
         return new MacroKnob(rect,editor,tag);
 
+    if(std::strcmp(name,"PhraseUIScale")==0)
+        return new UIScaleView(rect,editor);
+
     if(std::strcmp(name,"PhraseGenerate")==0 && tag>=0)
-        return new VSTGUI::CTextButton(rect,controller,tag,"GENERATE");
+        return new ActionButton(rect,controller,tag,"GENERATE",false,true);
     if(std::strcmp(name,"PhraseVariate")==0 && tag>=0)
-        return new VSTGUI::CTextButton(rect,controller,tag,"VARIATE");
+        return new ActionButton(rect,controller,tag,"VARIATE",false,false);
     if(std::strcmp(name,"PhraseLoadOne")==0 && tag>=0)
-        return new VSTGUI::CTextButton(rect,controller,tag,"LOAD");
+        return new ActionButton(rect,controller,tag,"LOAD",true,false);
     if(std::strcmp(name,"PhraseClear")==0 && tag>=0)
-        return new VSTGUI::CTextButton(rect,controller,tag,"X");
+        return new ActionButton(rect,controller,tag,"X",true,false);
+
+    if(std::strcmp(name,"PhraseMute")==0 &&
+       tag>=static_cast<Steinberg::int32_t>(kSourceMuteBase) &&
+       tag<static_cast<Steinberg::int32_t>(kSourceMuteBase+kSourceMuteCount))
+        return new ToggleView(rect,editor,tag,"ON","MUTE",true);
+
+    if(std::strcmp(name,"PhrasePitchToKey")==0)
+        return new ToggleView(rect,editor,tag,"OFF","ON",false);
+    if(std::strcmp(name,"PhraseLock")==0)
+        return new ToggleView(rect,editor,tag,"FREE","LOCK",false);
+    if(std::strcmp(name,"PhraseMode")==0)
+        return new SelectorView(rect,editor,tag,{"CONTINUE","RETRIGGER"});
+    if(std::strcmp(name,"PhraseOctave")==0)
+        return new SelectorView(rect,editor,tag,{"OFF","+1","-1","+/-1"});
+    if(std::strcmp(name,"PhraseKeyRoot")==0)
+        return new SelectorView(rect,editor,tag,{"C","C#","D","D#","E","F","F#","G","G#","A","A#","B"});
+    if(std::strcmp(name,"PhraseScale")==0)
+        return new SelectorView(rect,editor,tag,{"CHROM","MAJOR","MINOR"});
+    if(std::strcmp(name,"PhraseDelayDivision")==0)
+        return new SelectorView(rect,editor,tag,{"OFF","1/4","1/8","1/8D","1/8T","1/16","1/16D","1/16T"});
+    if(std::strcmp(name,"PhraseCutMode")==0)
+        return new SelectorView(rect,editor,tag,{"LP","HP"});
 
     return nullptr;
 }
