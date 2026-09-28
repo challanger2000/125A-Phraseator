@@ -368,7 +368,7 @@ SampleLoadWorkerResult SampleLoadWorker::execute(WorkItem& item) {
         }
     }
 
-    if (!exchange_.commitWrite(bankIndex)) {
+    if (!exchange_.commitWrite(bankIndex, item.id)) {
         exchange_.cancelWrite(bankIndex);
         result.status = SampleLoadWorkerStatus::PublishFailed;
         return result;
