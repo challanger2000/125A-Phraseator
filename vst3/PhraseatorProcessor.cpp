@@ -134,7 +134,7 @@ void Processor::consumePendingProjectState() noexcept {
     heldMidiNotes_.clear();
     activeMidiNote_ = -1;
     midiTransposeSemitones_ = 0.0f;
-    midiPhraseTimeSamples_ = 0.0;
+    midiPhraseStepPosition_ = 0.0;
 
     engine_.setSeed(state_.randomSeed);
     scheduler_.reset();
@@ -396,9 +396,10 @@ tresult PLUGIN_API Processor::setupProcessing(ProcessSetup& setup) {
         return baseResult;
 
     sampleRate_ = setup.sampleRate;
-    scheduler_.prepare(sampleRate_, 120.0);
+    scheduler_.prepare(sampleRate_);
     fx_.prepare(sampleRate_);
     fallbackProjectTimeSamples_ = 0.0;
+    fallbackProjectStepPosition_ = 0.0;
 
     return kResultOk;
 }
@@ -409,10 +410,11 @@ tresult PLUGIN_API Processor::setActive(TBool state) {
         scheduler_.reset();
         fx_.reset();
         fallbackProjectTimeSamples_ = 0.0;
+        fallbackProjectStepPosition_ = 0.0;
         heldMidiNotes_.clear();
         activeMidiNote_ = -1;
         midiTransposeSemitones_ = 0.0f;
-        midiPhraseTimeSamples_ = 0.0;
+        midiPhraseStepPosition_ = 0.0;
         refreshSchedulerPattern();
     }
     return AudioEffect::setActive(state);
@@ -422,10 +424,11 @@ tresult PLUGIN_API Processor::setProcessing(TBool state) {
     processing_ = state != 0;
     if (processing_) {
         scheduler_.reset();
-        scheduler_.prepare(sampleRate_, 120.0);
+        scheduler_.prepare(sampleRate_);
         refreshSchedulerPattern();
         fx_.reset();
         fallbackProjectTimeSamples_ = 0.0;
+        fallbackProjectStepPosition_ = 0.0;
     } else {
         scheduler_.reset();
         fx_.reset();
@@ -813,7 +816,7 @@ void Processor::handleMidiEvent(const Event& event) noexcept {
             }
 
             if (state_.restartOnNote) {
-                midiPhraseTimeSamples_ = 0.0;
+                midiPhraseStepPosition_ = 0.0;
                 scheduler_.reset();
             }
 
@@ -981,6 +984,8 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
 
     double tempo = 120.0;
     double projectTime = fallbackProjectTimeSamples_;
+    double projectStepPosition = fallbackProjectStepPosition_;
+    bool projectMusicValid = false;
     bool playing = processing_ && active_;
 
     if (data.processContext) {
@@ -988,13 +993,36 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
 
         if ((ctx.state & ProcessContext::kTempoValid) != 0 &&
             std::isfinite(ctx.tempo) && ctx.tempo > 0.0) {
-            tempo = ctx.tempo;
+            tempo = std::clamp(ctx.tempo, 20.0, 400.0);
         }
 
-        // Steinberg VST3 defines projectTimeSamples as always valid.
+        // Steinberg VST3 defines projectTimeSamples as always valid. Prefer
+        // projectTimeMusic (quarter notes/PPQ) for phrase phase because sample
+        // time cannot be converted back to musical position correctly across
+        // historical tempo changes.
         projectTime = static_cast<double>(ctx.projectTimeSamples);
+        if ((ctx.state & ProcessContext::kProjectTimeMusicValid) != 0 &&
+            std::isfinite(ctx.projectTimeMusic)) {
+            projectStepPosition =
+                std::max(0.0, static_cast<double>(ctx.projectTimeMusic) * 4.0);
+            projectMusicValid = true;
+        }
 
         playing = playing && ((ctx.state & ProcessContext::kPlaying) != 0);
+    }
+
+    const double stepsPerSample =
+        (tempo * 4.0) / (60.0 * sampleRate_);
+
+    if (!projectMusicValid && data.processContext) {
+        // Without PPQ, integrate musical phase across contiguous host blocks.
+        // On a seek/loop jump we can only reconstruct an approximation from
+        // the current sample position and tempo; hosts providing PPQ take the
+        // exact path above.
+        if (std::fabs(projectTime - fallbackProjectTimeSamples_) > 0.5) {
+            projectStepPosition = std::max(
+                0.0, projectTime * stepsPerSample);
+        }
     }
 
     const bool recallRemapPending =
@@ -1121,7 +1149,7 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
 
     const auto& bank = sampleBanks_.activeBank();
 
-    scheduler_.prepare(sampleRate_, tempo);
+    scheduler_.prepare(sampleRate_);
     refreshSchedulerPattern();
 
     if (generateCommandPending_.exchange(false, std::memory_order_acq_rel) &&
@@ -1341,16 +1369,18 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
         // held; only its direct audio is muted during the gate-off interval.
         const bool schedulerRunning = playing &&
             (state_.restartOnNote ? midiGateOpen : true);
-        const double absoluteSegmentTime =
-            projectTime + static_cast<double>(currentOffset);
-        const double phraseTime = state_.restartOnNote
-            ? midiPhraseTimeSamples_
-            : absoluteSegmentTime;
+        const double absoluteSegmentStepPosition =
+            projectStepPosition +
+            static_cast<double>(currentOffset) * stepsPerSample;
+        const double phraseStepPosition = state_.restartOnNote
+            ? midiPhraseStepPosition_
+            : absoluteSegmentStepPosition;
 
         const bool schedulerProduced = scheduler_.processBlock(
             bank.sourcePool(),
             bank.buffers(),
-            phraseTime,
+            phraseStepPosition,
+            stepsPerSample,
             schedulerRunning,
             out[0] + currentOffset,
             out[1] + currentOffset,
@@ -1377,7 +1407,8 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
 
         producedAudio = producedAudio || schedulerAudio || fxAudio;
         if (state_.restartOnNote && schedulerRunning)
-            midiPhraseTimeSamples_ += static_cast<double>(segmentSamples);
+            midiPhraseStepPosition_ +=
+                static_cast<double>(segmentSamples) * stepsPerSample;
         currentOffset = segmentEnd;
 
         if (currentOffset < data.numSamples) {
@@ -1389,7 +1420,11 @@ tresult PLUGIN_API Processor::process(ProcessData& data) {
     data.outputs[0].silenceFlags = producedAudio ? 0 : 0x3;
     emitPatternViewParameters(data, data.numSamples - 1);
     emitSourceStatusParameters(data, data.numSamples - 1);
-    fallbackProjectTimeSamples_ = projectTime + static_cast<double>(data.numSamples);
+    fallbackProjectTimeSamples_ =
+        projectTime + static_cast<double>(data.numSamples);
+    fallbackProjectStepPosition_ =
+        projectStepPosition +
+        static_cast<double>(data.numSamples) * stepsPerSample;
     publishRuntimeState();
 
     return kResultOk;
