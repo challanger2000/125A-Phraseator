@@ -165,17 +165,22 @@ tresult PLUGIN_API Processor::notify(IMessage* message) {
         request.mode = SampleLoadMode::Clear;
 
         const auto targetIndex = static_cast<std::size_t>(sourceIndex);
+        const auto recallEpoch =
+            sourceRecallEpoch_.load(std::memory_order_acquire);
         const auto requestId = sampleLoader_->requestLoad(
             request,
             false,
-            [this, targetIndex](
+            [this, targetIndex, recallEpoch](
                 const SampleLoadWorkerResult& result,
                 const std::vector<SampleLoadRequest>&) {
-                if (!result.ok())
+                if (!result.ok() ||
+                    sourceRecallEpoch_.load(std::memory_order_acquire) != recallEpoch) {
                     return;
+                }
 
                 std::lock_guard<std::mutex> lock(sourceRecallMutex_);
-                sourceRecall_[targetIndex] = {};
+                if (sourceRecallEpoch_.load(std::memory_order_relaxed) == recallEpoch)
+                    sourceRecall_[targetIndex] = {};
             });
 
         return requestId != 0u ? kResultTrue : kResultFalse;
@@ -249,14 +254,18 @@ tresult PLUGIN_API Processor::notify(IMessage* message) {
     recallCandidate.utf8Path = utf8Path;
 
     const auto targetIndex = static_cast<std::size_t>(sourceIndex);
+    const auto recallEpoch =
+        sourceRecallEpoch_.load(std::memory_order_acquire);
     const auto requestId = sampleLoader_->requestLoad(
         request,
         false,
-        [this, targetIndex, recallCandidate](
+        [this, targetIndex, recallCandidate, recallEpoch](
             const SampleLoadWorkerResult& result,
             const std::vector<SampleLoadRequest>& resolvedRequests) {
-            if (!result.ok() || resolvedRequests.empty())
+            if (!result.ok() || resolvedRequests.empty() ||
+                sourceRecallEpoch_.load(std::memory_order_acquire) != recallEpoch) {
                 return;
+            }
 
             auto resolvedRecall = recallCandidate;
             const auto& resolved = resolvedRequests.front();
@@ -276,7 +285,8 @@ tresult PLUGIN_API Processor::notify(IMessage* message) {
             resolvedRecall.detectedRootMidi = resolved.detectedRootMidi;
 
             std::lock_guard<std::mutex> lock(sourceRecallMutex_);
-            sourceRecall_[targetIndex] = resolvedRecall;
+            if (sourceRecallEpoch_.load(std::memory_order_relaxed) == recallEpoch)
+                sourceRecall_[targetIndex] = resolvedRecall;
         });
 
     if (requestId == 0u)
@@ -1550,6 +1560,7 @@ bool Processor::readProjectState(IBStream* state) noexcept {
     recallPatternRemapPending_.store(
         hasRecallIdentity, std::memory_order_release);
 
+    sourceRecallEpoch_.fetch_add(1u, std::memory_order_acq_rel);
     state_ = candidate;
     {
         std::lock_guard<std::mutex> lock(sourceRecallMutex_);
