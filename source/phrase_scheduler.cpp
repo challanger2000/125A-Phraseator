@@ -180,8 +180,11 @@ bool PhraseScheduler::processBlock(
 
     double nextBoundary = static_cast<double>(startAbsoluteStep + 1u);
     auto nextAbsoluteStep = startAbsoluteStep + 1u;
-    const double eventTolerance =
-        std::max(1.0e-12, stepsPerSample * 0.5);
+    // Step timingOffset is stored as float. Tolerate only its tiny
+    // representation error; do not use a half-sample epsilon here because
+    // genuine fractional-sample grid boundaries (e.g. 5512.5 @ 44.1 kHz)
+    // must still trigger on the first sample at/after the boundary.
+    constexpr double eventTolerance = 5.0e-7;
 
     for (std::size_t i = 0; i < numSamples; ++i) {
         const double stepPosition =
