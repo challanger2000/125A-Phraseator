@@ -582,7 +582,21 @@ void Processor::applyPitchToKey(Pattern& pattern) noexcept {
 
 void Processor::generatePattern() noexcept {
     recallPatternRemapPending_.store(false, std::memory_order_release);
-    state_.pattern = engine_.generate(currentGenerationSettings());
+
+    const auto settings = currentGenerationSettings();
+    if (settings.sourceSpansAuthoritative && settings.sourceSpanCount == 0u)
+        return;
+
+    std::array<std::uint8_t, kStepCount> ratchets {};
+    for (std::size_t i = 0; i < state_.pattern.size(); ++i)
+        ratchets[i] = state_.pattern[i].repeats;
+
+    auto generated = engine_.generate(settings);
+    for (std::size_t i = 0; i < generated.size(); ++i)
+        generated[i].repeats = std::clamp<std::uint8_t>(
+            ratchets[i], 1u, kMaxRatchetHits);
+
+    state_.pattern = generated;
     refreshSchedulerPattern();
     patternViewDirty_ = true;
 }
